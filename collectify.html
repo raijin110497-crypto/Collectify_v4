@@ -4109,6 +4109,28 @@
         }
       }
 
+      // Edit collateral image preview functions
+      function previewEditCollateralImage() {
+        const input = document.getElementById('editCollateralPhoto');
+        const preview = document.getElementById('editCollateralPreview');
+        const img = document.getElementById('editCollateralPreviewImg');
+
+        if (input.files && input.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.style.display = 'block';
+          };
+          reader.readAsDataURL(input.files[0]);
+        }
+      }
+
+      function removeEditCollateralImage() {
+        document.getElementById('editCollateralPhoto').value = '';
+        document.getElementById('editCollateralPreview').style.display = 'none';
+        document.getElementById('editCollateralPreviewImg').src = '';
+      }
+
       // Add new client with validation
       async function addClient() {
         const name = document.getElementById("clientName").value.trim();
