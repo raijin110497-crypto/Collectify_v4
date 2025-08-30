@@ -4876,6 +4876,7 @@
               notPaidClients.push(client);
             }
           });
+        actualCollected += advCreatedToday.reduce((sum, p) => sum + (p.amount || 0), 0);
 
         // Build custom payments summary per client
         const byClient = new Map();
@@ -5038,7 +5039,7 @@
             let extraLine = "";
             if (entry.advForFuture && entry.advForFuture > 0) {
               const lines = entry.advDetails
-                .map((d) => `Advance for ${new Date(d.forDate).toLocaleDateString()}: ₱${(d.amount).toFixed(2)} (excluded from Actual Collection)`)
+                .map((d) => `Advance for ${new Date(d.forDate).toLocaleDateString()}: ₱${(d.amount).toFixed(2)} (included in Actual Collection — remember to separate)`)
                 .join("<br>");
               extraLine += `<p>${lines}</p>`;
             }
