@@ -3197,6 +3197,44 @@
               </select>
             </div>
           </div>
+
+          <!-- Co-maker Section -->
+          <div class="form-group" style="border-top: 1px solid var(--ios-opaque-separator); padding-top: 20px; margin-top: 20px;">
+            <h4 style="color: var(--ios-blue); margin-bottom: 15px;">Co-maker Information</h4>
+            <div class="form-group">
+              <label>Co-maker Name:</label>
+              <input type="text" id="editCoMakerName" placeholder="Enter co-maker full name" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Co-maker Contact:</label>
+                <input type="tel" id="editCoMakerContact" placeholder="09XX XXX XXXX" />
+              </div>
+              <div class="form-group">
+                <label>Co-maker Address:</label>
+                <textarea id="editCoMakerAddress" placeholder="Enter co-maker complete address"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collateral Section -->
+          <div class="form-group" style="border-top: 1px solid var(--ios-opaque-separator); padding-top: 20px; margin-top: 20px;">
+            <h4 style="color: var(--ios-blue); margin-bottom: 15px;">Collateral Information</h4>
+            <div class="form-group">
+              <label>Collateral Description:</label>
+              <textarea id="editCollateralDescription" placeholder="Describe the collateral item"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Current Collateral Photo:</label>
+              <div id="editCollateralCurrentPhoto" style="margin-bottom: 10px;"></div>
+              <label>Update Collateral Photo:</label>
+              <input type="file" id="editCollateralPhoto" accept="image/*" onchange="previewEditCollateralImage()" />
+              <div id="editCollateralPreview" style="margin-top: 10px; display: none;">
+                <img id="editCollateralPreviewImg" style="max-width: 200px; max-height: 200px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator);" />
+                <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeEditCollateralImage()">Remove New Photo</button>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button
