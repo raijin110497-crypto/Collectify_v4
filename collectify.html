@@ -3190,7 +3190,7 @@
             Are you sure you want to record a full payment for
             <strong id="fullPaymentClientName">this client</strong>?
           </p>
-          <p>Remaining balance: <strong id="fullPaymentAmount">₱0</strong></p>
+          <p>Remaining balance: <strong id="fullPaymentAmount">��0</strong></p>
           <div class="form-group">
             <label>Payment Date:</label>
             <input type="date" id="fullPaymentDate" />
@@ -5549,6 +5549,47 @@
         // Hide native select but keep as backing model
         select.classList.add("hidden-ios-select");
         updateLabelFromSelect();
+      }
+
+      // Abono helpers (advance borrowing)
+      function computeAvailableAdvance(clientId, fromDate) {
+        const from = fromDate || todayLocalDateStr();
+        return (payments.adv || [])
+          .filter((p) => p.clientId == clientId && (!from || p.date >= from))
+          .reduce((sum, p) => sum + (p.amount || 0), 0);
+      }
+      function deductAdvanceFromClient(clientId, amount, fromDate) {
+        let remaining = amount;
+        const from = fromDate || todayLocalDateStr();
+        const advList = (payments.adv || [])
+          .filter((p) => p.clientId == clientId && (!from || p.date >= from))
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
+        for (const entry of advList) {
+          if (remaining <= 0) break;
+          const take = Math.min(remaining, entry.amount);
+          entry.amount -= take;
+          remaining -= take;
+        }
+        payments.adv = (payments.adv || []).filter((p) => p.amount > 0);
+        return remaining <= 0;
+      }
+
+      function toggleAbonoLender() {
+        const type = document.getElementById('abonoLenderType')?.value || 'client';
+        const grp = document.getElementById('abonoLenderClientGroup');
+        if (grp) grp.style.display = type === 'client' ? 'block' : 'none';
+        updateAbonoLenderInfo();
+      }
+      function updateAbonoLenderInfo() {
+        const info = document.getElementById('abonoLenderInfo');
+        if (!info) return;
+        const type = document.getElementById('abonoLenderType')?.value || 'client';
+        if (type !== 'client') { info.textContent = 'Lender: Me'; return; }
+        const lenderId = parseInt(document.getElementById('abonoLenderClient')?.value || '0');
+        const date = document.getElementById('abonoPaymentDate')?.value || todayLocalDateStr();
+        if (!lenderId) { info.textContent = 'Available advance: ₱0.00'; return; }
+        const avail = computeAvailableAdvance(lenderId, date);
+        info.textContent = `Available advance: ₱${avail.toFixed(2)}`;
       }
 
       // Settings functions
