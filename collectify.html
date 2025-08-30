@@ -5042,6 +5042,7 @@
         updateStats();
         updateClientList();
         updatePaymentHistory("notebook");
+        if (currentActiveTab === 'summary') loadSummaryTab();
         closeModal("fullPaymentModal");
         showNotification(
           `Full payment of ₱${remainingAmount.toFixed(2)} recorded for ${client.name}`,
@@ -5668,7 +5669,7 @@
               <div style="display:flex; justify-content: space-between; align-items:center;">
                 <div>
                   <h4>${it.clientName}</h4>
-                  <p>₱${(it.amount||0).toFixed(2)} <span class="status-badge ${badgeCls}" style="margin-left:6px">${badgeCls.replace('status-','')}</span></p>
+                  <p>���${(it.amount||0).toFixed(2)} <span class="status-badge ${badgeCls}" style="margin-left:6px">${badgeCls.replace('status-','')}</span></p>
                 </div>
               </div>
             </div>
@@ -7446,7 +7447,7 @@
               nbAmt>0 ? `<span class="cal-amt cal-notebook">₱${nbAmt.toFixed(0)}</span>` : '',
               ofAmt>0 ? `<span class="cal-amt cal-office">₱${ofAmt.toFixed(0)}</span>` : '',
               gcAmt>0 ? `<span class="cal-amt cal-gcash">₱${gcAmt.toFixed(0)}</span>` : '',
-              adAmt>0 ? `<span class="cal-amt cal-adv" title="Advance">�����${adAmt.toFixed(0)}</span>` : ''
+              adAmt>0 ? `<span class="cal-amt cal-adv" title="Advance">���${adAmt.toFixed(0)}</span>` : ''
             ].filter(Boolean).join('');
 
             cells.push(`
