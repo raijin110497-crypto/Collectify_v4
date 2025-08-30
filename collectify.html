@@ -3489,6 +3489,8 @@
         bind("gcashPaymentDate", "gcash");
         bind("advPaymentDate", "adv");
         bind("abonoPaymentDate", "abono");
+        const abonoDateEl2 = document.getElementById("abonoPaymentDate");
+        if (abonoDateEl2) abonoDateEl2.addEventListener("change", updateAbonoLenderInfo);
         const absentDateEl = document.getElementById("absentDate");
         if (absentDateEl) {
           absentDateEl.addEventListener("change", () => {
@@ -4734,10 +4736,10 @@
                   <p><span class="status-badge status-active">${payment.type}</span></p>
                 </div>
                 <div style="display:flex; gap:8px;">
-                  <button class="btn btn-secondary" onclick="editPayment('${type}', ${payment.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
+                  <button type="button" class="btn btn-secondary" onclick="editPayment('${type}', ${payment.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
                     Edit
                   </button>
-                  <button class="btn btn-danger" onclick="confirmDeletePayment('${type}', ${payment.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
+                  <button type="button" class="btn btn-danger" onclick="confirmDeletePayment('${type}', ${payment.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
                     Delete
                   </button>
                 </div>
@@ -4783,9 +4785,9 @@
         // Calculate the difference in payment amount
         const amountDifference = newAmount - payment.amount;
 
-        // Update client balance accordingly
+        // Update client balance accordingly for collection tabs only
         const client = clients.find((c) => c.id === payment.clientId);
-        if (client) {
+        if (client && (type === "notebook" || type === "office" || type === "gcash" || type === "abono")) {
           client.remainingBalance = Math.max(
             0,
             client.remainingBalance - amountDifference,
@@ -5554,18 +5556,30 @@
       }
 
       // Abono helpers (advance borrowing)
+      function dateKeyForCompare(s) {
+        try {
+          if (!s) return 0;
+          if (s.includes("-")) return parseLocalDate(s).getTime();
+          const d = new Date(s);
+          return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        } catch (e) {
+          return new Date(s).getTime() || 0;
+        }
+      }
       function computeAvailableAdvance(clientId, fromDate) {
         const from = fromDate || todayLocalDateStr();
+        const fromKey = dateKeyForCompare(from);
         return (payments.adv || [])
-          .filter((p) => p.clientId == clientId && (!from || p.date >= from))
+          .filter((p) => p.clientId == clientId && (!from || dateKeyForCompare(p.date) >= fromKey))
           .reduce((sum, p) => sum + (p.amount || 0), 0);
       }
       function deductAdvanceFromClient(clientId, amount, fromDate) {
         let remaining = amount;
         const from = fromDate || todayLocalDateStr();
+        const fromKey = dateKeyForCompare(from);
         const advList = (payments.adv || [])
-          .filter((p) => p.clientId == clientId && (!from || p.date >= from))
-          .sort((a, b) => new Date(a.date) - new Date(b.date));
+          .filter((p) => p.clientId == clientId && (!from || dateKeyForCompare(p.date) >= fromKey))
+          .sort((a, b) => dateKeyForCompare(a.date) - dateKeyForCompare(b.date));
         for (const entry of advList) {
           if (remaining <= 0) break;
           const take = Math.min(remaining, entry.amount);
@@ -5652,7 +5666,7 @@
               "This is your final warning. All data will be permanently deleted. Continue?",
               async () => {
                 clients = [];
-                payments = { notebook: [], office: [], gcash: [], adv: [] };
+                payments = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
                 absences = [];
 
                 await saveData();
