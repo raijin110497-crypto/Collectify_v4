@@ -4111,8 +4111,8 @@
             <hr style="margin: 10px 0; border: 0.5px solid var(--ios-opaque-separator);">
             <p><strong>${coMakerInfo}</strong></p>
             <p><strong>${collateralInfo}</strong></p>
-            ${client.collateral && client.collateral.photoBase64 ?
-              `<img src="${client.collateral.photoBase64}" style="max-width: 200px; max-height: 150px; border-radius: var(--ios-border-radius); margin-top: 8px;" alt="Collateral Photo">` : ''
+            ${client.collateral && (client.collateral.photosBase64?.[0] || client.collateral.photoBase64) ?
+              `<img src="${(client.collateral.photosBase64 && client.collateral.photosBase64[0]) || client.collateral.photoBase64}" style="max-width: 200px; max-height: 150px; border-radius: var(--ios-border-radius); margin-top: 8px;" alt="Collateral Photo">` : ''
             }
             <div style="margin-top: 15px;">
               <button class="btn btn-primary" onclick="contactCoMaker('${client.id}')">Contact Co-maker</button>
