@@ -4526,6 +4526,9 @@
 
         payments.notebook.push(payment);
 
+        // Update payment tracking for missed payment notifications
+        updatePaymentTracking(clientId, today);
+
         await saveData();
         updateStats();
         updateClientList();
@@ -5821,7 +5824,7 @@
                 ${
                   isPaid
                     ? `Paid: ₱${client.paidAmount.toFixed(2)}`
-                    : `Expected: ��${expectedForDate.toFixed(2)}`
+                    : `Expected: ₱${expectedForDate.toFixed(2)}`
                 }
               </p>
               ${statusLine}
