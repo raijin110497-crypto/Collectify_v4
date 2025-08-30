@@ -1088,6 +1088,10 @@
         background: var(--ios-orange);
         color: white;
       }
+      .status-abono {
+        background: var(--ios-teal);
+        color: white;
+      }
       .status-underpaid {
         background: var(--ios-yellow);
         color: #222;
@@ -2041,6 +2045,9 @@
           <button class="tab" data-tab="adv" onclick="closeSidebar()">
             <span>Adv</span>
           </button>
+          <button class="tab" data-tab="abono" onclick="closeSidebar()">
+            <span>Abono</span>
+          </button>
         </div>
         <div class="settings-group">
           <button class="tab" data-tab="absent" onclick="closeSidebar()">
@@ -2080,6 +2087,7 @@
           <button class="tab" data-tab="office">Office</button>
           <button class="tab" data-tab="gcash">GCash</button>
           <button class="tab" data-tab="adv">Adv</button>
+          <button class="tab" data-tab="abono">Abono</button>
           <button class="tab" data-tab="absent">Absent</button>
           <button class="tab" data-tab="settings">Settings</button>
         </div>
@@ -2708,6 +2716,66 @@
             </div>
           </div>
 
+          <!-- Abono Tab -->
+          <div class="tab-panel" id="abono">
+            <h2>Abono Transfers</h2>
+            <div class="form-group">
+              <input type="text" class="search-bar" placeholder="Search clients..." id="abonoSearch" oninput="searchTabClients('abono')" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Borrower (Client):</label>
+                <select id="abonoClient" onchange="selectAbonoClient()">
+                  <option value="">Choose a client...</option>
+                </select>
+                <div id="abonoClientPickerContainer">
+                  <button type="button" id="abonoClientPickerBtn" class="ios-select-button" aria-haspopup="dialog" aria-expanded="false">
+                    <span class="label" id="abonoClientPickerLabel">Choose a client...</span>
+                    <span class="chevron">›</span>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Lender Source:</label>
+                <select id="abonoLenderType" onchange="toggleAbonoLender()">
+                  <option value="client">Client advance</option>
+                  <option value="me">Me</option>
+                </select>
+              </div>
+              <div class="form-group" id="abonoLenderClientGroup">
+                <label>Lender Client (has advance):</label>
+                <select id="abonoLenderClient" onchange="updateAbonoLenderInfo()">
+                  <option value="">Choose a client...</option>
+                </select>
+                <div id="abonoLenderClientPickerContainer">
+                  <button type="button" id="abonoLenderClientPickerBtn" class="ios-select-button" aria-haspopup="dialog" aria-expanded="false">
+                    <span class="label" id="abonoLenderClientPickerLabel">Choose a client...</span>
+                    <span class="chevron">›</span>
+                  </button>
+                </div>
+                <small id="abonoLenderInfo" style="color: var(--ios-secondary-label); display:block; margin-top:6px;">Available advance: ₱0.00</small>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Abono Amount:</label>
+                <input type="number" id="abonoPaymentAmount" placeholder="0.00" step="0.01" />
+              </div>
+              <div class="form-group">
+                <label>Abono Date:</label>
+                <input type="date" id="abonoPaymentDate" />
+              </div>
+            </div>
+            <button class="btn btn-success" onclick="addPayment('abono')">Record Abono</button>
+            <div id="abonoPaymentHistory">
+              <div style="display:flex; justify-content: space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                <h3>Abono History</h3>
+                <button class="btn btn-danger" onclick="confirmClearPaymentHistory('abono')">Clear All</button>
+              </div>
+              <div id="abonoPaymentList"></div>
+            </div>
+          </div>
+
           <!-- Absent Tab -->
           <div class="tab-panel" id="absent">
             <h2>Absent Tracking</h2>
@@ -3245,6 +3313,7 @@
         office: [],
         gcash: [],
         adv: [],
+        abono: [],
       };
       let absences = [];
       let currentEditingClient = null;
@@ -3404,6 +3473,7 @@
         document.getElementById("officePaymentDate").value = today;
         document.getElementById("gcashPaymentDate").value = today;
         document.getElementById("advPaymentDate").value = today;
+        document.getElementById("abonoPaymentDate").value = today;
         document.getElementById("absentDate").value = today;
         document.getElementById("trackerDate").value = today;
         document.getElementById("startDate").value = today;
@@ -3418,6 +3488,9 @@
         bind("officePaymentDate", "office");
         bind("gcashPaymentDate", "gcash");
         bind("advPaymentDate", "adv");
+        bind("abonoPaymentDate", "abono");
+        const abonoDateEl2 = document.getElementById("abonoPaymentDate");
+        if (abonoDateEl2) abonoDateEl2.addEventListener("change", updateAbonoLenderInfo);
         const absentDateEl = document.getElementById("absentDate");
         if (absentDateEl) {
           absentDateEl.addEventListener("change", () => {
@@ -3436,6 +3509,7 @@
         updatePaymentHistory("office");
         updatePaymentHistory("gcash");
         updatePaymentHistory("adv");
+        updatePaymentHistory("abono");
         updateAbsenceHistory();
 
         // Register service worker for PWA only on secure contexts (https or localhost)
@@ -3457,6 +3531,9 @@
         setupIOSPicker("officeClient", "officeSearch");
         setupIOSPicker("gcashClient", "gcashSearch");
         setupIOSPicker("advClient", "advSearch");
+        setupIOSPicker("abonoClient", "abonoSearch");
+        setupIOSPicker("abonoLenderClient", "abonoSearch");
+        toggleAbonoLender();
       });
 
       // Setup tab listeners
@@ -4172,6 +4249,8 @@
           "officeClient",
           "gcashClient",
           "advClient",
+          "abonoClient",
+          "abonoLenderClient",
           "absentClient",
         ];
 
@@ -4241,6 +4320,18 @@
         }
       }
 
+      function selectAbonoClient() {
+        const clientId = document.getElementById("abonoClient").value;
+        if (clientId) {
+          const client = clients.find((c) => c.id == clientId);
+          if (client) {
+            const dateStr = document.getElementById("abonoPaymentDate").value;
+            const val = expectedAmountForDate(client, dateStr);
+            document.getElementById("abonoPaymentAmount").value = val.toFixed(2);
+          }
+        }
+      }
+
       function selectAbsentClient() {
         const clientId = document.getElementById("absentClient").value;
         const amountInput = document.getElementById("absentDailyAmount");
@@ -4298,7 +4389,7 @@
         return d;
       }
       function findExistingPaymentAnyType(clientId, date) {
-        for (const t of ["notebook", "office", "gcash"]) {
+        for (const t of ["notebook", "office", "gcash", "abono"]) {
           const arr = payments[t] || [];
           const found = arr.find((p) => p.clientId == clientId && p.date === date);
           if (found) return { type: t, payment: found };
@@ -4394,6 +4485,11 @@
             amountId: "advPaymentAmount",
             dateId: "advPaymentDate",
           },
+          abono: {
+            selectId: "abonoClient",
+            amountId: "abonoPaymentAmount",
+            dateId: "abonoPaymentDate",
+          },
         };
         const cfg = map[type];
         if (!cfg) return;
@@ -4455,7 +4551,7 @@
           const dup = findDuplicatePayment(
             parseInt(clientId),
             date,
-            ["notebook", "office", "gcash"].filter((t) => t !== type),
+            ["notebook", "office", "gcash", "abono"].filter((t) => t !== type),
           );
           if (dup) {
             showNotification(
@@ -4493,6 +4589,29 @@
           return;
         }
 
+        // Abono-specific: validate lender and optionally deduct from lender's advances
+        let abonoMeta = {};
+        if (type === "abono") {
+          const lenderType = (document.getElementById("abonoLenderType")?.value) || "client";
+          let lenderName = "Me";
+          let lenderClientId = null;
+          if (lenderType === "client") {
+            lenderClientId = parseInt(document.getElementById("abonoLenderClient")?.value || "0");
+            if (!lenderClientId) {
+              showNotification("Please choose a lender client with advance", "error");
+              return;
+            }
+            const ok = deductAdvanceFromClient(lenderClientId, amount, date);
+            if (!ok) {
+              showNotification("Insufficient advance balance from selected lender", "error");
+              return;
+            }
+            const lender = clients.find((c) => c.id == lenderClientId);
+            lenderName = lender ? lender.name : "Client";
+          }
+          abonoMeta = { lenderType, lenderClientId, lenderName };
+        }
+
         // Sunday split logic (Sunday is not a collection day)
         if (isSunday(date)) {
           const satDate = formatDateLocal(addDaysLocal(date, -1));
@@ -4516,7 +4635,7 @@
           }
 
           // Update client balance for collection tabs
-          if (type === "notebook" || type === "office" || type === "gcash") {
+          if (type === "notebook" || type === "office" || type === "gcash" || type === "abono") {
             client.remainingBalance = Math.max(0, client.remainingBalance - amount);
             if (client.remainingBalance <= 0) client.status = "paid";
           }
@@ -4547,7 +4666,7 @@
         }
 
         // Update client balance (only for notebook, office, gcash - NOT adv or absent)
-        if (type === "notebook" || type === "office" || type === "gcash") {
+        if (type === "notebook" || type === "office" || type === "gcash" || type === "abono") {
           client.remainingBalance = Math.max(
             0,
             client.remainingBalance - amount,
@@ -4567,6 +4686,7 @@
           createdAt: todayLocalDateStr(),
           type: "manual",
           paymentType: type,
+          ...abonoMeta,
         };
 
         payments[type].push(payment);
@@ -4612,13 +4732,14 @@
                 <div>
                   <h4>${payment.clientName}</h4>
                   <p>₱${payment.amount.toFixed(2)} • ${new Date(payment.date).toLocaleDateString()}</p>
+                  ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}</p>` : ''}
                   <p><span class="status-badge status-active">${payment.type}</span></p>
                 </div>
                 <div style="display:flex; gap:8px;">
-                  <button class="btn btn-secondary" onclick="editPayment('${type}', ${payment.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
+                  <button type="button" class="btn btn-secondary" onclick="editPayment('${type}', ${payment.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
                     Edit
                   </button>
-                  <button class="btn btn-danger" onclick="confirmDeletePayment('${type}', ${payment.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
+                  <button type="button" class="btn btn-danger" onclick="confirmDeletePayment('${type}', ${payment.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
                     Delete
                   </button>
                 </div>
@@ -4664,9 +4785,9 @@
         // Calculate the difference in payment amount
         const amountDifference = newAmount - payment.amount;
 
-        // Update client balance accordingly
+        // Update client balance accordingly for collection tabs only
         const client = clients.find((c) => c.id === payment.clientId);
-        if (client) {
+        if (client && (type === "notebook" || type === "office" || type === "gcash" || type === "abono")) {
           client.remainingBalance = Math.max(
             0,
             client.remainingBalance - amountDifference,
@@ -4701,7 +4822,7 @@
             const client = clients.find((c) => c.id === payment.clientId);
             if (
               client &&
-              (type === "notebook" || type === "office" || type === "gcash")
+              (type === "notebook" || type === "office" || type === "gcash" || type === "abono")
             ) {
               client.remainingBalance = Math.min(
                 client.totalAmount,
@@ -5035,7 +5156,9 @@
                           ? "GCash"
                           : t === "adv"
                             ? "Adv"
-                            : t;
+                            : t === "abono"
+                              ? "Abono"
+                              : t;
                   const cls =
                     t === "notebook"
                       ? "status-notebook"
@@ -5045,7 +5168,9 @@
                           ? "status-gcash"
                           : t === "adv"
                             ? "status-adv"
-                            : "status-active";
+                            : t === "abono"
+                              ? "status-abono"
+                              : "status-active";
                   return `<span class="status-badge ${cls}">${label}</span>`;
                 })
                 .join(" ");
@@ -5123,7 +5248,9 @@
                         ? "GCash"
                         : t === "adv"
                           ? "Adv"
-                          : t;
+                          : t === "abono"
+                            ? "Abono"
+                            : t;
                 const cls =
                   t === "notebook"
                     ? "status-notebook"
@@ -5133,7 +5260,9 @@
                         ? "status-gcash"
                         : t === "adv"
                           ? "status-adv"
-                          : "status-active";
+                          : t === "abono"
+                            ? "status-abono"
+                            : "status-active";
                 return `<span class="status-badge ${cls}">${label}</span>`;
               })
               .join(" ");
@@ -5192,6 +5321,8 @@
             document.getElementById("gcashPaymentAmount").value = "";
           else if (type === "adv")
             document.getElementById("advPaymentAmount").value = "";
+          else if (type === "abono")
+            document.getElementById("abonoPaymentAmount").value = "";
           else if (type === "absent") {
             const amt = document.getElementById("absentDailyAmount");
             if (amt) amt.value = "";
@@ -5424,6 +5555,59 @@
         updateLabelFromSelect();
       }
 
+      // Abono helpers (advance borrowing)
+      function dateKeyForCompare(s) {
+        try {
+          if (!s) return 0;
+          if (s.includes("-")) return parseLocalDate(s).getTime();
+          const d = new Date(s);
+          return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        } catch (e) {
+          return new Date(s).getTime() || 0;
+        }
+      }
+      function computeAvailableAdvance(clientId, fromDate) {
+        const from = fromDate || todayLocalDateStr();
+        const fromKey = dateKeyForCompare(from);
+        return (payments.adv || [])
+          .filter((p) => p.clientId == clientId && (!from || dateKeyForCompare(p.date) >= fromKey))
+          .reduce((sum, p) => sum + (p.amount || 0), 0);
+      }
+      function deductAdvanceFromClient(clientId, amount, fromDate) {
+        let remaining = amount;
+        const from = fromDate || todayLocalDateStr();
+        const fromKey = dateKeyForCompare(from);
+        const advList = (payments.adv || [])
+          .filter((p) => p.clientId == clientId && (!from || dateKeyForCompare(p.date) >= fromKey))
+          .sort((a, b) => dateKeyForCompare(a.date) - dateKeyForCompare(b.date));
+        for (const entry of advList) {
+          if (remaining <= 0) break;
+          const take = Math.min(remaining, entry.amount);
+          entry.amount -= take;
+          remaining -= take;
+        }
+        payments.adv = (payments.adv || []).filter((p) => p.amount > 0);
+        return remaining <= 0;
+      }
+
+      function toggleAbonoLender() {
+        const type = document.getElementById('abonoLenderType')?.value || 'client';
+        const grp = document.getElementById('abonoLenderClientGroup');
+        if (grp) grp.style.display = type === 'client' ? 'block' : 'none';
+        updateAbonoLenderInfo();
+      }
+      function updateAbonoLenderInfo() {
+        const info = document.getElementById('abonoLenderInfo');
+        if (!info) return;
+        const type = document.getElementById('abonoLenderType')?.value || 'client';
+        if (type !== 'client') { info.textContent = 'Lender: Me'; return; }
+        const lenderId = parseInt(document.getElementById('abonoLenderClient')?.value || '0');
+        const date = document.getElementById('abonoPaymentDate')?.value || todayLocalDateStr();
+        if (!lenderId) { info.textContent = 'Available advance: ₱0.00'; return; }
+        const avail = computeAvailableAdvance(lenderId, date);
+        info.textContent = `Available advance: ₱${avail.toFixed(2)}`;
+      }
+
       // Settings functions
       async function saveDefaultSettings() {
         defaultSettings.interestRate =
@@ -5482,7 +5666,7 @@
               "This is your final warning. All data will be permanently deleted. Continue?",
               async () => {
                 clients = [];
-                payments = { notebook: [], office: [], gcash: [], adv: [] };
+                payments = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
                 absences = [];
 
                 await saveData();
@@ -5640,6 +5824,7 @@
                       office: [],
                       gcash: [],
                       adv: [],
+                      abono: [],
                     };
                     absences = data.absences || [];
                     defaultSettings = data.defaultSettings || {
