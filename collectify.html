@@ -2064,6 +2064,7 @@
       .cal-gcash { background: var(--ios-teal); }
       .cal-adv { background: var(--ios-yellow); }
       .cal-absent { background: var(--ios-red); }
+      .cal-full { background: var(--ios-green); }
       .over-badge { align-self: flex-end; font-size: 9px; padding: 2px 6px; border-radius: 10px; background: var(--ios-pink); color: #fff; font-weight: 700; }
       .calendar-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--ios-secondary-label); }
       .legend-item { display: inline-flex; align-items: center; gap: 6px; }
@@ -2630,6 +2631,10 @@
                 <h3 id="summaryGcashTotal">₱0</h3>
                 <p>GCash</p>
               </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-green), var(--ios-teal));">
+                <h3 id="summaryFullPaidTotal">₱0</h3>
+                <p>Full Pay</p>
+              </div>
               <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-yellow), var(--ios-orange));">
                 <h3 id="summaryAdvTotal">₱0</h3>
                 <p>Adv (applied today)</p>
@@ -2655,6 +2660,10 @@
             <div class="form-group">
               <label>Adv</label>
               <div id="summaryAdvList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+            <div class="form-group">
+              <label>Full Pay</label>
+              <div id="summaryFullPaidList" class="client-list"><div class="no-data">No entries</div></div>
             </div>
             <div class="form-group">
               <label>Overpayment (per client, per day)</label>
@@ -5636,6 +5645,15 @@
         const nb = groupByClient('notebook');
         const gc = groupByClient('gcash');
         const ad = groupByClient('adv');
+        const fullRaw = Object.values(payments).flat().filter(p => p.date === date && p.type === 'full');
+        const fullMap = new Map();
+        fullRaw.forEach(p => {
+          const key = String(p.clientId);
+          const prev = fullMap.get(key) || { clientId: p.clientId, clientName: p.clientName, amount: 0 };
+          prev.amount += Number(p.amount) || 0;
+          fullMap.set(key, prev);
+        });
+        const full = Array.from(fullMap.values()).sort((a,b)=>a.clientName.localeCompare(b.clientName));
 
         // Absent list with expected amount
         const abs = absences
@@ -5663,6 +5681,7 @@
         const sumAmt = (arr) => arr.reduce((s, x) => s + (Number(x.amount)||0), 0);
         document.getElementById('summaryNotebookTotal').textContent = `₱${sumAmt(nb).toFixed(2)}`;
         document.getElementById('summaryGcashTotal').textContent = `₱${sumAmt(gc).toFixed(2)}`;
+        const fpEl = document.getElementById('summaryFullPaidTotal'); if (fpEl) fpEl.textContent = `₱${sumAmt(full).toFixed(2)}`;
         document.getElementById('summaryAdvTotal').textContent = `₱${sumAmt(ad).toFixed(2)}`;
         document.getElementById('summaryOverpayCount').textContent = String(over.length);
         document.getElementById('summaryAbsentCount').textContent = String(abs.length);
@@ -5703,6 +5722,7 @@
         renderSimple('summaryNotebookList', nb, 'status-notebook', 'No notebook payments');
         renderSimple('summaryGcashList', gc, 'status-gcash', 'No GCash payments');
         renderSimple('summaryAdvList', ad, 'status-adv', 'No adv entries');
+        renderSimple('summaryFullPaidList', full, 'status-paid', 'No full payments');
         renderOver('summaryOverpayList', over);
         renderSimple('summaryAbsentList', abs, 'status-absent', 'No absences');
       }
@@ -6137,6 +6157,58 @@
             }
           });
         actualCollected += advCreatedToday.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+        // Ensure fully paid amounts are included in Expected Collection and Paid Today
+        (function includeFullPays() {
+          const fullByClient = new Map();
+          datePayments.forEach((p) => {
+            if (p.type === "full") {
+              const prev = fullByClient.get(p.clientId) || 0;
+              fullByClient.set(p.clientId, prev + (Number(p.amount) || 0));
+            }
+          });
+          if (fullByClient.size === 0) return;
+
+          const paidIds = new Set(paidClients.map((c) => c.id));
+          fullByClient.forEach((amt, cid) => {
+            const cl = clients.find((c) => c.id === cid);
+            if (!cl) return;
+
+            // Add full payment amounts to expected total for the day
+            totalExpected += amt;
+
+            // Ensure fully-paid clients appear in the Paid Today list
+            if (!paidIds.has(cid)) {
+              const clientPayments = datePayments.filter((p) => p.clientId === cid);
+              const totalPaid = clientPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+              paidClients.push({ ...cl, paidAmount: totalPaid, payments: clientPayments });
+            }
+          });
+        })();
+
+        // Include payments from clients already marked paid (manual full pay)
+        (function includePaidStatusClients() {
+          const paidIds = new Set(paidClients.map((c) => c.id));
+          const mapPaid = new Map();
+          datePayments.forEach((p) => {
+            const cl = clients.find((c) => c.id === p.clientId);
+            if (cl && cl.status === 'paid') {
+              const prev = mapPaid.get(p.clientId) || 0;
+              mapPaid.set(p.clientId, prev + (Number(p.amount) || 0));
+            }
+          });
+          mapPaid.forEach((amt, cid) => {
+            totalExpected += amt;
+            if (!paidIds.has(cid)) {
+              const cl = clients.find((c) => c.id === cid);
+              if (cl) {
+                const clientPayments = datePayments.filter((p) => p.clientId === cid);
+                const totalPaid = clientPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+                paidClients.push({ ...cl, paidAmount: totalPaid, payments: clientPayments });
+              }
+            }
+          });
+        })();
 
         // Build custom payments summary per client
         const byClient = new Map();
@@ -7298,6 +7370,7 @@
                   <span class="legend-item"><span class="legend-dot" style="background: var(--ios-purple);"></span>Office</span>
                   <span class="legend-item"><span class="legend-dot" style="background: var(--ios-teal);"></span>GCash</span>
                   <span class="legend-item"><span class="legend-dot" style="background: var(--ios-yellow);"></span>Advance</span>
+                  <span class="legend-item"><span class="legend-dot" style="background: var(--ios-green);"></span>Full Pay</span>
                   <span class="legend-item"><span class="legend-dot" style="background: var(--ios-red);"></span>Absent</span>
                   <span class="legend-item"><span class="status-badge status-overpay" style="padding:2px 6px; font-size:9px;">Over</span>Overpay</span>
                 </div>
@@ -7434,6 +7507,7 @@
             const hasOffice = (payments.office||[]).some(p=>p.clientId==clientId && p.date===ds);
             const hasGCash = (payments.gcash||[]).some(p=>p.clientId==clientId && p.date===ds);
             const hasAdv = (payments.adv||[]).some(p=>p.clientId==clientId && p.date===ds);
+            const hasFull = ["notebook","office","gcash","abono","adv"].some(t => (payments[t]||[]).some(p => p.clientId==clientId && p.date===ds && p.type==='full'));
             const isAbsent = absences.some(a=>a.clientId==clientId && a.date===ds);
 
             const expected = inRange ? expectedAmountForDate(client, ds) : 0;
@@ -7449,6 +7523,7 @@
               hasOffice ? '<span class="cal-dot cal-office" title="Office"></span>' : '',
               hasGCash ? '<span class="cal-dot cal-gcash" title="GCash"></span>' : '',
               hasAdv ? '<span class="cal-dot cal-adv" title="Advance"></span>' : '',
+              hasFull ? '<span class="cal-dot cal-full" title="Full Pay"></span>' : '',
               isAbsent ? '<span class="cal-dot cal-absent" title="Absent"></span>' : ''
             ].filter(Boolean).join('');
 
@@ -7457,11 +7532,16 @@
             const ofAmt = (payments.office||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
             const gcAmt = (payments.gcash||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
             const adAmt = (payments.adv||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const fullAmt = ["notebook","office","gcash","abono","adv"]
+              .flatMap(t => (payments[t]||[]))
+              .filter(p=>p.clientId==clientId && p.date===ds && p.type==='full')
+              .reduce((s,p)=>s + (Number(p.amount)||0), 0);
             const amountsHtml = [
-              nbAmt>0 ? `<span class="cal-amt cal-notebook">₱${nbAmt.toFixed(0)}</span>` : '',
-              ofAmt>0 ? `<span class="cal-amt cal-office">₱${ofAmt.toFixed(0)}</span>` : '',
-              gcAmt>0 ? `<span class="cal-amt cal-gcash">₱${gcAmt.toFixed(0)}</span>` : '',
-              adAmt>0 ? `<span class="cal-amt cal-adv" title="Advance">₱${adAmt.toFixed(0)}</span>` : ''
+              nbAmt>0 ? `<span class=\"cal-amt cal-notebook\">₱${nbAmt.toFixed(0)}</span>` : '',
+              ofAmt>0 ? `<span class=\"cal-amt cal-office\">₱${ofAmt.toFixed(0)}</span>` : '',
+              gcAmt>0 ? `<span class=\"cal-amt cal-gcash\">₱${gcAmt.toFixed(0)}</span>` : '',
+              adAmt>0 ? `<span class=\"cal-amt cal-adv\" title=\"Advance\">₱${adAmt.toFixed(0)}</span>` : '',
+              fullAmt>0 ? `<span class=\"cal-amt cal-full\" title=\"Full Pay\">₱${fullAmt.toFixed(0)}</span>` : ''
             ].filter(Boolean).join('');
 
             cells.push(`
