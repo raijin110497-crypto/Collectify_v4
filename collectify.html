@@ -82,7 +82,9 @@
       }
 
       .header {
-        position: relative;
+        position: sticky;
+        top: 0;
+        z-index: 100;
         background: var(--ios-secondary-grouped-background);
         backdrop-filter: blur(30px);
         -webkit-backdrop-filter: blur(30px);
@@ -1103,6 +1105,10 @@
       }
       .status-overpay {
         background: var(--ios-pink);
+        color: white;
+      }
+      .status-purple {
+        background: var(--ios-purple);
         color: white;
       }
 
@@ -3040,6 +3046,43 @@
               ></textarea>
             </div>
           </div>
+
+          <!-- Co-maker Section -->
+          <div class="form-group" style="border-top: 1px solid var(--ios-opaque-separator); padding-top: 20px; margin-top: 20px;">
+            <h4 style="color: var(--ios-blue); margin-bottom: 15px;">Co-maker Information</h4>
+            <div class="form-group">
+              <label>Co-maker Name:</label>
+              <input type="text" id="coMakerName" placeholder="Enter co-maker full name" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Co-maker Contact:</label>
+                <input type="tel" id="coMakerContact" placeholder="09XX XXX XXXX" />
+              </div>
+              <div class="form-group">
+                <label>Co-maker Address:</label>
+                <textarea id="coMakerAddress" placeholder="Enter co-maker complete address"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collateral Section -->
+          <div class="form-group" style="border-top: 1px solid var(--ios-opaque-separator); padding-top: 20px; margin-top: 20px;">
+            <h4 style="color: var(--ios-blue); margin-bottom: 15px;">Collateral Information</h4>
+            <div class="form-group">
+              <label>Collateral Description:</label>
+              <textarea id="collateralDescription" placeholder="Describe the collateral item (e.g., Motorcycle - Honda Click 150, Red, 2020 model)"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Collateral Photo:</label>
+              <input type="file" id="collateralPhoto" accept="image/*" onchange="previewCollateralImage()" />
+              <div id="collateralPreview" style="margin-top: 10px; display: none;">
+                <img id="collateralPreviewImg" style="max-width: 200px; max-height: 200px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator);" />
+                <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeCollateralImage()">Remove Photo</button>
+              </div>
+            </div>
+          </div>
+
           <div class="form-row">
             <div class="form-group">
               <label>Loan Amount:</label>
@@ -3082,7 +3125,7 @@
               "
             >
               <p>
-                <strong>Daily Amount:</strong> <span id="dailyAmount">₱0</span>
+                <strong>Daily Amount:</strong> <span id="dailyAmount">���0</span>
               </p>
               <p>
                 <strong>Total Amount:</strong> <span id="totalAmount">₱0</span>
@@ -3156,6 +3199,44 @@
                 <option value="paid">Paid</option>
                 <option value="overdue">Overdue</option>
               </select>
+            </div>
+          </div>
+
+          <!-- Co-maker Section -->
+          <div class="form-group" style="border-top: 1px solid var(--ios-opaque-separator); padding-top: 20px; margin-top: 20px;">
+            <h4 style="color: var(--ios-blue); margin-bottom: 15px;">Co-maker Information</h4>
+            <div class="form-group">
+              <label>Co-maker Name:</label>
+              <input type="text" id="editCoMakerName" placeholder="Enter co-maker full name" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Co-maker Contact:</label>
+                <input type="tel" id="editCoMakerContact" placeholder="09XX XXX XXXX" />
+              </div>
+              <div class="form-group">
+                <label>Co-maker Address:</label>
+                <textarea id="editCoMakerAddress" placeholder="Enter co-maker complete address"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collateral Section -->
+          <div class="form-group" style="border-top: 1px solid var(--ios-opaque-separator); padding-top: 20px; margin-top: 20px;">
+            <h4 style="color: var(--ios-blue); margin-bottom: 15px;">Collateral Information</h4>
+            <div class="form-group">
+              <label>Collateral Description:</label>
+              <textarea id="editCollateralDescription" placeholder="Describe the collateral item"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Current Collateral Photo:</label>
+              <div id="editCollateralCurrentPhoto" style="margin-bottom: 10px;"></div>
+              <label>Update Collateral Photo:</label>
+              <input type="file" id="editCollateralPhoto" accept="image/*" onchange="previewEditCollateralImage()" />
+              <div id="editCollateralPreview" style="margin-top: 10px; display: none;">
+                <img id="editCollateralPreviewImg" style="max-width: 200px; max-height: 200px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator);" />
+                <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeEditCollateralImage()">Remove New Photo</button>
+              </div>
             </div>
           </div>
         </div>
@@ -3621,6 +3702,12 @@
         setupIOSPicker("abonoClient", "abonoSearch");
         setupIOSPicker("abonoLenderClient", "abonoSearch");
         toggleAbonoLender();
+
+        // Check for missed payments on app load
+        checkMissedPayments();
+
+        // Set up periodic checking for missed payments (every 30 minutes)
+        setInterval(checkMissedPayments, 30 * 60 * 1000);
       });
 
       // Setup tab listeners
@@ -3773,6 +3860,15 @@
           document.getElementById("contactNumber").value = "";
           document.getElementById("address").value = "";
           document.getElementById("loanAmount").value = "";
+          // Clear co-maker fields
+          document.getElementById("coMakerName").value = "";
+          document.getElementById("coMakerContact").value = "";
+          document.getElementById("coMakerAddress").value = "";
+          // Clear collateral fields
+          document.getElementById("collateralDescription").value = "";
+          document.getElementById("collateralPhoto").value = "";
+          document.getElementById("collateralPreview").style.display = "none";
+          document.getElementById("collateralPreviewImg").src = "";
           const today = new Date().toISOString().split("T")[0];
           document.getElementById("startDate").value = today;
           calculateLoanDetails();
@@ -3808,6 +3904,237 @@
         }
       }
 
+      // Collateral image preview functions
+      function previewCollateralImage() {
+        const input = document.getElementById('collateralPhoto');
+        const preview = document.getElementById('collateralPreview');
+        const img = document.getElementById('collateralPreviewImg');
+
+        if (input.files && input.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.style.display = 'block';
+          };
+          reader.readAsDataURL(input.files[0]);
+        }
+      }
+
+      function removeCollateralImage() {
+        document.getElementById('collateralPhoto').value = '';
+        document.getElementById('collateralPreview').style.display = 'none';
+        document.getElementById('collateralPreviewImg').src = '';
+      }
+
+      // Convert image file to base64 for IndexedDB storage
+      async function convertImageToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // Check for 3 consecutive missed payments and send notifications
+      function checkMissedPayments() {
+        const today = new Date();
+        const todayStr = today.toISOString().split("T")[0];
+
+        clients.filter(c => c.status === 'active').forEach(client => {
+          // Get all payments for this client across all payment types
+          const allPayments = Object.values(payments).flat()
+            .filter(p => p.clientId === client.id)
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+          // Check if client has any payment in the last 3 days
+          const last3Days = [];
+          for (let i = 0; i < 3; i++) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - (i + 1));
+            const dateStr = date.toISOString().split("T")[0];
+
+            // Skip Sundays (no collection day)
+            if (date.getDay() === 0) continue;
+
+            // Check if client was absent on this date
+            if (isClientAbsentOnDate(client.id, dateStr)) continue;
+
+            // Check if there's a payment on this date
+            const hasPayment = allPayments.some(p => p.date === dateStr);
+
+            if (!hasPayment) {
+              last3Days.push(dateStr);
+            }
+          }
+
+          // If client missed 3 consecutive working days, show notification
+          if (last3Days.length >= 3) {
+            const coMakerInfo = client.coMaker && client.coMaker.name
+              ? `Co-maker: ${client.coMaker.name} (${client.coMaker.contactNumber || 'No contact'})`
+              : 'No co-maker information';
+
+            const collateralInfo = client.collateral && client.collateral.description
+              ? `Collateral: ${client.collateral.description}`
+              : 'No collateral information';
+
+            // Check if we haven't shown this notification recently (prevent spam)
+            const lastNotificationKey = `missed_payment_${client.id}`;
+            const lastNotification = localStorage.getItem(lastNotificationKey);
+            const daysSinceLastNotification = lastNotification
+              ? Math.floor((today - new Date(lastNotification)) / (1000 * 60 * 60 * 24))
+              : 999;
+
+            // Only show notification once per day for each client
+            if (daysSinceLastNotification >= 1) {
+              showCollateralNotification(client, coMakerInfo, collateralInfo);
+              localStorage.setItem(lastNotificationKey, todayStr);
+            }
+
+            // Update client's consecutive missed days
+            client.consecutiveMissedDays = last3Days.length;
+          } else {
+            // Reset consecutive missed days if client has recent payments
+            client.consecutiveMissedDays = 0;
+          }
+        });
+      }
+
+      // Show collateral notification for clients who missed 3+ payments
+      function showCollateralNotification(client, coMakerInfo, collateralInfo) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'collateral-notification';
+        notification.innerHTML = `
+          <div class="collateral-notification-content">
+            <h3>⚠️ 3+ Days Missed Payment Alert</h3>
+            <p><strong>Client:</strong> ${client.name}</p>
+            <p><strong>Contact:</strong> ${client.contactNumber || 'No contact'}</p>
+            <p><strong>Remaining Balance:</strong> ₱${client.remainingBalance.toFixed(2)}</p>
+            <hr style="margin: 10px 0; border: 0.5px solid var(--ios-opaque-separator);">
+            <p><strong>${coMakerInfo}</strong></p>
+            <p><strong>${collateralInfo}</strong></p>
+            ${client.collateral && client.collateral.photoBase64 ?
+              `<img src="${client.collateral.photoBase64}" style="max-width: 200px; max-height: 150px; border-radius: var(--ios-border-radius); margin-top: 8px;" alt="Collateral Photo">` : ''
+            }
+            <div style="margin-top: 15px;">
+              <button class="btn btn-primary" onclick="contactCoMaker('${client.id}')">Contact Co-maker</button>
+              <button class="btn btn-secondary" onclick="dismissCollateralNotification('${client.id}')">Dismiss</button>
+            </div>
+          </div>
+        `;
+
+        // Add CSS for the notification
+        if (!document.getElementById('collateralNotificationStyles')) {
+          const style = document.createElement('style');
+          style.id = 'collateralNotificationStyles';
+          style.textContent = `
+            .collateral-notification {
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              background: var(--ios-secondary-grouped-background);
+              border-radius: var(--ios-border-radius-large);
+              padding: 20px;
+              max-width: 400px;
+              width: 90vw;
+              max-height: 80vh;
+              overflow-y: auto;
+              box-shadow: var(--ios-shadow-elevated);
+              z-index: 2000;
+              border: 1px solid var(--ios-red);
+              backdrop-filter: blur(30px);
+              -webkit-backdrop-filter: blur(30px);
+            }
+            .collateral-notification-content h3 {
+              color: var(--ios-red);
+              margin-bottom: 15px;
+              font-size: 18px;
+            }
+            .collateral-notification-content p {
+              margin: 8px 0;
+              font-size: 14px;
+              color: var(--ios-label);
+            }
+            .collateral-notification::before {
+              content: '';
+              position: fixed;
+              inset: 0;
+              background: rgba(0, 0, 0, 0.5);
+              z-index: -1;
+              backdrop-filter: blur(10px);
+              -webkit-backdrop-filter: blur(10px);
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
+        // Add notification to page
+        notification.id = `collateral-notification-${client.id}`;
+        document.body.appendChild(notification);
+
+        // Also show a regular notification
+        showNotification(`Client ${client.name} has missed 3+ payments. Check collateral info!`, 'error');
+      }
+
+      // Contact co-maker helper
+      function contactCoMaker(clientId) {
+        const client = clients.find(c => c.id == clientId);
+        if (!client || !client.coMaker || !client.coMaker.contactNumber) {
+          showNotification('No co-maker contact information available', 'error');
+          return;
+        }
+
+        // Try to open phone dialer (mobile) or show contact info
+        if (navigator.userAgent.match(/mobile/i)) {
+          window.location.href = `tel:${client.coMaker.contactNumber}`;
+        } else {
+          showNotification(`Co-maker: ${client.coMaker.name} - ${client.coMaker.contactNumber}`, 'success');
+        }
+
+        dismissCollateralNotification(clientId);
+      }
+
+      // Dismiss collateral notification
+      function dismissCollateralNotification(clientId) {
+        const notification = document.getElementById(`collateral-notification-${clientId}`);
+        if (notification) {
+          notification.remove();
+        }
+      }
+
+      // Update payment tracking when payments are made
+      function updatePaymentTracking(clientId, paymentDate) {
+        const client = clients.find(c => c.id == clientId);
+        if (client) {
+          client.lastPaymentDate = paymentDate;
+          client.consecutiveMissedDays = 0; // Reset missed days when payment is made
+        }
+      }
+
+      // Edit collateral image preview functions
+      function previewEditCollateralImage() {
+        const input = document.getElementById('editCollateralPhoto');
+        const preview = document.getElementById('editCollateralPreview');
+        const img = document.getElementById('editCollateralPreviewImg');
+
+        if (input.files && input.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.style.display = 'block';
+          };
+          reader.readAsDataURL(input.files[0]);
+        }
+      }
+
+      function removeEditCollateralImage() {
+        document.getElementById('editCollateralPhoto').value = '';
+        document.getElementById('editCollateralPreview').style.display = 'none';
+        document.getElementById('editCollateralPreviewImg').src = '';
+      }
+
       // Add new client with validation
       async function addClient() {
         const name = document.getElementById("clientName").value.trim();
@@ -3823,9 +4150,29 @@
           .value.trim();
         const address = document.getElementById("address").value.trim();
 
+        // Co-maker information
+        const coMakerName = document.getElementById("coMakerName").value.trim();
+        const coMakerContact = document.getElementById("coMakerContact").value.trim();
+        const coMakerAddress = document.getElementById("coMakerAddress").value.trim();
+
+        // Collateral information
+        const collateralDescription = document.getElementById("collateralDescription").value.trim();
+        const collateralPhotoInput = document.getElementById("collateralPhoto");
+        let collateralPhotoBase64 = null;
+
         if (!name || !loanAmount || !startDate || !contactNumber || !address) {
           showNotification("Please fill in all required fields", "error");
           return;
+        }
+
+        // Process collateral image if provided
+        if (collateralPhotoInput.files && collateralPhotoInput.files[0]) {
+          try {
+            collateralPhotoBase64 = await convertImageToBase64(collateralPhotoInput.files[0]);
+          } catch (error) {
+            showNotification("Error processing collateral image", "error");
+            return;
+          }
         }
 
         // Validate client name
@@ -3859,6 +4206,20 @@
           remainingBalance: totalAmount,
           status: "active",
           interestRate: interestRate,
+          // Co-maker information
+          coMaker: {
+            name: coMakerName,
+            contactNumber: coMakerContact,
+            address: coMakerAddress
+          },
+          // Collateral information
+          collateral: {
+            description: collateralDescription,
+            photoBase64: collateralPhotoBase64
+          },
+          // Payment tracking for notification system
+          consecutiveMissedDays: 0,
+          lastPaymentDate: null
         };
 
         clients.push(client);
@@ -4006,6 +4367,16 @@
                     </svg>
                     Due: ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})
                   </p>
+                  ${(() => {
+                    let indicators = [];
+                    if (client.coMaker && (client.coMaker.name || client.coMaker.contactNumber)) {
+                      indicators.push('<span class="status-badge status-office" style="font-size: 9px; padding: 2px 6px;">Co-maker</span>');
+                    }
+                    if (client.collateral && (client.collateral.description || client.collateral.photoBase64)) {
+                      indicators.push('<span class="status-badge status-purple" style="font-size: 9px; padding: 2px 6px;">Collateral</span>');
+                    }
+                    return indicators.length > 0 ? '<p style="margin-top: 6px;">' + indicators.join(' ') + '</p>' : '';
+                  })()}
                 </div>
                 <div class="client-status">
                   ${statusBadge}
@@ -4229,6 +4600,9 @@
 
         payments.notebook.push(payment);
 
+        // Update payment tracking for missed payment notifications
+        updatePaymentTracking(clientId, today);
+
         await saveData();
         updateStats();
         updateClientList();
@@ -4255,6 +4629,37 @@
         document.getElementById("editRemainingBalance").value =
           client.remainingBalance;
         document.getElementById("editStatus").value = client.status;
+
+        // Populate co-maker fields
+        document.getElementById("editCoMakerName").value =
+          (client.coMaker && client.coMaker.name) || "";
+        document.getElementById("editCoMakerContact").value =
+          (client.coMaker && client.coMaker.contactNumber) || "";
+        document.getElementById("editCoMakerAddress").value =
+          (client.coMaker && client.coMaker.address) || "";
+
+        // Populate collateral fields
+        document.getElementById("editCollateralDescription").value =
+          (client.collateral && client.collateral.description) || "";
+
+        // Show current collateral photo if exists
+        const currentPhotoDiv = document.getElementById("editCollateralCurrentPhoto");
+        if (client.collateral && client.collateral.photoBase64) {
+          currentPhotoDiv.innerHTML = `
+            <img src="${client.collateral.photoBase64}"
+                 style="max-width: 200px; max-height: 150px; border-radius: var(--ios-border-radius);
+                        border: 1px solid var(--ios-opaque-separator); cursor: pointer;"
+                 onclick="enlargeCollateralImage('${client.collateral.photoBase64}')"
+                 alt="Current Collateral Photo">
+            <br><small style="color: var(--ios-secondary-label);">Current photo (tap to enlarge)</small>
+          `;
+        } else {
+          currentPhotoDiv.innerHTML = '<small style="color: var(--ios-secondary-label);">No photo uploaded</small>';
+        }
+
+        // Clear edit preview
+        document.getElementById("editCollateralPhoto").value = "";
+        document.getElementById("editCollateralPreview").style.display = "none";
 
         document.getElementById("editClientModal").classList.add("active");
 
@@ -4311,6 +4716,26 @@
           }
         }
 
+        // Co-maker information
+        const coMakerName = document.getElementById("editCoMakerName").value.trim();
+        const coMakerContact = document.getElementById("editCoMakerContact").value.trim();
+        const coMakerAddress = document.getElementById("editCoMakerAddress").value.trim();
+
+        // Collateral information
+        const collateralDescription = document.getElementById("editCollateralDescription").value.trim();
+        const editCollateralPhotoInput = document.getElementById("editCollateralPhoto");
+        let newCollateralPhotoBase64 = null;
+
+        // Process new collateral image if provided
+        if (editCollateralPhotoInput.files && editCollateralPhotoInput.files[0]) {
+          try {
+            newCollateralPhotoBase64 = await convertImageToBase64(editCollateralPhotoInput.files[0]);
+          } catch (error) {
+            showNotification("Error processing collateral image", "error");
+            return;
+          }
+        }
+
         client.name = name;
         client.contactNumber = contactNumber;
         client.address = address;
@@ -4318,6 +4743,20 @@
         client.interestRate = interestRate;
         client.remainingBalance = remainingBalance;
         client.status = status;
+
+        // Update co-maker information
+        if (!client.coMaker) client.coMaker = {};
+        client.coMaker.name = coMakerName;
+        client.coMaker.contactNumber = coMakerContact;
+        client.coMaker.address = coMakerAddress;
+
+        // Update collateral information
+        if (!client.collateral) client.collateral = {};
+        client.collateral.description = collateralDescription;
+        // Only update photo if a new one was uploaded, otherwise keep existing
+        if (newCollateralPhotoBase64) {
+          client.collateral.photoBase64 = newCollateralPhotoBase64;
+        }
 
         // Recalculate total amount and daily amount
         client.totalAmount = loanAmount * (1 + interestRate / 100);
@@ -4399,6 +4838,9 @@
         };
 
         payments.notebook.push(payment);
+
+        // Update payment tracking for missed payment notifications
+        updatePaymentTracking(client.id, paymentDate);
 
         await saveData();
         updateStats();
@@ -4941,6 +5383,11 @@
         };
 
         payments[type].push(payment);
+
+        // Update payment tracking for missed payment notifications (for collection tabs)
+        if (type === "notebook" || type === "office" || type === "gcash" || type === "abono") {
+          updatePaymentTracking(parseInt(clientId), date);
+        }
 
         // Clear form
         document.getElementById(`${type}Client`).value = "";
@@ -6475,8 +6922,43 @@
       function openViewClient(clientId) {
         const client = clients.find((c) => c.id === clientId);
         if (!client) return;
+
+        // Build co-maker information section
+        let coMakerSection = '';
+        if (client.coMaker && (client.coMaker.name || client.coMaker.contactNumber || client.coMaker.address)) {
+          coMakerSection = `
+            <hr style="margin: 15px 0; border: 0.5px solid var(--ios-opaque-separator);">
+            <h4 style="color: var(--ios-blue); margin-bottom: 10px;">Co-maker Information</h4>
+            <div><strong>Name:</strong> ${client.coMaker.name || 'Not provided'}</div>
+            <div><strong>Contact:</strong> ${formatPhone(client.coMaker.contactNumber || 'Not provided')}</div>
+            <div><strong>Address:</strong> ${client.coMaker.address || 'Not provided'}</div>`;
+        }
+
+        // Build collateral information section
+        let collateralSection = '';
+        if (client.collateral && (client.collateral.description || client.collateral.photoBase64)) {
+          collateralSection = `
+            <hr style="margin: 15px 0; border: 0.5px solid var(--ios-opaque-separator);">
+            <h4 style="color: var(--ios-blue); margin-bottom: 10px;">Collateral Information</h4>
+            <div><strong>Description:</strong> ${client.collateral.description || 'Not provided'}</div>`;
+
+          if (client.collateral.photoBase64) {
+            collateralSection += `
+              <div style="margin-top: 10px;">
+                <strong>Photo:</strong><br>
+                <img src="${client.collateral.photoBase64}"
+                     style="max-width: 100%; max-height: 300px; border-radius: var(--ios-border-radius);
+                            border: 1px solid var(--ios-opaque-separator); margin-top: 8px; cursor: pointer;"
+                     onclick="enlargeCollateralImage('${client.collateral.photoBase64}')"
+                     alt="Collateral Photo">
+                <br><small style="color: var(--ios-secondary-label);">Tap image to enlarge</small>
+              </div>`;
+          }
+        }
+
         const html = `
           <div style="display:grid; gap:8px;">
+            <h4 style="color: var(--ios-blue); margin-bottom: 10px;">Basic Information</h4>
             <div><strong>Name:</strong> ${client.name}</div>
             <div><strong>Contact:</strong> ${formatPhone(client.contactNumber || "-")}</div>
             <div><strong>Address:</strong> ${client.address || "-"}</div>
@@ -6485,9 +6967,68 @@
             <div><strong>Daily Amount:</strong> ₱${client.dailyAmount.toFixed(2)}</div>
             <div><strong>Due Date:</strong> ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})</div>
             <div><strong>Status:</strong> ${client.remainingBalance <= 0 ? "Paid" : "Active"}</div>
+            ${coMakerSection}
+            ${collateralSection}
           </div>`;
         document.getElementById("viewClientContent").innerHTML = html;
         document.getElementById("viewClientModal").classList.add("active");
+      }
+
+      // Function to enlarge collateral image
+      function enlargeCollateralImage(imageBase64) {
+        // Create modal overlay for enlarged image
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.8);
+          z-index: 3000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        `;
+
+        const img = document.createElement('img');
+        img.src = imageBase64;
+        img.style.cssText = `
+          max-width: 90vw;
+          max-height: 90vh;
+          border-radius: var(--ios-border-radius-large);
+          box-shadow: var(--ios-shadow-elevated);
+        `;
+
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '✕';
+        closeBtn.style.cssText = `
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: var(--ios-secondary-grouped-background);
+          border: none;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          font-size: 18px;
+          cursor: pointer;
+          color: var(--ios-label);
+          box-shadow: var(--ios-shadow-elevated);
+        `;
+
+        overlay.appendChild(img);
+        overlay.appendChild(closeBtn);
+        document.body.appendChild(overlay);
+
+        // Close on click
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay || e.target === closeBtn) {
+            overlay.remove();
+          }
+        });
       }
 
       // Handle clicks outside modals to close them
