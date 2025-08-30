@@ -3812,6 +3812,15 @@
           document.getElementById("contactNumber").value = "";
           document.getElementById("address").value = "";
           document.getElementById("loanAmount").value = "";
+          // Clear co-maker fields
+          document.getElementById("coMakerName").value = "";
+          document.getElementById("coMakerContact").value = "";
+          document.getElementById("coMakerAddress").value = "";
+          // Clear collateral fields
+          document.getElementById("collateralDescription").value = "";
+          document.getElementById("collateralPhoto").value = "";
+          document.getElementById("collateralPreview").style.display = "none";
+          document.getElementById("collateralPreviewImg").src = "";
           const today = new Date().toISOString().split("T")[0];
           document.getElementById("startDate").value = today;
           calculateLoanDetails();
