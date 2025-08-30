@@ -4387,7 +4387,7 @@
         return d;
       }
       function findExistingPaymentAnyType(clientId, date) {
-        for (const t of ["notebook", "office", "gcash"]) {
+        for (const t of ["notebook", "office", "gcash", "abono"]) {
           const arr = payments[t] || [];
           const found = arr.find((p) => p.clientId == clientId && p.date === date);
           if (found) return { type: t, payment: found };
