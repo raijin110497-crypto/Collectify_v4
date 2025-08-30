@@ -1957,6 +1957,21 @@
       .ios-sheet .sheet-item:active {
         background: rgba(0, 0, 0, 0.05);
       }
+      /* Readability tweaks: larger, adaptive stat-card typography */
+      .stat-card h3 { font-size: clamp(1.2rem, 4.5vw, 2rem); }
+      .stat-card p  { font-size: clamp(0.95rem, 3.5vw, 1.2rem); }
+      @media (max-width: 768px) {
+        .stat-card h3 { font-size: clamp(1.1rem, 5vw, 1.6rem); }
+        .stat-card p  { font-size: clamp(0.95rem, 4.2vw, 1.2rem); }
+      }
+      @media (max-width: 480px) {
+        .stat-card h3 { font-size: clamp(1rem, 6vw, 1.4rem); }
+        .stat-card p  { font-size: clamp(0.9rem, 5vw, 1.1rem); }
+      }
+      @media (max-height: 600px) and (orientation: landscape) {
+        .stat-card h3 { font-size: clamp(0.9rem, 3.2vw, 1.3rem); }
+        .stat-card p  { font-size: clamp(0.8rem, 2.4vw, 1rem); }
+      }
     </style>
   </head>
   <body>
@@ -5520,7 +5535,12 @@
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
-            showNotification("Data exported successfully", "success");
+            const pickedName = (handle && handle.name) ? handle.name : filename;
+            if (!/\.json$/i.test(pickedName)) {
+              showNotification(`Saved as ${pickedName}. Tip: add .json to the file name for easy restore.`, "success");
+            } else {
+              showNotification("Data exported successfully", "success");
+            }
             return;
           }
         } catch (err) {
@@ -6228,7 +6248,7 @@
             },
           },
           {
-            text: "Export your app data for backup or sharing.",
+            text: "Export your data. When asked to name the file, include .json (e.g., collectify-backup.json). If saving isn’t available, the app will share, download, or copy the backup automatically.",
             selector: 'button.btn.btn-secondary[onclick="exportData()"]',
             padding: 8,
           },
