@@ -3402,6 +3402,19 @@
         bind("paymentDate", "notebook");
         bind("officePaymentDate", "office");
         bind("gcashPaymentDate", "gcash");
+        bind("advPaymentDate", "adv");
+        const absentDateEl = document.getElementById("absentDate");
+        if (absentDateEl) {
+          absentDateEl.addEventListener("change", () => {
+            const clientId = document.getElementById("absentClient").value;
+            if (!clientId) return;
+            const client = clients.find((c) => c.id == clientId);
+            if (!client) return;
+            const val = expectedAmountForDate(client, absentDateEl.value);
+            const amountInput = document.getElementById("absentDailyAmount");
+            if (amountInput) amountInput.value = val.toFixed(2);
+          });
+        }
 
         // Load payment histories for all tabs
         updatePaymentHistory("notebook");
@@ -4206,8 +4219,9 @@
         if (clientId) {
           const client = clients.find((c) => c.id == clientId);
           if (client) {
-            document.getElementById("advPaymentAmount").value =
-              client.dailyAmount.toFixed(2);
+            const dateStr = document.getElementById("advPaymentDate").value;
+            const val = expectedAmountForDate(client, dateStr);
+            document.getElementById("advPaymentAmount").value = val.toFixed(2);
           }
         }
       }
@@ -4219,7 +4233,9 @@
         if (clientId) {
           const client = clients.find((c) => c.id == clientId);
           if (client) {
-            amountInput.value = client.dailyAmount.toFixed(2);
+            const dateStr = document.getElementById("absentDate").value;
+            const val = expectedAmountForDate(client, dateStr);
+            amountInput.value = val.toFixed(2);
             return;
           }
         }
@@ -4337,6 +4353,11 @@
             selectId: "gcashClient",
             amountId: "gcashPaymentAmount",
             dateId: "gcashPaymentDate",
+          },
+          adv: {
+            selectId: "advClient",
+            amountId: "advPaymentAmount",
+            dateId: "advPaymentDate",
           },
         };
         const cfg = map[type];
