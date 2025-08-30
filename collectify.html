@@ -3402,6 +3402,19 @@
         bind("paymentDate", "notebook");
         bind("officePaymentDate", "office");
         bind("gcashPaymentDate", "gcash");
+        bind("advPaymentDate", "adv");
+        const absentDateEl = document.getElementById("absentDate");
+        if (absentDateEl) {
+          absentDateEl.addEventListener("change", () => {
+            const clientId = document.getElementById("absentClient").value;
+            if (!clientId) return;
+            const client = clients.find((c) => c.id == clientId);
+            if (!client) return;
+            const val = expectedAmountForDate(client, absentDateEl.value);
+            const amountInput = document.getElementById("absentDailyAmount");
+            if (amountInput) amountInput.value = val.toFixed(2);
+          });
+        }
 
         // Load payment histories for all tabs
         updatePaymentHistory("notebook");
@@ -4206,8 +4219,9 @@
         if (clientId) {
           const client = clients.find((c) => c.id == clientId);
           if (client) {
-            document.getElementById("advPaymentAmount").value =
-              client.dailyAmount.toFixed(2);
+            const dateStr = document.getElementById("advPaymentDate").value;
+            const val = expectedAmountForDate(client, dateStr);
+            document.getElementById("advPaymentAmount").value = val.toFixed(2);
           }
         }
       }
@@ -4219,7 +4233,9 @@
         if (clientId) {
           const client = clients.find((c) => c.id == clientId);
           if (client) {
-            amountInput.value = client.dailyAmount.toFixed(2);
+            const dateStr = document.getElementById("absentDate").value;
+            const val = expectedAmountForDate(client, dateStr);
+            amountInput.value = val.toFixed(2);
             return;
           }
         }
@@ -4274,7 +4290,14 @@
         }
         return null;
       }
-      function addOrMergePaymentForDate(client, date, amount, preferredType) {
+      function todayLocalDateStr() {
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
+      }
+      function addOrMergePaymentForDate(client, date, amount, preferredType, createdAtOverride) {
         const found = findExistingPaymentAnyType(client.id, date);
         if (found) {
           found.payment.amount = (found.payment.amount || 0) + amount;
@@ -4286,6 +4309,7 @@
           clientName: client.name,
           amount: amount,
           date: date,
+          createdAt: createdAtOverride || todayLocalDateStr(),
           type: "manual",
           paymentType: preferredType,
         };
@@ -4321,6 +4345,18 @@
         if (day === 1) return client.dailyAmount + monSplit; // Monday gets Monday split
         return client.dailyAmount; // Regular day
       }
+      function getNextCollectionDate(dateStr, clientId) {
+        // Start from the next day and skip Sundays and client's absences
+        let d = addDaysLocal(dateStr, 1);
+        for (let i = 0; i < 370; i++) {
+          const ds = formatDateLocal(d);
+          if (getLocalWeekday(ds) !== 0 && !isClientAbsentOnDate(clientId, ds)) {
+            return ds;
+          }
+          d = addDaysLocal(ds, 1);
+        }
+        return formatDateLocal(d);
+      }
       function updateDefaultAmountFor(type) {
         const map = {
           notebook: {
@@ -4337,6 +4373,11 @@
             selectId: "gcashClient",
             amountId: "gcashPaymentAmount",
             dateId: "gcashPaymentDate",
+          },
+          adv: {
+            selectId: "advClient",
+            amountId: "advPaymentAmount",
+            dateId: "advPaymentDate",
           },
         };
         const cfg = map[type];
@@ -4410,6 +4451,33 @@
           }
         }
 
+        // Auto-schedule Adv across following collection days (Option B)
+        if (type === "adv") {
+          let remaining = amount;
+          let cursor = date;
+          const createdAt = todayLocalDateStr ? todayLocalDateStr() : date;
+          let createdCount = 0;
+          for (let i = 0; i < 400 && remaining > 0; i++) {
+            const nextDate = getNextCollectionDate(cursor, parseInt(clientId));
+            const expected = expectedAmountForDate(client, nextDate);
+            const toApply = Math.min(remaining, expected);
+            addOrMergePaymentForDate(client, nextDate, toApply, "adv", createdAt);
+            remaining -= toApply;
+            cursor = nextDate;
+            createdCount++;
+          }
+
+          document.getElementById(`${type}Client`).value = "";
+          document.getElementById(amountField).value = "";
+
+          await saveData();
+          updateStats();
+          updateClientList();
+          updatePaymentHistory("adv");
+          showNotification(`Advance scheduled into ${createdCount} future day(s)`, "success");
+          return;
+        }
+
         // Sunday split logic (Sunday is not a collection day)
         if (isSunday(date)) {
           const satDate = formatDateLocal(addDaysLocal(date, -1));
@@ -4440,11 +4508,11 @@
 
           const updatedTypes = new Set();
           if (satAmt > 0) {
-            const usedType = addOrMergePaymentForDate(client, satDate, satAmt, type);
+            const usedType = addOrMergePaymentForDate(client, satDate, satAmt, type, date);
             updatedTypes.add(usedType);
           }
           if (monAmt > 0) {
-            const usedType = addOrMergePaymentForDate(client, monDate, monAmt, type);
+            const usedType = addOrMergePaymentForDate(client, monDate, monAmt, type, date);
             updatedTypes.add(usedType);
           }
 
@@ -4481,6 +4549,7 @@
           clientName: client.name,
           amount: amount,
           date: date,
+          createdAt: todayLocalDateStr(),
           type: "manual",
           paymentType: type,
         };
@@ -4813,6 +4882,9 @@
         // Get all payments for the selected date from all payment types
         const allPayments = Object.values(payments).flat();
         const datePayments = allPayments.filter((p) => p.date === selectedDate);
+        const advCreatedToday = (payments.adv || []).filter(
+          (p) => (p.createdAt || p.date) === selectedDate && p.date !== selectedDate,
+        );
 
         // Check each active client
         clients
@@ -4843,6 +4915,7 @@
               notPaidClients.push(client);
             }
           });
+        actualCollected += advCreatedToday.reduce((sum, p) => sum + (p.amount || 0), 0);
 
         // Build custom payments summary per client
         const byClient = new Map();
@@ -4863,6 +4936,29 @@
           if (type === "adv") prev.hasAdv = true;
           byClient.set(client.id, prev);
         });
+        advCreatedToday.forEach((p) => {
+          const client = clients.find((c) => c.id === p.clientId);
+          if (!client) return;
+          const prev = byClient.get(client.id) || {
+            clientId: client.id,
+            clientName: client.name,
+            dailyAmount: expectedAmountForDate(client, selectedDate),
+            totalPaid: 0,
+            types: new Set(),
+            hasAdv: false,
+            advForFuture: 0,
+            advDetails: [],
+          };
+          prev.hasAdv = true;
+          prev.types.add("adv");
+          const advAmt = p.amount || 0;
+          prev.advForFuture = (prev.advForFuture || 0) + advAmt;
+          prev.totalPaid += advAmt; // include advances created today in total paid today
+          prev.advDetails = prev.advDetails || [];
+          prev.advDetails.push({ amount: advAmt, forDate: p.date });
+          byClient.set(client.id, prev);
+        });
+
         const customSummaries = Array.from(byClient.values()).filter(
           (e) => e.hasAdv || Math.abs(e.totalPaid - e.dailyAmount) > 0.01,
         );
@@ -4982,6 +5078,12 @@
             const diff = entry.totalPaid - entry.dailyAmount;
             let statusBadge = "";
             let extraLine = "";
+            if (entry.advForFuture && entry.advForFuture > 0) {
+              const lines = entry.advDetails
+                .map((d) => `Advance for ${new Date(d.forDate).toLocaleDateString()}: ₱${(d.amount).toFixed(2)} (included in Actual Collection — remember to separate)`)
+                .join("<br>");
+              extraLine += `<p>${lines}</p>`;
+            }
             if (diff > 0.01) {
               statusBadge =
                 '<span class="status-badge status-overpay">Overpayment</span>';
@@ -5030,7 +5132,7 @@
               ${extraLine}
             </div>
             <div class="tracker-amount paid">
-              ₱${entry.totalPaid.toFixed(2)}
+              ���${entry.totalPaid.toFixed(2)}
             </div>
           </div>`;
           })
