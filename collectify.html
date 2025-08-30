@@ -6074,6 +6074,7 @@
             absences = [];
             await saveData();
             updateAbsenceHistory();
+            if (currentActiveTab === 'summary') loadSummaryTab();
             showNotification("Absence history cleared", "success");
           },
         );
