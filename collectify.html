@@ -3691,7 +3691,7 @@
         const dailyAmount = totalAmount / loanTerm;
 
         document.getElementById("dailyAmount").textContent =
-          `₱${dailyAmount.toFixed(2)}`;
+          `��${dailyAmount.toFixed(2)}`;
         document.getElementById("totalAmount").textContent =
           `₱${totalAmount.toFixed(2)}`;
 
@@ -4655,7 +4655,7 @@
           updatedTypes.forEach((t) => updatePaymentHistory(t));
 
           const parts = [];
-          if (satAmt > 0) parts.push(`��${satAmt.toFixed(2)} to Saturday (${satDate})`);
+          if (satAmt > 0) parts.push(`₱${satAmt.toFixed(2)} to Saturday (${satDate})`);
           if (monAmt > 0) parts.push(`₱${monAmt.toFixed(2)} to Monday (${monDate})`);
           showNotification(`Sunday payment split: ${parts.join(" and ")}`, "success");
           return;
@@ -5244,7 +5244,9 @@
                         ? "GCash"
                         : t === "adv"
                           ? "Adv"
-                          : t;
+                          : t === "abono"
+                            ? "Abono"
+                            : t;
                 const cls =
                   t === "notebook"
                     ? "status-notebook"
