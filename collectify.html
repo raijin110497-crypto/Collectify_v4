@@ -201,6 +201,19 @@
         transition: all 0.1s ease;
       }
 
+      .icon-btn.menu-btn {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .icon-btn.menu-btn:hover,
+      .icon-btn.menu-btn:active {
+        background: transparent;
+        box-shadow: none;
+        transform: none;
+      }
+
       .theme-toggle.active {
         background: var(--ios-blue);
         color: var(--ios-secondary-grouped-background);
@@ -2009,7 +2022,7 @@
               d="M3 6h18M3 12h18M3 18h18"
               stroke="currentColor"
               stroke-width="2"
-              stroke-linecap="round"
+              stroke-linecap="square"
               fill="none"
             ></path>
           </svg>
