@@ -4631,7 +4631,7 @@
           }
 
           // Update client balance for collection tabs
-          if (type === "notebook" || type === "office" || type === "gcash") {
+          if (type === "notebook" || type === "office" || type === "gcash" || type === "abono") {
             client.remainingBalance = Math.max(0, client.remainingBalance - amount);
             if (client.remainingBalance <= 0) client.status = "paid";
           }
