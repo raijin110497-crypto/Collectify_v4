@@ -3984,19 +3984,33 @@
         }
       }
 
-      // Collateral image preview functions
-      function previewCollateralImage() {
-        const input = document.getElementById('collateralPhoto');
+      // Collateral image preview functions (multi-photo)
+      function previewCollateralImages() {
+        const input = document.getElementById('collateralPhotos');
         const preview = document.getElementById('collateralPreview');
-        const img = document.getElementById('collateralPreviewImg');
-
-        if (input.files && input.files[0]) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            img.src = e.target.result;
-            preview.style.display = 'block';
-          };
-          reader.readAsDataURL(input.files[0]);
+        const list = document.getElementById('collateralPreviewList');
+        if (!input || !preview || !list) return;
+        list.innerHTML = '';
+        if (input.files && input.files.length) {
+          const files = Array.from(input.files).slice(0, 3);
+          files.forEach((file) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const img = document.createElement('img');
+              img.src = e.target.result;
+              img.style.maxWidth = '120px';
+              img.style.maxHeight = '120px';
+              img.style.borderRadius = 'var(--ios-border-radius)';
+              img.style.border = '1px solid var(--ios-opaque-separator)';
+              img.style.cursor = 'pointer';
+              img.onclick = () => enlargeCollateralImage(img.src);
+              list.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+          });
+          preview.style.display = 'block';
+        } else {
+          preview.style.display = 'none';
         }
       }
 
