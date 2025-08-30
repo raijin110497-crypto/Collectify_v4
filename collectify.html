@@ -4014,10 +4014,13 @@
         }
       }
 
-      function removeCollateralImage() {
-        document.getElementById('collateralPhoto').value = '';
-        document.getElementById('collateralPreview').style.display = 'none';
-        document.getElementById('collateralPreviewImg').src = '';
+      function removeCollateralImages() {
+        const input = document.getElementById('collateralPhotos');
+        if (input) input.value = '';
+        const list = document.getElementById('collateralPreviewList');
+        if (list) list.innerHTML = '';
+        const preview = document.getElementById('collateralPreview');
+        if (preview) preview.style.display = 'none';
       }
 
       // Convert image file to base64 for IndexedDB storage
