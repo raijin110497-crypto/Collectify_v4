@@ -4279,12 +4279,13 @@
           return;
         }
 
-        // Process collateral image if provided
-        if (collateralPhotoInput.files && collateralPhotoInput.files[0]) {
+        // Process collateral images if provided
+        if (collateralPhotosInput && collateralPhotosInput.files && collateralPhotosInput.files.length) {
           try {
-            collateralPhotoBase64 = await convertImageToBase64(collateralPhotoInput.files[0]);
+            const files = Array.from(collateralPhotosInput.files).slice(0, 3);
+            collateralPhotosBase64 = await Promise.all(files.map(f => convertImageToBase64(f)));
           } catch (error) {
-            showNotification("Error processing collateral image", "error");
+            showNotification("Error processing collateral images", "error");
             return;
           }
         }
