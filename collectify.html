@@ -398,16 +398,6 @@
         border-top: 0.5px solid var(--ios-opaque-separator);
       }
 
-      .sidebar-section-title {
-        padding: 10px 16px;
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--ios-secondary-label);
-        background: var(--ios-secondary-grouped-background);
-        border-bottom: 0.5px solid var(--ios-opaque-separator);
-        letter-spacing: 0.3px;
-        text-transform: uppercase;
-      }
 
       .sidebar .tab.active {
         background: var(--ios-gray5);
@@ -2132,28 +2122,29 @@
           </button>
         </div>
         <div class="settings-group">
-          <div class="sidebar-section-title">Overview</div>
           <button class="tab" data-tab="dashboard" onclick="closeSidebar()">
             <span>Dashboard</span>
+          </button>
+          <button class="tab" data-tab="overdue" onclick="closeSidebar()">
+            <span>Overdue</span>
+          </button>
+          <button class="tab" data-tab="notebook" onclick="closeSidebar()">
+            <span>Notebook</span>
+          </button>
+          <button class="tab" data-tab="daily-tracker" onclick="closeSidebar()">
+            <span>Daily Tracker</span>
           </button>
           <button class="tab" data-tab="summary" onclick="closeSidebar()">
             <span>Summary</span>
           </button>
         </div>
         <div class="settings-group">
-          <div class="sidebar-section-title">Collections</div>
-          <button class="tab" data-tab="notebook" onclick="closeSidebar()">
-            <span>Notebook</span>
-          </button>
           <button class="tab" data-tab="office" onclick="closeSidebar()">
             <span>Office</span>
           </button>
           <button class="tab" data-tab="gcash" onclick="closeSidebar()">
             <span>GCash</span>
           </button>
-        </div>
-        <div class="settings-group">
-          <div class="sidebar-section-title">Adjustments</div>
           <button class="tab" data-tab="adv" onclick="closeSidebar()">
             <span>Adv</span>
           </button>
@@ -2162,19 +2153,9 @@
           </button>
         </div>
         <div class="settings-group">
-          <div class="sidebar-section-title">Monitoring</div>
-          <button class="tab" data-tab="daily-tracker" onclick="closeSidebar()">
-            <span>Daily Tracker</span>
-          </button>
-          <button class="tab" data-tab="overdue" onclick="closeSidebar()">
-            <span>Overdue</span>
-          </button>
           <button class="tab" data-tab="absent" onclick="closeSidebar()">
             <span>Absent</span>
           </button>
-        </div>
-        <div class="settings-group">
-          <div class="sidebar-section-title">Settings & Help</div>
           <button class="tab" data-tab="settings" onclick="closeSidebar()">
             <span>Settings</span>
           </button>
