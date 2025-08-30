@@ -4330,7 +4330,8 @@
           // Collateral information
           collateral: {
             description: collateralDescription,
-            photoBase64: collateralPhotoBase64
+            photosBase64: collateralPhotosBase64,
+            photoBase64: collateralPhotosBase64[0] || null
           },
           // Payment tracking for notification system
           consecutiveMissedDays: 0,
