@@ -4702,6 +4702,26 @@
           }
         }
 
+        // Co-maker information
+        const coMakerName = document.getElementById("editCoMakerName").value.trim();
+        const coMakerContact = document.getElementById("editCoMakerContact").value.trim();
+        const coMakerAddress = document.getElementById("editCoMakerAddress").value.trim();
+
+        // Collateral information
+        const collateralDescription = document.getElementById("editCollateralDescription").value.trim();
+        const editCollateralPhotoInput = document.getElementById("editCollateralPhoto");
+        let newCollateralPhotoBase64 = null;
+
+        // Process new collateral image if provided
+        if (editCollateralPhotoInput.files && editCollateralPhotoInput.files[0]) {
+          try {
+            newCollateralPhotoBase64 = await convertImageToBase64(editCollateralPhotoInput.files[0]);
+          } catch (error) {
+            showNotification("Error processing collateral image", "error");
+            return;
+          }
+        }
+
         client.name = name;
         client.contactNumber = contactNumber;
         client.address = address;
@@ -4709,6 +4729,20 @@
         client.interestRate = interestRate;
         client.remainingBalance = remainingBalance;
         client.status = status;
+
+        // Update co-maker information
+        if (!client.coMaker) client.coMaker = {};
+        client.coMaker.name = coMakerName;
+        client.coMaker.contactNumber = coMakerContact;
+        client.coMaker.address = coMakerAddress;
+
+        // Update collateral information
+        if (!client.collateral) client.collateral = {};
+        client.collateral.description = collateralDescription;
+        // Only update photo if a new one was uploaded, otherwise keep existing
+        if (newCollateralPhotoBase64) {
+          client.collateral.photoBase64 = newCollateralPhotoBase64;
+        }
 
         // Recalculate total amount and daily amount
         client.totalAmount = loanAmount * (1 + interestRate / 100);
