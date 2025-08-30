@@ -4232,6 +4232,69 @@
         return null;
       }
 
+      // Sunday handling helpers
+      function parseLocalDate(str) {
+        const parts = str.split("-").map(Number);
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+      }
+      function formatDateLocal(d) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
+      }
+      function getLocalWeekday(str) {
+        return parseLocalDate(str).getDay();
+      }
+      function isSunday(str) {
+        return getLocalWeekday(str) === 0;
+      }
+      function addDaysLocal(str, days) {
+        const d = parseLocalDate(str);
+        d.setDate(d.getDate() + days);
+        return d;
+      }
+      function findExistingPaymentAnyType(clientId, date) {
+        for (const t of ["notebook", "office", "gcash"]) {
+          const arr = payments[t] || [];
+          const found = arr.find((p) => p.clientId == clientId && p.date === date);
+          if (found) return { type: t, payment: found };
+        }
+        return null;
+      }
+      function addOrMergePaymentForDate(client, date, amount, preferredType) {
+        const found = findExistingPaymentAnyType(client.id, date);
+        if (found) {
+          found.payment.amount = (found.payment.amount || 0) + amount;
+          return found.type;
+        }
+        const payment = {
+          id: Date.now() + Math.floor(Math.random() * 100000),
+          clientId: client.id,
+          clientName: client.name,
+          amount: amount,
+          date: date,
+          type: "manual",
+          paymentType: preferredType,
+        };
+        payments[preferredType].push(payment);
+        return preferredType;
+      }
+      function splitSundayAmount(total) {
+        if (Number.isInteger(total) && total % 10 === 0) {
+          return [total / 2, total / 2];
+        }
+        const half = total / 2;
+        if (Number.isInteger(total)) {
+          const sat = Math.ceil(half / 5) * 5;
+          const mon = Math.max(0, total - sat);
+          return [sat, mon];
+        }
+        const sat = Math.ceil(half * 100) / 100;
+        const mon = +(total - sat).toFixed(2);
+        return [sat, mon];
+      }
+
       // Add payment function
       async function addPayment(type) {
         const clientId = document.getElementById(`${type}Client`).value;
@@ -4289,6 +4352,59 @@
             );
             return;
           }
+        }
+
+        // Sunday split logic (Sunday is not a collection day)
+        if (isSunday(date)) {
+          const satDate = formatDateLocal(addDaysLocal(date, -1));
+          const monDate = formatDateLocal(addDaysLocal(date, 1));
+
+          const clientIdNum = parseInt(clientId);
+          const satAbsent = isClientAbsentOnDate(clientIdNum, satDate);
+          const monAbsent = isClientAbsentOnDate(clientIdNum, monDate);
+
+          if (satAbsent && monAbsent) {
+            showNotification(`${client.name} is marked Absent on both Saturday (${satDate}) and Monday (${monDate}). Cannot record Sunday payment.`, "error");
+            return;
+          }
+
+          let [satAmt, monAmt] = splitSundayAmount(amount);
+          if (satAbsent && !monAbsent) {
+            monAmt = amount; satAmt = 0;
+          }
+          if (monAbsent && !satAbsent) {
+            satAmt = amount; monAmt = 0;
+          }
+
+          // Update client balance for collection tabs
+          if (type === "notebook" || type === "office" || type === "gcash") {
+            client.remainingBalance = Math.max(0, client.remainingBalance - amount);
+            if (client.remainingBalance <= 0) client.status = "paid";
+          }
+
+          const updatedTypes = new Set();
+          if (satAmt > 0) {
+            const usedType = addOrMergePaymentForDate(client, satDate, satAmt, type);
+            updatedTypes.add(usedType);
+          }
+          if (monAmt > 0) {
+            const usedType = addOrMergePaymentForDate(client, monDate, monAmt, type);
+            updatedTypes.add(usedType);
+          }
+
+          document.getElementById(`${type}Client`).value = "";
+          document.getElementById(amountField).value = "";
+
+          await saveData();
+          updateStats();
+          updateClientList();
+          updatedTypes.forEach((t) => updatePaymentHistory(t));
+
+          const parts = [];
+          if (satAmt > 0) parts.push(`₱${satAmt.toFixed(2)} to Saturday (${satDate})`);
+          if (monAmt > 0) parts.push(`₱${monAmt.toFixed(2)} to Monday (${monDate})`);
+          showNotification(`Sunday payment split: ${parts.join(" and ")}`, "success");
+          return;
         }
 
         // Update client balance (only for notebook, office, gcash - NOT adv or absent)
