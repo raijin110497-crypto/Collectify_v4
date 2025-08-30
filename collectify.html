@@ -2750,7 +2750,7 @@
                 <div id="abonoLenderClientPickerContainer">
                   <button type="button" id="abonoLenderClientPickerBtn" class="ios-select-button" aria-haspopup="dialog" aria-expanded="false">
                     <span class="label" id="abonoLenderClientPickerLabel">Choose a client...</span>
-                    <span class="chevron">›</span>
+                    <span class="chevron">���</span>
                   </button>
                 </div>
                 <small id="abonoLenderInfo" style="color: var(--ios-secondary-label); display:block; margin-top:6px;">Available advance: ₱0.00</small>
@@ -3691,7 +3691,7 @@
         const dailyAmount = totalAmount / loanTerm;
 
         document.getElementById("dailyAmount").textContent =
-          `��${dailyAmount.toFixed(2)}`;
+          `₱${dailyAmount.toFixed(2)}`;
         document.getElementById("totalAmount").textContent =
           `₱${totalAmount.toFixed(2)}`;
 
@@ -5256,7 +5256,9 @@
                         ? "status-gcash"
                         : t === "adv"
                           ? "status-adv"
-                          : "status-active";
+                          : t === "abono"
+                            ? "status-abono"
+                            : "status-active";
                 return `<span class="status-badge ${cls}">${label}</span>`;
               })
               .join(" ");
