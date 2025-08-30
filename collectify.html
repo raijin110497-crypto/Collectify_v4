@@ -3042,6 +3042,43 @@
               ></textarea>
             </div>
           </div>
+
+          <!-- Co-maker Section -->
+          <div class="form-group" style="border-top: 1px solid var(--ios-opaque-separator); padding-top: 20px; margin-top: 20px;">
+            <h4 style="color: var(--ios-blue); margin-bottom: 15px;">Co-maker Information</h4>
+            <div class="form-group">
+              <label>Co-maker Name:</label>
+              <input type="text" id="coMakerName" placeholder="Enter co-maker full name" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Co-maker Contact:</label>
+                <input type="tel" id="coMakerContact" placeholder="09XX XXX XXXX" />
+              </div>
+              <div class="form-group">
+                <label>Co-maker Address:</label>
+                <textarea id="coMakerAddress" placeholder="Enter co-maker complete address"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collateral Section -->
+          <div class="form-group" style="border-top: 1px solid var(--ios-opaque-separator); padding-top: 20px; margin-top: 20px;">
+            <h4 style="color: var(--ios-blue); margin-bottom: 15px;">Collateral Information</h4>
+            <div class="form-group">
+              <label>Collateral Description:</label>
+              <textarea id="collateralDescription" placeholder="Describe the collateral item (e.g., Motorcycle - Honda Click 150, Red, 2020 model)"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Collateral Photo:</label>
+              <input type="file" id="collateralPhoto" accept="image/*" onchange="previewCollateralImage()" />
+              <div id="collateralPreview" style="margin-top: 10px; display: none;">
+                <img id="collateralPreviewImg" style="max-width: 200px; max-height: 200px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator);" />
+                <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeCollateralImage()">Remove Photo</button>
+              </div>
+            </div>
+          </div>
+
           <div class="form-row">
             <div class="form-group">
               <label>Loan Amount:</label>
