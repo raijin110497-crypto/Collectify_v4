@@ -2125,6 +2125,9 @@
           <button class="tab" data-tab="daily-tracker" onclick="closeSidebar()">
             <span>Daily Tracker</span>
           </button>
+          <button class="tab" data-tab="summary" onclick="closeSidebar()">
+            <span>Summary</span>
+          </button>
         </div>
         <div class="settings-group">
           <button class="tab" data-tab="office" onclick="closeSidebar()">
@@ -2176,6 +2179,7 @@
           <button class="tab" data-tab="overdue">Overdue</button>
           <button class="tab" data-tab="notebook">Notebook</button>
           <button class="tab" data-tab="daily-tracker">Daily Tracker</button>
+          <button class="tab" data-tab="summary">Summary</button>
           <button class="tab" data-tab="office">Office</button>
           <button class="tab" data-tab="gcash">GCash</button>
           <button class="tab" data-tab="adv">Adv</button>
@@ -2597,6 +2601,61 @@
               >
                 <div class="loading">Select a date to view custom payments</div>
               </div>
+            </div>
+          </div>
+
+          <!-- Summary Tab -->
+          <div class="tab-panel" id="summary">
+            <h2>Summary</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Select Date:</label>
+                <input type="date" id="summaryDate" onchange="loadSummaryTab()" />
+              </div>
+            </div>
+
+            <div class="stats-grid" style="margin-bottom:16px">
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-blue), var(--ios-teal));">
+                <h3 id="summaryNotebookTotal">₱0</h3>
+                <p>Notebook</p>
+              </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-teal), var(--ios-blue));">
+                <h3 id="summaryGcashTotal">₱0</h3>
+                <p>GCash</p>
+              </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-yellow), var(--ios-orange));">
+                <h3 id="summaryAdvTotal">₱0</h3>
+                <p>Adv (applied today)</p>
+              </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-pink), var(--ios-red));">
+                <h3 id="summaryOverpayCount">0</h3>
+                <p>Overpayment (clients)</p>
+              </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-red), var(--ios-pink));">
+                <h3 id="summaryAbsentCount">0</h3>
+                <p>Absent</p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Notebook</label>
+              <div id="summaryNotebookList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+            <div class="form-group">
+              <label>GCash</label>
+              <div id="summaryGcashList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+            <div class="form-group">
+              <label>Adv</label>
+              <div id="summaryAdvList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+            <div class="form-group">
+              <label>Overpayment (per client, per day)</label>
+              <div id="summaryOverpayList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+            <div class="form-group">
+              <label>Absent</label>
+              <div id="summaryAbsentList" class="client-list"><div class="no-data">No entries</div></div>
             </div>
           </div>
 
@@ -3202,7 +3261,7 @@
               "
             >
               <p>
-                <strong>Daily Amount:</strong> <span id="dailyAmount">���0</span>
+                <strong>Daily Amount:</strong> <span id="dailyAmount">₱0</span>
               </p>
               <p>
                 <strong>Total Amount:</strong> <span id="totalAmount">₱0</span>
@@ -3722,6 +3781,7 @@
         document.getElementById("abonoPaymentDate").value = today;
         document.getElementById("absentDate").value = today;
         document.getElementById("trackerDate").value = today;
+        const sd = document.getElementById("summaryDate"); if (sd) sd.value = today;
         document.getElementById("startDate").value = today;
         document.getElementById("fullPaymentDate").value = today;
 
@@ -3840,6 +3900,8 @@
         loadDailyTracker();
       } else if (tabName === "overdue") {
         loadOverdueTab();
+      } else if (tabName === "summary") {
+        loadSummaryTab();
       } else if (tabName === "settings") {
         updateSettingsInfo();
       } else if (tabName === "adv") {
@@ -4729,6 +4791,7 @@
         updateStats();
         updateClientList();
         updatePaymentHistory("notebook");
+        if (currentActiveTab === 'summary') loadSummaryTab();
         showNotification(
           `Payment of ₱${amount.toFixed(2)} recorded for ${client.name}`,
           "success",
@@ -4898,6 +4961,7 @@
         updateStats();
         updateClientList();
         populateClientSelects();
+        if (currentActiveTab === 'summary') loadSummaryTab();
         closeModal("editClientModal");
         showNotification(`Client ${name} updated successfully`, "success");
 
@@ -4978,6 +5042,7 @@
         updateStats();
         updateClientList();
         updatePaymentHistory("notebook");
+        if (currentActiveTab === 'summary') loadSummaryTab();
         closeModal("fullPaymentModal");
         showNotification(
           `Full payment of ₱${remainingAmount.toFixed(2)} recorded for ${client.name}`,
@@ -5027,6 +5092,7 @@
         populateClientSelects();
         Object.keys(payments).forEach((type) => updatePaymentHistory(type));
         updateAbsenceHistory();
+        if (currentActiveTab === 'summary') loadSummaryTab();
         closeModal("deleteConfirmModal");
         showNotification(
           `Client ${clientName} deleted successfully`,
@@ -5403,6 +5469,7 @@
           updateStats();
           updateClientList();
           updatePaymentHistory("adv");
+          if (currentActiveTab === 'summary') loadSummaryTab();
           showNotification(`Advance scheduled into ${createdCount} future day(s)`, "success");
           return;
         }
@@ -5482,6 +5549,7 @@
           updateStats();
           updateClientList();
           updatedTypes.forEach((t) => updatePaymentHistory(t));
+          if (currentActiveTab === 'summary') loadSummaryTab();
 
           const parts = [];
           if (satAmt > 0) parts.push(`₱${satAmt.toFixed(2)} to Saturday (${satDate})`);
@@ -5533,10 +5601,103 @@
           // Refresh Adv history so deductions are visible immediately
           updatePaymentHistory("adv");
         }
+        if (currentActiveTab === 'summary') loadSummaryTab();
         showNotification(
-          `Payment of ���${amount.toFixed(2)} recorded for ${client.name}`,
+          `Payment of ₱${amount.toFixed(2)} recorded for ${client.name}`,
           "success",
         );
+      }
+
+      // Summary tab loader
+      function loadSummaryTab() {
+        const date = document.getElementById("summaryDate")?.value;
+        if (!date) return;
+
+        // Helper to group payments by client for a given type
+        function groupByClient(type) {
+          const arr = (payments[type] || []).filter(p => p.date === date);
+          const map = new Map();
+          arr.forEach(p => {
+            const key = String(p.clientId);
+            const prev = map.get(key) || { clientId: p.clientId, clientName: p.clientName, amount: 0 };
+            prev.amount += Number(p.amount) || 0;
+            map.set(key, prev);
+          });
+          return Array.from(map.values()).sort((a,b) => a.clientName.localeCompare(b.clientName));
+        }
+
+        const nb = groupByClient('notebook');
+        const gc = groupByClient('gcash');
+        const ad = groupByClient('adv');
+
+        // Absent list with expected amount
+        const abs = absences
+          .filter(a => a.date === date)
+          .map(a => {
+            const client = clients.find(c => c.id == a.clientId);
+            const expected = client ? expectedAmountForDate(client, date) : 0;
+            return { clientId: a.clientId, clientName: a.clientName, amount: expected };
+          })
+          .sort((a,b) => a.clientName.localeCompare(b.clientName));
+
+        // Overpayment per client (exclude Adv from paid sum)
+        const over = clients.filter(c => c.status !== 'paid').map(c => {
+          const expected = isClientAbsentOnDate(c.id, date) ? 0 : expectedAmountForDate(c, date);
+          const paidSum = ['notebook','office','gcash','abono']
+            .flatMap(t => payments[t] || [])
+            .filter(p => p.clientId === c.id && p.date === date)
+            .reduce((s,p) => s + (Number(p.amount)||0), 0);
+          const diff = paidSum - expected;
+          return { clientId: c.id, clientName: c.name, expected, paid: paidSum, overBy: diff };
+        }).filter(e => e.overBy > 0.01)
+          .sort((a,b) => a.clientName.localeCompare(b.clientName));
+
+        // Totals and counts
+        const sumAmt = (arr) => arr.reduce((s, x) => s + (Number(x.amount)||0), 0);
+        document.getElementById('summaryNotebookTotal').textContent = `₱${sumAmt(nb).toFixed(2)}`;
+        document.getElementById('summaryGcashTotal').textContent = `₱${sumAmt(gc).toFixed(2)}`;
+        document.getElementById('summaryAdvTotal').textContent = `₱${sumAmt(ad).toFixed(2)}`;
+        document.getElementById('summaryOverpayCount').textContent = String(over.length);
+        document.getElementById('summaryAbsentCount').textContent = String(abs.length);
+
+        // Render helpers
+        function renderSimple(listId, items, badgeCls, empty) {
+          const el = document.getElementById(listId);
+          if (!el) return;
+          if (!items.length) { el.innerHTML = `<div class="no-data">${empty}</div>`; return; }
+          el.innerHTML = items.map(it => `
+            <div class="payment-entry">
+              <div style="display:flex; justify-content: space-between; align-items:center;">
+                <div>
+                  <h4>${it.clientName}</h4>
+                  <p>₱${(it.amount||0).toFixed(2)} <span class="status-badge ${badgeCls}" style="margin-left:6px">${badgeCls.replace('status-','')}</span></p>
+                </div>
+              </div>
+            </div>
+          `).join('');
+        }
+        function renderOver(listId, items) {
+          const el = document.getElementById(listId);
+          if (!el) return;
+          if (!items.length) { el.innerHTML = '<div class="no-data">No overpayments</div>'; return; }
+          el.innerHTML = items.map(it => `
+            <div class="payment-entry" style="border-left-color: var(--ios-pink);">
+              <div style="display:flex; justify-content: space-between; align-items:center;">
+                <div>
+                  <h4>${it.clientName}</h4>
+                  <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
+                  <p>Over by ₱${it.overBy.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        renderSimple('summaryNotebookList', nb, 'status-notebook', 'No notebook payments');
+        renderSimple('summaryGcashList', gc, 'status-gcash', 'No GCash payments');
+        renderSimple('summaryAdvList', ad, 'status-adv', 'No adv entries');
+        renderOver('summaryOverpayList', over);
+        renderSimple('summaryAbsentList', abs, 'status-absent', 'No absences');
       }
 
       // Update payment history
@@ -5674,6 +5835,7 @@
             updateStats();
             updateClientList();
             updatePaymentHistory(type);
+            if (currentActiveTab === 'summary') loadSummaryTab();
             showNotification("Payment deleted successfully", "success");
           },
         );
@@ -5750,6 +5912,7 @@
         await saveData();
         updatePaymentHistory('abono');
         updatePaymentHistory('adv');
+        if (currentActiveTab === 'summary') loadSummaryTab();
         updateSettingsInfo();
         document.getElementById("repayAbonoModal")?.classList.remove("active");
         showNotification(isCleared ? "Repayment complete. Entry removed and Adv restored." : "Repayment recorded and Adv updated", "success");
@@ -5796,6 +5959,7 @@
             payments[type] = [];
             await saveData();
             updatePaymentHistory(type);
+            if (currentActiveTab === 'summary') loadSummaryTab();
             showNotification(
               `${type.charAt(0).toUpperCase() + type.slice(1)} payment history cleared`,
               "success",
@@ -5913,6 +6077,7 @@
             absences = [];
             await saveData();
             updateAbsenceHistory();
+            if (currentActiveTab === 'summary') loadSummaryTab();
             showNotification("Absence history cleared", "success");
           },
         );
@@ -6625,6 +6790,7 @@
                   updatePaymentHistory(type),
                 );
                 updateAbsenceHistory();
+                if (currentActiveTab === 'summary') loadSummaryTab();
                 updateSettingsInfo();
 
                 showNotification("All data cleared successfully", "success");
@@ -6788,6 +6954,7 @@
                       updatePaymentHistory(type),
                     );
                     updateAbsenceHistory();
+                    if (currentActiveTab === 'summary') loadSummaryTab();
                     updateSettingsInfo();
 
                     showNotification("Data imported successfully", "success");
@@ -7287,7 +7454,7 @@
               nbAmt>0 ? `<span class="cal-amt cal-notebook">₱${nbAmt.toFixed(0)}</span>` : '',
               ofAmt>0 ? `<span class="cal-amt cal-office">₱${ofAmt.toFixed(0)}</span>` : '',
               gcAmt>0 ? `<span class="cal-amt cal-gcash">₱${gcAmt.toFixed(0)}</span>` : '',
-              adAmt>0 ? `<span class="cal-amt cal-adv" title="Advance">���${adAmt.toFixed(0)}</span>` : ''
+              adAmt>0 ? `<span class="cal-amt cal-adv" title="Advance">₱${adAmt.toFixed(0)}</span>` : ''
             ].filter(Boolean).join('');
 
             cells.push(`
