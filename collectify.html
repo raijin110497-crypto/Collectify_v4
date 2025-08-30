@@ -6788,6 +6788,7 @@
                   updatePaymentHistory(type),
                 );
                 updateAbsenceHistory();
+                if (currentActiveTab === 'summary') loadSummaryTab();
                 updateSettingsInfo();
 
                 showNotification("All data cleared successfully", "success");
