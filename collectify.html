@@ -5245,6 +5245,11 @@
 
         payments[type].push(payment);
 
+        // Update payment tracking for missed payment notifications (for collection tabs)
+        if (type === "notebook" || type === "office" || type === "gcash" || type === "abono") {
+          updatePaymentTracking(parseInt(clientId), date);
+        }
+
         // Clear form
         document.getElementById(`${type}Client`).value = "";
         document.getElementById(amountField).value = "";
