@@ -2604,6 +2604,61 @@
             </div>
           </div>
 
+          <!-- Summary Tab -->
+          <div class="tab-panel" id="summary">
+            <h2>Summary</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Select Date:</label>
+                <input type="date" id="summaryDate" onchange="loadSummaryTab()" />
+              </div>
+            </div>
+
+            <div class="stats-grid" style="margin-bottom:16px">
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-blue), var(--ios-teal));">
+                <h3 id="summaryNotebookTotal">₱0</h3>
+                <p>Notebook</p>
+              </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-teal), var(--ios-blue));">
+                <h3 id="summaryGcashTotal">₱0</h3>
+                <p>GCash</p>
+              </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-yellow), var(--ios-orange));">
+                <h3 id="summaryAdvTotal">₱0</h3>
+                <p>Adv (applied today)</p>
+              </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-pink), var(--ios-red));">
+                <h3 id="summaryOverpayCount">0</h3>
+                <p>Overpayment (clients)</p>
+              </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-red), var(--ios-pink));">
+                <h3 id="summaryAbsentCount">0</h3>
+                <p>Absent</p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Notebook</label>
+              <div id="summaryNotebookList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+            <div class="form-group">
+              <label>GCash</label>
+              <div id="summaryGcashList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+            <div class="form-group">
+              <label>Adv</label>
+              <div id="summaryAdvList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+            <div class="form-group">
+              <label>Overpayment (per client, per day)</label>
+              <div id="summaryOverpayList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+            <div class="form-group">
+              <label>Absent</label>
+              <div id="summaryAbsentList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+          </div>
+
           <!-- Office Tab -->
           <div class="tab-panel" id="office">
             <h2>Office Collections</h2>
