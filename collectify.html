@@ -3847,6 +3847,38 @@
         }
       }
 
+      // Collateral image preview functions
+      function previewCollateralImage() {
+        const input = document.getElementById('collateralPhoto');
+        const preview = document.getElementById('collateralPreview');
+        const img = document.getElementById('collateralPreviewImg');
+
+        if (input.files && input.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.style.display = 'block';
+          };
+          reader.readAsDataURL(input.files[0]);
+        }
+      }
+
+      function removeCollateralImage() {
+        document.getElementById('collateralPhoto').value = '';
+        document.getElementById('collateralPreview').style.display = 'none';
+        document.getElementById('collateralPreviewImg').src = '';
+      }
+
+      // Convert image file to base64 for IndexedDB storage
+      async function convertImageToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
       // Add new client with validation
       async function addClient() {
         const name = document.getElementById("clientName").value.trim();
