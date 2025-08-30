@@ -3888,6 +3888,183 @@
         });
       }
 
+      // Check for 3 consecutive missed payments and send notifications
+      function checkMissedPayments() {
+        const today = new Date();
+        const todayStr = today.toISOString().split("T")[0];
+
+        clients.filter(c => c.status === 'active').forEach(client => {
+          // Get all payments for this client across all payment types
+          const allPayments = Object.values(payments).flat()
+            .filter(p => p.clientId === client.id)
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+          // Check if client has any payment in the last 3 days
+          const last3Days = [];
+          for (let i = 0; i < 3; i++) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - (i + 1));
+            const dateStr = date.toISOString().split("T")[0];
+
+            // Skip Sundays (no collection day)
+            if (date.getDay() === 0) continue;
+
+            // Check if client was absent on this date
+            if (isClientAbsentOnDate(client.id, dateStr)) continue;
+
+            // Check if there's a payment on this date
+            const hasPayment = allPayments.some(p => p.date === dateStr);
+
+            if (!hasPayment) {
+              last3Days.push(dateStr);
+            }
+          }
+
+          // If client missed 3 consecutive working days, show notification
+          if (last3Days.length >= 3) {
+            const coMakerInfo = client.coMaker && client.coMaker.name
+              ? `Co-maker: ${client.coMaker.name} (${client.coMaker.contactNumber || 'No contact'})`
+              : 'No co-maker information';
+
+            const collateralInfo = client.collateral && client.collateral.description
+              ? `Collateral: ${client.collateral.description}`
+              : 'No collateral information';
+
+            // Check if we haven't shown this notification recently (prevent spam)
+            const lastNotificationKey = `missed_payment_${client.id}`;
+            const lastNotification = localStorage.getItem(lastNotificationKey);
+            const daysSinceLastNotification = lastNotification
+              ? Math.floor((today - new Date(lastNotification)) / (1000 * 60 * 60 * 24))
+              : 999;
+
+            // Only show notification once per day for each client
+            if (daysSinceLastNotification >= 1) {
+              showCollateralNotification(client, coMakerInfo, collateralInfo);
+              localStorage.setItem(lastNotificationKey, todayStr);
+            }
+
+            // Update client's consecutive missed days
+            client.consecutiveMissedDays = last3Days.length;
+          } else {
+            // Reset consecutive missed days if client has recent payments
+            client.consecutiveMissedDays = 0;
+          }
+        });
+      }
+
+      // Show collateral notification for clients who missed 3+ payments
+      function showCollateralNotification(client, coMakerInfo, collateralInfo) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'collateral-notification';
+        notification.innerHTML = `
+          <div class="collateral-notification-content">
+            <h3>⚠️ 3+ Days Missed Payment Alert</h3>
+            <p><strong>Client:</strong> ${client.name}</p>
+            <p><strong>Contact:</strong> ${client.contactNumber || 'No contact'}</p>
+            <p><strong>Remaining Balance:</strong> ₱${client.remainingBalance.toFixed(2)}</p>
+            <hr style="margin: 10px 0; border: 0.5px solid var(--ios-opaque-separator);">
+            <p><strong>${coMakerInfo}</strong></p>
+            <p><strong>${collateralInfo}</strong></p>
+            ${client.collateral && client.collateral.photoBase64 ?
+              `<img src="${client.collateral.photoBase64}" style="max-width: 200px; max-height: 150px; border-radius: var(--ios-border-radius); margin-top: 8px;" alt="Collateral Photo">` : ''
+            }
+            <div style="margin-top: 15px;">
+              <button class="btn btn-primary" onclick="contactCoMaker('${client.id}')">Contact Co-maker</button>
+              <button class="btn btn-secondary" onclick="dismissCollateralNotification('${client.id}')">Dismiss</button>
+            </div>
+          </div>
+        `;
+
+        // Add CSS for the notification
+        if (!document.getElementById('collateralNotificationStyles')) {
+          const style = document.createElement('style');
+          style.id = 'collateralNotificationStyles';
+          style.textContent = `
+            .collateral-notification {
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              background: var(--ios-secondary-grouped-background);
+              border-radius: var(--ios-border-radius-large);
+              padding: 20px;
+              max-width: 400px;
+              width: 90vw;
+              max-height: 80vh;
+              overflow-y: auto;
+              box-shadow: var(--ios-shadow-elevated);
+              z-index: 2000;
+              border: 1px solid var(--ios-red);
+              backdrop-filter: blur(30px);
+              -webkit-backdrop-filter: blur(30px);
+            }
+            .collateral-notification-content h3 {
+              color: var(--ios-red);
+              margin-bottom: 15px;
+              font-size: 18px;
+            }
+            .collateral-notification-content p {
+              margin: 8px 0;
+              font-size: 14px;
+              color: var(--ios-label);
+            }
+            .collateral-notification::before {
+              content: '';
+              position: fixed;
+              inset: 0;
+              background: rgba(0, 0, 0, 0.5);
+              z-index: -1;
+              backdrop-filter: blur(10px);
+              -webkit-backdrop-filter: blur(10px);
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
+        // Add notification to page
+        notification.id = `collateral-notification-${client.id}`;
+        document.body.appendChild(notification);
+
+        // Also show a regular notification
+        showNotification(`Client ${client.name} has missed 3+ payments. Check collateral info!`, 'error');
+      }
+
+      // Contact co-maker helper
+      function contactCoMaker(clientId) {
+        const client = clients.find(c => c.id == clientId);
+        if (!client || !client.coMaker || !client.coMaker.contactNumber) {
+          showNotification('No co-maker contact information available', 'error');
+          return;
+        }
+
+        // Try to open phone dialer (mobile) or show contact info
+        if (navigator.userAgent.match(/mobile/i)) {
+          window.location.href = `tel:${client.coMaker.contactNumber}`;
+        } else {
+          showNotification(`Co-maker: ${client.coMaker.name} - ${client.coMaker.contactNumber}`, 'success');
+        }
+
+        dismissCollateralNotification(clientId);
+      }
+
+      // Dismiss collateral notification
+      function dismissCollateralNotification(clientId) {
+        const notification = document.getElementById(`collateral-notification-${clientId}`);
+        if (notification) {
+          notification.remove();
+        }
+      }
+
+      // Update payment tracking when payments are made
+      function updatePaymentTracking(clientId, paymentDate) {
+        const client = clients.find(c => c.id == clientId);
+        if (client) {
+          client.lastPaymentDate = paymentDate;
+          client.consecutiveMissedDays = 0; // Reset missed days when payment is made
+        }
+      }
+
       // Add new client with validation
       async function addClient() {
         const name = document.getElementById("clientName").value.trim();
