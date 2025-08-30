@@ -4655,7 +4655,7 @@
           updatedTypes.forEach((t) => updatePaymentHistory(t));
 
           const parts = [];
-          if (satAmt > 0) parts.push(`₱${satAmt.toFixed(2)} to Saturday (${satDate})`);
+          if (satAmt > 0) parts.push(`��${satAmt.toFixed(2)} to Saturday (${satDate})`);
           if (monAmt > 0) parts.push(`₱${monAmt.toFixed(2)} to Monday (${monDate})`);
           showNotification(`Sunday payment split: ${parts.join(" and ")}`, "success");
           return;
@@ -5164,7 +5164,9 @@
                           ? "status-gcash"
                           : t === "adv"
                             ? "status-adv"
-                            : "status-active";
+                            : t === "abono"
+                              ? "status-abono"
+                              : "status-active";
                   return `<span class="status-badge ${cls}">${label}</span>`;
                 })
                 .join(" ");
