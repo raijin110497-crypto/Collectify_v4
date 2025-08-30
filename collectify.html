@@ -2033,6 +2033,14 @@
         from { opacity: 0; transform: scale(0.98); }
         to { opacity: 1; transform: scale(1); }
       }
+      /* Credits footer */
+      .credits-container { padding: 12px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; text-align: center; color: var(--ios-secondary-label); font-size: 14px; }
+      .credits-row { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+      .credits-text { opacity: 0.9; }
+      .credits-name { font-weight: 700; color: var(--ios-label); }
+      .credits-link { color: var(--ios-blue); text-decoration: none; font-weight: 600; }
+      .credits-year { opacity: 0.8; }
+      .credits-separator { opacity: 0.45; }
     </style>
     <style>
       /* Client payment calendar */
@@ -2159,17 +2167,14 @@
           </button>
         </div>
         <div class="settings-group" aria-label="About">
-          <div
-            style="
-              padding: 16px;
-              text-align: center;
-              color: var(--ios-secondary-label);
-              font-size: 14px;
-            "
-          >
-            Developed by <strong>Raijin.Dev</strong>
-            <a href="https://www.facebook.com/share/14LApfB1cry/" target="_blank" rel="noopener noreferrer" style="color: var(--ios-blue); text-decoration: none; margin-left: 6px; font-weight:600;">Contact me on Facebook</a>
-            <span style="opacity: 0.8; margin-left: 6px;">2025</span>
+          <div class="credits-container">
+            <div class="credits-row">
+              <span class="credits-text">Developed by</span>
+              <span class="credits-name">Raijin.Dev</span>
+              <span class="credits-separator">•</span>
+              <a class="credits-link" href="https://www.facebook.com/share/14LApfB1cry/" target="_blank" rel="noopener noreferrer">Contact me on Facebook</a>
+            </div>
+            <span class="credits-year">2025</span>
           </div>
         </div>
       </nav>
