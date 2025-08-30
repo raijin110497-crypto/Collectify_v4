@@ -4594,6 +4594,37 @@
           client.remainingBalance;
         document.getElementById("editStatus").value = client.status;
 
+        // Populate co-maker fields
+        document.getElementById("editCoMakerName").value =
+          (client.coMaker && client.coMaker.name) || "";
+        document.getElementById("editCoMakerContact").value =
+          (client.coMaker && client.coMaker.contactNumber) || "";
+        document.getElementById("editCoMakerAddress").value =
+          (client.coMaker && client.coMaker.address) || "";
+
+        // Populate collateral fields
+        document.getElementById("editCollateralDescription").value =
+          (client.collateral && client.collateral.description) || "";
+
+        // Show current collateral photo if exists
+        const currentPhotoDiv = document.getElementById("editCollateralCurrentPhoto");
+        if (client.collateral && client.collateral.photoBase64) {
+          currentPhotoDiv.innerHTML = `
+            <img src="${client.collateral.photoBase64}"
+                 style="max-width: 200px; max-height: 150px; border-radius: var(--ios-border-radius);
+                        border: 1px solid var(--ios-opaque-separator); cursor: pointer;"
+                 onclick="enlargeCollateralImage('${client.collateral.photoBase64}')"
+                 alt="Current Collateral Photo">
+            <br><small style="color: var(--ios-secondary-label);">Current photo (tap to enlarge)</small>
+          `;
+        } else {
+          currentPhotoDiv.innerHTML = '<small style="color: var(--ios-secondary-label);">No photo uploaded</small>';
+        }
+
+        // Clear edit preview
+        document.getElementById("editCollateralPhoto").value = "";
+        document.getElementById("editCollateralPreview").style.display = "none";
+
         document.getElementById("editClientModal").classList.add("active");
 
         // Clear any previous validation errors
