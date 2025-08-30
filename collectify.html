@@ -3394,6 +3394,15 @@
         document.getElementById("startDate").value = today;
         document.getElementById("fullPaymentDate").value = today;
 
+        // Recompute default amounts when date changes (Saturday/Monday adjustments)
+        const bind = (id, type) => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener("change", () => updateDefaultAmountFor(type));
+        };
+        bind("paymentDate", "notebook");
+        bind("officePaymentDate", "office");
+        bind("gcashPaymentDate", "gcash");
+
         // Load payment histories for all tabs
         updatePaymentHistory("notebook");
         updatePaymentHistory("office");
@@ -3665,13 +3674,10 @@
           0,
         );
 
-        // Calculate load today = expected daily collection for today (active and within term)
+        // Calculate load today = expected collection for today with Sat/Mon adjustments and Sunday off
         const now = new Date();
-        const today = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-        );
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
         const loadToday = clients
           .filter((c) => {
             if (c.status !== "active") return false;
@@ -3681,7 +3687,7 @@
             const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
             return sd <= today && today <= dd;
           })
-          .reduce((sum, c) => sum + c.dailyAmount, 0);
+          .reduce((sum, c) => sum + expectedAmountForDate(c, todayStr), 0);
 
         document.getElementById("totalClients").textContent = totalClients;
         document.getElementById("activeLoans").textContent = activeLoans;
@@ -4161,8 +4167,10 @@
         if (clientId) {
           const client = clients.find((c) => c.id == clientId);
           if (client) {
-            document.getElementById("paymentAmount").value =
-              client.dailyAmount.toFixed(2);
+            document.getElementById("paymentAmount").value = expectedAmountForDate(
+              client,
+              document.getElementById("paymentDate").value,
+            ).toFixed(2);
           }
         }
       }
@@ -4172,8 +4180,10 @@
         if (clientId) {
           const client = clients.find((c) => c.id == clientId);
           if (client) {
-            document.getElementById("officePaymentAmount").value =
-              client.dailyAmount.toFixed(2);
+            document.getElementById("officePaymentAmount").value = expectedAmountForDate(
+              client,
+              document.getElementById("officePaymentDate").value,
+            ).toFixed(2);
           }
         }
       }
@@ -4183,8 +4193,10 @@
         if (clientId) {
           const client = clients.find((c) => c.id == clientId);
           if (client) {
-            document.getElementById("gcashPaymentAmount").value =
-              client.dailyAmount.toFixed(2);
+            document.getElementById("gcashPaymentAmount").value = expectedAmountForDate(
+              client,
+              document.getElementById("gcashPaymentDate").value,
+            ).toFixed(2);
           }
         }
       }
@@ -4230,6 +4242,113 @@
           }
         }
         return null;
+      }
+
+      // Sunday handling helpers
+      function parseLocalDate(str) {
+        const parts = str.split("-").map(Number);
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+      }
+      function formatDateLocal(d) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
+      }
+      function getLocalWeekday(str) {
+        return parseLocalDate(str).getDay();
+      }
+      function isSunday(str) {
+        return getLocalWeekday(str) === 0;
+      }
+      function addDaysLocal(str, days) {
+        const d = parseLocalDate(str);
+        d.setDate(d.getDate() + days);
+        return d;
+      }
+      function findExistingPaymentAnyType(clientId, date) {
+        for (const t of ["notebook", "office", "gcash"]) {
+          const arr = payments[t] || [];
+          const found = arr.find((p) => p.clientId == clientId && p.date === date);
+          if (found) return { type: t, payment: found };
+        }
+        return null;
+      }
+      function addOrMergePaymentForDate(client, date, amount, preferredType) {
+        const found = findExistingPaymentAnyType(client.id, date);
+        if (found) {
+          found.payment.amount = (found.payment.amount || 0) + amount;
+          return found.type;
+        }
+        const payment = {
+          id: Date.now() + Math.floor(Math.random() * 100000),
+          clientId: client.id,
+          clientName: client.name,
+          amount: amount,
+          date: date,
+          type: "manual",
+          paymentType: preferredType,
+        };
+        payments[preferredType].push(payment);
+        return preferredType;
+      }
+      function splitSundayAmount(total) {
+        if (Number.isInteger(total) && total % 10 === 0) {
+          return [total / 2, total / 2];
+        }
+        const half = total / 2;
+        if (Number.isInteger(total)) {
+          const sat = Math.ceil(half / 5) * 5;
+          const mon = Math.max(0, total - sat);
+          return [sat, mon];
+        }
+        const sat = Math.ceil(half * 100) / 100;
+        const mon = +(total - sat).toFixed(2);
+        return [sat, mon];
+      }
+      function isSaturday(str) {
+        return getLocalWeekday(str) === 6;
+      }
+      function isMonday(str) {
+        return getLocalWeekday(str) === 1;
+      }
+      function expectedAmountForDate(client, dateStr) {
+        if (!dateStr) return client.dailyAmount;
+        const day = getLocalWeekday(dateStr);
+        if (day === 0) return 0; // Sunday is not a collection day
+        const [satSplit, monSplit] = splitSundayAmount(Math.round(client.dailyAmount));
+        if (day === 6) return client.dailyAmount + satSplit; // Saturday gets Saturday split
+        if (day === 1) return client.dailyAmount + monSplit; // Monday gets Monday split
+        return client.dailyAmount; // Regular day
+      }
+      function updateDefaultAmountFor(type) {
+        const map = {
+          notebook: {
+            selectId: "notebookClient",
+            amountId: "paymentAmount",
+            dateId: "paymentDate",
+          },
+          office: {
+            selectId: "officeClient",
+            amountId: "officePaymentAmount",
+            dateId: "officePaymentDate",
+          },
+          gcash: {
+            selectId: "gcashClient",
+            amountId: "gcashPaymentAmount",
+            dateId: "gcashPaymentDate",
+          },
+        };
+        const cfg = map[type];
+        if (!cfg) return;
+        const clientId = document.getElementById(cfg.selectId)?.value;
+        const dateStr = document.getElementById(cfg.dateId)?.value;
+        if (!clientId) return;
+        const client = clients.find((c) => c.id == clientId);
+        if (!client) return;
+        const val = expectedAmountForDate(client, dateStr);
+        const el = document.getElementById(cfg.amountId);
+        if (el) el.value = val.toFixed(2);
       }
 
       // Add payment function
@@ -4289,6 +4408,59 @@
             );
             return;
           }
+        }
+
+        // Sunday split logic (Sunday is not a collection day)
+        if (isSunday(date)) {
+          const satDate = formatDateLocal(addDaysLocal(date, -1));
+          const monDate = formatDateLocal(addDaysLocal(date, 1));
+
+          const clientIdNum = parseInt(clientId);
+          const satAbsent = isClientAbsentOnDate(clientIdNum, satDate);
+          const monAbsent = isClientAbsentOnDate(clientIdNum, monDate);
+
+          if (satAbsent && monAbsent) {
+            showNotification(`${client.name} is marked Absent on both Saturday (${satDate}) and Monday (${monDate}). Cannot record Sunday payment.`, "error");
+            return;
+          }
+
+          let [satAmt, monAmt] = splitSundayAmount(amount);
+          if (satAbsent && !monAbsent) {
+            monAmt = amount; satAmt = 0;
+          }
+          if (monAbsent && !satAbsent) {
+            satAmt = amount; monAmt = 0;
+          }
+
+          // Update client balance for collection tabs
+          if (type === "notebook" || type === "office" || type === "gcash") {
+            client.remainingBalance = Math.max(0, client.remainingBalance - amount);
+            if (client.remainingBalance <= 0) client.status = "paid";
+          }
+
+          const updatedTypes = new Set();
+          if (satAmt > 0) {
+            const usedType = addOrMergePaymentForDate(client, satDate, satAmt, type);
+            updatedTypes.add(usedType);
+          }
+          if (monAmt > 0) {
+            const usedType = addOrMergePaymentForDate(client, monDate, monAmt, type);
+            updatedTypes.add(usedType);
+          }
+
+          document.getElementById(`${type}Client`).value = "";
+          document.getElementById(amountField).value = "";
+
+          await saveData();
+          updateStats();
+          updateClientList();
+          updatedTypes.forEach((t) => updatePaymentHistory(t));
+
+          const parts = [];
+          if (satAmt > 0) parts.push(`₱${satAmt.toFixed(2)} to Saturday (${satDate})`);
+          if (monAmt > 0) parts.push(`₱${monAmt.toFixed(2)} to Monday (${monDate})`);
+          showNotification(`Sunday payment split: ${parts.join(" and ")}`, "success");
+          return;
         }
 
         // Update client balance (only for notebook, office, gcash - NOT adv or absent)
@@ -4648,7 +4820,7 @@
           .forEach((client) => {
             // Exclude clients marked absent from expected collection for the selected date
             if (!isClientAbsentOnDate(client.id, selectedDate)) {
-              totalExpected += client.dailyAmount;
+              totalExpected += expectedAmountForDate(client, selectedDate);
             }
 
             // Check if client paid on selected date
@@ -4681,7 +4853,7 @@
           const prev = byClient.get(client.id) || {
             clientId: client.id,
             clientName: client.name,
-            dailyAmount: client.dailyAmount,
+            dailyAmount: expectedAmountForDate(client, selectedDate),
             totalPaid: 0,
             types: new Set(),
             hasAdv: false,
@@ -4731,6 +4903,7 @@
 
         list.innerHTML = clientsArr
           .map((client) => {
+            const expectedForDate = expectedAmountForDate(client, selectedDate);
             let statusLine = "";
             if (isPaid) {
               const types = Array.from(
@@ -4781,13 +4954,13 @@
                 ${
                   isPaid
                     ? `Paid: ₱${client.paidAmount.toFixed(2)}`
-                    : `Expected: ₱${client.dailyAmount.toFixed(2)}`
+                    : `Expected: ₱${expectedForDate.toFixed(2)}`
                 }
               </p>
               ${statusLine}
             </div>
             <div class="tracker-amount ${isPaid ? "paid" : "expected"}">
-              ₱${isPaid ? client.paidAmount.toFixed(2) : client.dailyAmount.toFixed(2)}
+              ₱${isPaid ? client.paidAmount.toFixed(2) : expectedForDate.toFixed(2)}
             </div>
           </div>`;
           })

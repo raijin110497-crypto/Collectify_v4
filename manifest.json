@@ -1,0 +1,9 @@
+{
+  "name": "Collectify",
+  "short_name": "Collectify",
+  "start_url": "./collectify.html",
+  "display": "standalone",
+  "theme_color": "#007aff",
+  "background_color": "#ffffff",
+  "description": "Collectify - Lending Management"
+}
