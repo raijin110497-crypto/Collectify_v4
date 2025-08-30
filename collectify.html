@@ -4853,15 +4853,16 @@
 
         // Collateral information
         const collateralDescription = document.getElementById("editCollateralDescription").value.trim();
-        const editCollateralPhotoInput = document.getElementById("editCollateralPhoto");
-        let newCollateralPhotoBase64 = null;
+        const editCollateralPhotosInput = document.getElementById("editCollateralPhotos");
+        let newCollateralPhotosBase64 = [];
 
-        // Process new collateral image if provided
-        if (editCollateralPhotoInput.files && editCollateralPhotoInput.files[0]) {
+        // Process new collateral images if provided
+        if (editCollateralPhotosInput && editCollateralPhotosInput.files && editCollateralPhotosInput.files.length) {
           try {
-            newCollateralPhotoBase64 = await convertImageToBase64(editCollateralPhotoInput.files[0]);
+            const files = Array.from(editCollateralPhotosInput.files).slice(0, 3);
+            newCollateralPhotosBase64 = await Promise.all(files.map(f => convertImageToBase64(f)));
           } catch (error) {
-            showNotification("Error processing collateral image", "error");
+            showNotification("Error processing collateral images", "error");
             return;
           }
         }
