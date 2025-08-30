@@ -3261,7 +3261,7 @@
               "
             >
               <p>
-                <strong>Daily Amount:</strong> <span id="dailyAmount">���0</span>
+                <strong>Daily Amount:</strong> <span id="dailyAmount">₱0</span>
               </p>
               <p>
                 <strong>Total Amount:</strong> <span id="totalAmount">₱0</span>
@@ -5603,7 +5603,7 @@
         }
         if (currentActiveTab === 'summary') loadSummaryTab();
         showNotification(
-          `Payment of ���${amount.toFixed(2)} recorded for ${client.name}`,
+          `Payment of ₱${amount.toFixed(2)} recorded for ${client.name}`,
           "success",
         );
       }
@@ -7454,7 +7454,7 @@
               nbAmt>0 ? `<span class="cal-amt cal-notebook">₱${nbAmt.toFixed(0)}</span>` : '',
               ofAmt>0 ? `<span class="cal-amt cal-office">₱${ofAmt.toFixed(0)}</span>` : '',
               gcAmt>0 ? `<span class="cal-amt cal-gcash">₱${gcAmt.toFixed(0)}</span>` : '',
-              adAmt>0 ? `<span class="cal-amt cal-adv" title="Advance">���${adAmt.toFixed(0)}</span>` : ''
+              adAmt>0 ? `<span class="cal-amt cal-adv" title="Advance">₱${adAmt.toFixed(0)}</span>` : ''
             ].filter(Boolean).join('');
 
             cells.push(`
