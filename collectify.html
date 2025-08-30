@@ -398,6 +398,7 @@
         border-top: 0.5px solid var(--ios-opaque-separator);
       }
 
+
       .sidebar .tab.active {
         background: var(--ios-gray5);
       }
@@ -7797,6 +7798,28 @@
               closeSidebar();
               switchTab("overdue");
             },
+          },
+          {
+            text: "Summary tab: view totals across sources for a chosen date.",
+            selector: '.sidebar .tab[data-tab="summary"]',
+            padding: 6,
+            needsSidebar: true,
+            wait: 450,
+            openTab: "summary",
+          },
+          {
+            text: "Pick a date to update the Summary.",
+            selector: "#summaryDate",
+            padding: 6,
+            onBefore: () => {
+              closeSidebar();
+              switchTab("summary");
+            },
+          },
+          {
+            text: "These tiles show Notebook, GCash, Adv, Overpay, and Absent totals.",
+            selector: "#summary .stats-grid",
+            padding: 8,
           },
           {
             text: "Notebook: record daily payments.",
