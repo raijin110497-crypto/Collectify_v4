@@ -6166,6 +6166,30 @@
           });
         })();
 
+        // Include payments from clients already marked paid (manual full pay)
+        (function includePaidStatusClients() {
+          const paidIds = new Set(paidClients.map((c) => c.id));
+          const mapPaid = new Map();
+          datePayments.forEach((p) => {
+            const cl = clients.find((c) => c.id === p.clientId);
+            if (cl && cl.status === 'paid') {
+              const prev = mapPaid.get(p.clientId) || 0;
+              mapPaid.set(p.clientId, prev + (Number(p.amount) || 0));
+            }
+          });
+          mapPaid.forEach((amt, cid) => {
+            totalExpected += amt;
+            if (!paidIds.has(cid)) {
+              const cl = clients.find((c) => c.id === cid);
+              if (cl) {
+                const clientPayments = datePayments.filter((p) => p.clientId === cid);
+                const totalPaid = clientPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+                paidClients.push({ ...cl, paidAmount: totalPaid, payments: clientPayments });
+              }
+            }
+          });
+        })();
+
         // Build custom payments summary per client
         const byClient = new Map();
         datePayments.forEach((p) => {
