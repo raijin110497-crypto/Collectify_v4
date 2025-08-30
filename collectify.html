@@ -6200,10 +6200,13 @@
             totalPaid: 0,
             types: new Set(),
             hasAdv: false,
+            hasFull: false,
+            fullPaid: 0,
           };
           prev.totalPaid += p.amount;
           prev.types.add(type);
           if (type === "adv") prev.hasAdv = true;
+          if (p.type === "full") { prev.hasFull = true; prev.fullPaid += (Number(p.amount)||0); }
           byClient.set(client.id, prev);
         });
         advCreatedToday.forEach((p) => {
@@ -6216,6 +6219,8 @@
             totalPaid: 0,
             types: new Set(),
             hasAdv: false,
+            hasFull: false,
+            fullPaid: 0,
             advForFuture: 0,
             advDetails: [],
           };
@@ -6349,7 +6354,8 @@
 
         list.innerHTML = customSummaries
           .map((entry) => {
-            const diff = entry.totalPaid - entry.dailyAmount;
+            const expected = entry.hasFull ? (entry.fullPaid || 0) : entry.dailyAmount;
+            const diff = entry.totalPaid - expected;
             let statusBadge = "";
             let extraLine = "";
             if (entry.advForFuture && entry.advForFuture > 0) {
