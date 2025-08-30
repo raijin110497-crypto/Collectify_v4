@@ -2750,7 +2750,7 @@
                 <div id="abonoLenderClientPickerContainer">
                   <button type="button" id="abonoLenderClientPickerBtn" class="ios-select-button" aria-haspopup="dialog" aria-expanded="false">
                     <span class="label" id="abonoLenderClientPickerLabel">Choose a client...</span>
-                    <span class="chevron">���</span>
+                    <span class="chevron">›</span>
                   </button>
                 </div>
                 <small id="abonoLenderInfo" style="color: var(--ios-secondary-label); display:block; margin-top:6px;">Available advance: ₱0.00</small>
@@ -5317,6 +5317,8 @@
             document.getElementById("gcashPaymentAmount").value = "";
           else if (type === "adv")
             document.getElementById("advPaymentAmount").value = "";
+          else if (type === "abono")
+            document.getElementById("abonoPaymentAmount").value = "";
           else if (type === "absent") {
             const amt = document.getElementById("absentDailyAmount");
             if (amt) amt.value = "";
