@@ -6229,6 +6229,9 @@
         notification.className = `notification ${type}`;
         notification.classList.add("show");
 
+        // Add swipe to close functionality
+        setupNotificationSwipe(notification);
+
         // Auto hide after 3 seconds
         setTimeout(() => {
           hideNotification();
@@ -6238,6 +6241,101 @@
       function hideNotification() {
         const notification = document.getElementById("notification");
         notification.classList.remove("show");
+        // Remove touch listeners when hiding
+        removeNotificationSwipe(notification);
+      }
+
+      // Swipe functionality for notifications
+      let notificationTouchData = {};
+
+      function setupNotificationSwipe(element) {
+        // Remove any existing listeners first
+        removeNotificationSwipe(element);
+
+        element.addEventListener('touchstart', handleNotificationTouchStart, { passive: false });
+        element.addEventListener('touchmove', handleNotificationTouchMove, { passive: false });
+        element.addEventListener('touchend', handleNotificationTouchEnd, { passive: false });
+      }
+
+      function removeNotificationSwipe(element) {
+        element.removeEventListener('touchstart', handleNotificationTouchStart);
+        element.removeEventListener('touchmove', handleNotificationTouchMove);
+        element.removeEventListener('touchend', handleNotificationTouchEnd);
+      }
+
+      function handleNotificationTouchStart(e) {
+        const touch = e.touches[0];
+        notificationTouchData = {
+          startX: touch.clientX,
+          startY: touch.clientY,
+          startTime: Date.now(),
+          element: e.currentTarget
+        };
+      }
+
+      function handleNotificationTouchMove(e) {
+        if (!notificationTouchData.startX) return;
+
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - notificationTouchData.startX;
+        const deltaY = touch.clientY - notificationTouchData.startY;
+
+        // Provide visual feedback during swipe
+        const element = notificationTouchData.element;
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
+
+        // Only apply transform if swiping in valid directions (right or up)
+        if ((deltaX > 0 && absX > absY) || (deltaY < 0 && absY > absX)) {
+          const opacity = Math.max(0.3, 1 - (Math.max(absX, absY) / 100));
+          const translateX = deltaX > 0 ? Math.min(deltaX * 0.5, 50) : 0;
+          const translateY = deltaY < 0 ? Math.max(deltaY * 0.5, -50) : 0;
+
+          element.style.transform = `translate(calc(-50% + ${translateX}px), ${translateY}px) scale(1)`;
+          element.style.opacity = opacity;
+        }
+      }
+
+      function handleNotificationTouchEnd(e) {
+        if (!notificationTouchData.startX) return;
+
+        const touch = e.changedTouches[0];
+        const deltaX = touch.clientX - notificationTouchData.startX;
+        const deltaY = touch.clientY - notificationTouchData.startY;
+        const deltaTime = Date.now() - notificationTouchData.startTime;
+        const element = notificationTouchData.element;
+
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
+        const velocity = Math.max(absX, absY) / deltaTime;
+
+        // Determine if it's a swipe gesture
+        const isSwipeRight = deltaX > 30 && absX > absY && (absX > 50 || velocity > 0.3);
+        const isSwipeUp = deltaY < -30 && absY > absX && (absY > 50 || velocity > 0.3);
+
+        if (isSwipeRight || isSwipeUp) {
+          // Animate out and close
+          if (isSwipeRight) {
+            element.style.transform = 'translate(100vw, 0) scale(0.9)';
+          } else {
+            element.style.transform = 'translate(-50%, -100px) scale(0.9)';
+          }
+          element.style.opacity = '0';
+
+          setTimeout(() => {
+            hideNotification();
+            // Reset styles
+            element.style.transform = '';
+            element.style.opacity = '';
+          }, 200);
+        } else {
+          // Snap back to original position
+          element.style.transform = 'translate(-50%, 0) scale(1)';
+          element.style.opacity = '1';
+        }
+
+        // Reset touch data
+        notificationTouchData = {};
       }
 
       // Enhanced data persistence with IndexedDB
