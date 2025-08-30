@@ -4345,6 +4345,18 @@
         if (day === 1) return client.dailyAmount + monSplit; // Monday gets Monday split
         return client.dailyAmount; // Regular day
       }
+      function getNextCollectionDate(dateStr, clientId) {
+        // Start from the next day and skip Sundays and client's absences
+        let d = addDaysLocal(dateStr, 1);
+        for (let i = 0; i < 370; i++) {
+          const ds = formatDateLocal(d);
+          if (getLocalWeekday(ds) !== 0 && !isClientAbsentOnDate(clientId, ds)) {
+            return ds;
+          }
+          d = addDaysLocal(ds, 1);
+        }
+        return formatDateLocal(d);
+      }
       function updateDefaultAmountFor(type) {
         const map = {
           notebook: {
@@ -4437,6 +4449,33 @@
             );
             return;
           }
+        }
+
+        // Auto-schedule Adv across following collection days (Option B)
+        if (type === "adv") {
+          let remaining = amount;
+          let cursor = date;
+          const createdAt = todayLocalDateStr ? todayLocalDateStr() : date;
+          let createdCount = 0;
+          for (let i = 0; i < 400 && remaining > 0; i++) {
+            const nextDate = getNextCollectionDate(cursor, parseInt(clientId));
+            const expected = expectedAmountForDate(client, nextDate);
+            const toApply = Math.min(remaining, expected);
+            addOrMergePaymentForDate(client, nextDate, toApply, "adv", createdAt);
+            remaining -= toApply;
+            cursor = nextDate;
+            createdCount++;
+          }
+
+          document.getElementById(`${type}Client`).value = "";
+          document.getElementById(amountField).value = "";
+
+          await saveData();
+          updateStats();
+          updateClientList();
+          updatePaymentHistory("adv");
+          showNotification(`Advance scheduled into ${createdCount} future day(s)`, "success");
+          return;
         }
 
         // Sunday split logic (Sunday is not a collection day)
