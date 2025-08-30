@@ -4884,9 +4884,10 @@
         // Update collateral information
         if (!client.collateral) client.collateral = {};
         client.collateral.description = collateralDescription;
-        // Only update photo if a new one was uploaded, otherwise keep existing
-        if (newCollateralPhotoBase64) {
-          client.collateral.photoBase64 = newCollateralPhotoBase64;
+        // Only update photos if new ones were uploaded, otherwise keep existing
+        if (newCollateralPhotosBase64 && newCollateralPhotosBase64.length) {
+          client.collateral.photosBase64 = newCollateralPhotosBase64;
+          client.collateral.photoBase64 = newCollateralPhotosBase64[0];
         }
 
         // Recalculate total amount and daily amount
@@ -5533,7 +5534,7 @@
           updatePaymentHistory("adv");
         }
         showNotification(
-          `Payment of ₱${amount.toFixed(2)} recorded for ${client.name}`,
+          `Payment of ���${amount.toFixed(2)} recorded for ${client.name}`,
           "success",
         );
       }
