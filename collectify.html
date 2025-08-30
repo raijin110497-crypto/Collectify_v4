@@ -2059,6 +2059,9 @@
       .calendar-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--ios-secondary-label); }
       .legend-item { display: inline-flex; align-items: center; gap: 6px; }
       .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+      .cal-amounts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+      .cal-amt { font-size: 10px; padding: 1px 6px; border-radius: 12px; color: #fff; line-height: 1.2; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+      .calendar-cell.disabled .cal-amt { opacity: 0.6; }
     </style>
   </head>
   <body>
@@ -7220,11 +7223,24 @@
               isAbsent ? '<span class="cal-dot cal-absent" title="Absent"></span>' : ''
             ].filter(Boolean).join('');
 
+            // Sum amounts per source for this day
+            const nbAmt = (payments.notebook||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const ofAmt = (payments.office||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const gcAmt = (payments.gcash||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const adAmt = (payments.adv||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const amountsHtml = [
+              nbAmt>0 ? `<span class="cal-amt cal-notebook">₱${nbAmt.toFixed(0)}</span>` : '',
+              ofAmt>0 ? `<span class="cal-amt cal-office">₱${ofAmt.toFixed(0)}</span>` : '',
+              gcAmt>0 ? `<span class="cal-amt cal-gcash">₱${gcAmt.toFixed(0)}</span>` : '',
+              adAmt>0 ? `<span class="cal-amt cal-adv" title="Advance">₱${adAmt.toFixed(0)}</span>` : ''
+            ].filter(Boolean).join('');
+
             cells.push(`
               <div class="${cellCls}">
                 <div class="day-num">${d}</div>
                 ${overpay ? '<span class="over-badge">Over</span>' : '<span></span>'}
                 <div class="cal-dots">${dots}</div>
+                ${amountsHtml ? `<div class="cal-amounts">${amountsHtml}</div>` : ''}
               </div>
             `);
           }
