@@ -3944,9 +3944,11 @@
           document.getElementById("coMakerAddress").value = "";
           // Clear collateral fields
           document.getElementById("collateralDescription").value = "";
-          document.getElementById("collateralPhoto").value = "";
+          const cp = document.getElementById("collateralPhotos");
+          if (cp) cp.value = "";
+          const cpList = document.getElementById("collateralPreviewList");
+          if (cpList) cpList.innerHTML = "";
           document.getElementById("collateralPreview").style.display = "none";
-          document.getElementById("collateralPreviewImg").src = "";
           const today = new Date().toISOString().split("T")[0];
           document.getElementById("startDate").value = today;
           calculateLoanDetails();
