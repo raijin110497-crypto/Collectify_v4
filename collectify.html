@@ -5535,7 +5535,12 @@
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
-            showNotification("Data exported successfully", "success");
+            const pickedName = (handle && handle.name) ? handle.name : filename;
+            if (!/\.json$/i.test(pickedName)) {
+              showNotification(`Saved as ${pickedName}. Tip: add .json to the file name for easy restore.`, "success");
+            } else {
+              showNotification("Data exported successfully", "success");
+            }
             return;
           }
         } catch (err) {
