@@ -3279,7 +3279,7 @@
         <div class="modal-header">
           <h2>Full Payment</h2>
           <button class="close-btn" onclick="closeModal('fullPaymentModal')">
-            ✕
+            ��
           </button>
         </div>
         <div class="modal-body">
@@ -4363,6 +4363,16 @@
                     </svg>
                     Due: ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})
                   </p>
+                  ${(() => {
+                    let indicators = [];
+                    if (client.coMaker && (client.coMaker.name || client.coMaker.contactNumber)) {
+                      indicators.push('<span class="status-badge status-office" style="font-size: 9px; padding: 2px 6px;">Co-maker</span>');
+                    }
+                    if (client.collateral && (client.collateral.description || client.collateral.photoBase64)) {
+                      indicators.push('<span class="status-badge status-purple" style="font-size: 9px; padding: 2px 6px;">Collateral</span>');
+                    }
+                    return indicators.length > 0 ? '<p style="margin-top: 6px;">' + indicators.join(' ') + '</p>' : '';
+                  })()}
                 </div>
                 <div class="client-status">
                   ${statusBadge}
