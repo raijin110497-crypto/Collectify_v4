@@ -2631,6 +2631,10 @@
                 <h3 id="summaryGcashTotal">₱0</h3>
                 <p>GCash</p>
               </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-green), var(--ios-teal));">
+                <h3 id="summaryFullPaidTotal">₱0</h3>
+                <p>Full Pay</p>
+              </div>
               <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-yellow), var(--ios-orange));">
                 <h3 id="summaryAdvTotal">₱0</h3>
                 <p>Adv (applied today)</p>
@@ -2656,6 +2660,10 @@
             <div class="form-group">
               <label>Adv</label>
               <div id="summaryAdvList" class="client-list"><div class="no-data">No entries</div></div>
+            </div>
+            <div class="form-group">
+              <label>Full Pay</label>
+              <div id="summaryFullPaidList" class="client-list"><div class="no-data">No entries</div></div>
             </div>
             <div class="form-group">
               <label>Overpayment (per client, per day)</label>
@@ -5637,6 +5645,15 @@
         const nb = groupByClient('notebook');
         const gc = groupByClient('gcash');
         const ad = groupByClient('adv');
+        const fullRaw = Object.values(payments).flat().filter(p => p.date === date && p.type === 'full');
+        const fullMap = new Map();
+        fullRaw.forEach(p => {
+          const key = String(p.clientId);
+          const prev = fullMap.get(key) || { clientId: p.clientId, clientName: p.clientName, amount: 0 };
+          prev.amount += Number(p.amount) || 0;
+          fullMap.set(key, prev);
+        });
+        const full = Array.from(fullMap.values()).sort((a,b)=>a.clientName.localeCompare(b.clientName));
 
         // Absent list with expected amount
         const abs = absences
@@ -5664,6 +5681,7 @@
         const sumAmt = (arr) => arr.reduce((s, x) => s + (Number(x.amount)||0), 0);
         document.getElementById('summaryNotebookTotal').textContent = `₱${sumAmt(nb).toFixed(2)}`;
         document.getElementById('summaryGcashTotal').textContent = `₱${sumAmt(gc).toFixed(2)}`;
+        const fpEl = document.getElementById('summaryFullPaidTotal'); if (fpEl) fpEl.textContent = `₱${sumAmt(full).toFixed(2)}`;
         document.getElementById('summaryAdvTotal').textContent = `₱${sumAmt(ad).toFixed(2)}`;
         document.getElementById('summaryOverpayCount').textContent = String(over.length);
         document.getElementById('summaryAbsentCount').textContent = String(abs.length);
@@ -5704,6 +5722,7 @@
         renderSimple('summaryNotebookList', nb, 'status-notebook', 'No notebook payments');
         renderSimple('summaryGcashList', gc, 'status-gcash', 'No GCash payments');
         renderSimple('summaryAdvList', ad, 'status-adv', 'No adv entries');
+        renderSimple('summaryFullPaidList', full, 'status-paid', 'No full payments');
         renderOver('summaryOverpayList', over);
         renderSimple('summaryAbsentList', abs, 'status-absent', 'No absences');
       }
@@ -7488,6 +7507,7 @@
             const hasOffice = (payments.office||[]).some(p=>p.clientId==clientId && p.date===ds);
             const hasGCash = (payments.gcash||[]).some(p=>p.clientId==clientId && p.date===ds);
             const hasAdv = (payments.adv||[]).some(p=>p.clientId==clientId && p.date===ds);
+            const hasFull = ["notebook","office","gcash","abono","adv"].some(t => (payments[t]||[]).some(p => p.clientId==clientId && p.date===ds && p.type==='full'));
             const isAbsent = absences.some(a=>a.clientId==clientId && a.date===ds);
 
             const expected = inRange ? expectedAmountForDate(client, ds) : 0;
@@ -7503,6 +7523,7 @@
               hasOffice ? '<span class="cal-dot cal-office" title="Office"></span>' : '',
               hasGCash ? '<span class="cal-dot cal-gcash" title="GCash"></span>' : '',
               hasAdv ? '<span class="cal-dot cal-adv" title="Advance"></span>' : '',
+              hasFull ? '<span class="cal-dot cal-full" title="Full Pay"></span>' : '',
               isAbsent ? '<span class="cal-dot cal-absent" title="Absent"></span>' : ''
             ].filter(Boolean).join('');
 
@@ -7511,11 +7532,16 @@
             const ofAmt = (payments.office||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
             const gcAmt = (payments.gcash||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
             const adAmt = (payments.adv||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const fullAmt = ["notebook","office","gcash","abono","adv"]
+              .flatMap(t => (payments[t]||[]))
+              .filter(p=>p.clientId==clientId && p.date===ds && p.type==='full')
+              .reduce((s,p)=>s + (Number(p.amount)||0), 0);
             const amountsHtml = [
-              nbAmt>0 ? `<span class="cal-amt cal-notebook">₱${nbAmt.toFixed(0)}</span>` : '',
-              ofAmt>0 ? `<span class="cal-amt cal-office">₱${ofAmt.toFixed(0)}</span>` : '',
-              gcAmt>0 ? `<span class="cal-amt cal-gcash">₱${gcAmt.toFixed(0)}</span>` : '',
-              adAmt>0 ? `<span class="cal-amt cal-adv" title="Advance">₱${adAmt.toFixed(0)}</span>` : ''
+              nbAmt>0 ? `<span class=\"cal-amt cal-notebook\">₱${nbAmt.toFixed(0)}</span>` : '',
+              ofAmt>0 ? `<span class=\"cal-amt cal-office\">₱${ofAmt.toFixed(0)}</span>` : '',
+              gcAmt>0 ? `<span class=\"cal-amt cal-gcash\">₱${gcAmt.toFixed(0)}</span>` : '',
+              adAmt>0 ? `<span class=\"cal-amt cal-adv\" title=\"Advance\">₱${adAmt.toFixed(0)}</span>` : '',
+              fullAmt>0 ? `<span class=\"cal-amt cal-full\" title=\"Full Pay\">₱${fullAmt.toFixed(0)}</span>` : ''
             ].filter(Boolean).join('');
 
             cells.push(`
