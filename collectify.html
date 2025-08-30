@@ -3894,9 +3894,29 @@
           .value.trim();
         const address = document.getElementById("address").value.trim();
 
+        // Co-maker information
+        const coMakerName = document.getElementById("coMakerName").value.trim();
+        const coMakerContact = document.getElementById("coMakerContact").value.trim();
+        const coMakerAddress = document.getElementById("coMakerAddress").value.trim();
+
+        // Collateral information
+        const collateralDescription = document.getElementById("collateralDescription").value.trim();
+        const collateralPhotoInput = document.getElementById("collateralPhoto");
+        let collateralPhotoBase64 = null;
+
         if (!name || !loanAmount || !startDate || !contactNumber || !address) {
           showNotification("Please fill in all required fields", "error");
           return;
+        }
+
+        // Process collateral image if provided
+        if (collateralPhotoInput.files && collateralPhotoInput.files[0]) {
+          try {
+            collateralPhotoBase64 = await convertImageToBase64(collateralPhotoInput.files[0]);
+          } catch (error) {
+            showNotification("Error processing collateral image", "error");
+            return;
+          }
         }
 
         // Validate client name
