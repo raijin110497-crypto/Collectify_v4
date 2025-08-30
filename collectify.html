@@ -3190,7 +3190,7 @@
             Are you sure you want to record a full payment for
             <strong id="fullPaymentClientName">this client</strong>?
           </p>
-          <p>Remaining balance: <strong id="fullPaymentAmount">��0</strong></p>
+          <p>Remaining balance: <strong id="fullPaymentAmount">₱0</strong></p>
           <div class="form-group">
             <label>Payment Date:</label>
             <input type="date" id="fullPaymentDate" />
@@ -4818,7 +4818,7 @@
             const client = clients.find((c) => c.id === payment.clientId);
             if (
               client &&
-              (type === "notebook" || type === "office" || type === "gcash")
+              (type === "notebook" || type === "office" || type === "gcash" || type === "abono")
             ) {
               client.remainingBalance = Math.min(
                 client.totalAmount,
