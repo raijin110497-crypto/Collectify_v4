@@ -5668,10 +5668,14 @@
         // Overpayment per client (exclude Adv from paid sum)
         const over = clients.filter(c => c.status !== 'paid').map(c => {
           const expected = isClientAbsentOnDate(c.id, date) ? 0 : expectedAmountForDate(c, date);
-          const paidSum = ['notebook','office','gcash','abono']
+          const paidDirect = ['notebook','office','gcash','abono']
             .flatMap(t => payments[t] || [])
             .filter(p => p.clientId === c.id && p.date === date)
             .reduce((s,p) => s + (Number(p.amount)||0), 0);
+          const advExtra = (payments.adv || [])
+            .filter(p => p.clientId === c.id && (p.createdAt || p.date) === date && p.date !== date)
+            .reduce((s,p) => s + (Number(p.amount)||0), 0);
+          const paidSum = paidDirect + advExtra;
           const diff = paidSum - expected;
           return { clientId: c.id, clientName: c.name, expected, paid: paidSum, overBy: diff };
         }).filter(e => e.overBy > 0.01)
@@ -6131,32 +6135,34 @@
         clients
           .filter((c) => c.status === "active")
           .forEach((client) => {
-            // Exclude clients marked absent from expected collection for the selected date
-            if (!isClientAbsentOnDate(client.id, selectedDate)) {
-              totalExpected += expectedAmountForDate(client, selectedDate);
-            }
+            const clientPayments = datePayments.filter((p) => p.clientId === client.id);
+            const advTodayAmt = advCreatedToday
+              .filter((p) => p.clientId === client.id)
+              .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+            const directPaid = clientPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+            const totalPaidForClient = directPaid + advTodayAmt;
 
-            // Check if client paid on selected date
-            const clientPayments = datePayments.filter(
-              (p) => p.clientId === client.id,
-            );
+            // Expected reflects overpayment: max(expected, paid today)
+            const expectedForDate = isClientAbsentOnDate(client.id, selectedDate)
+              ? 0
+              : expectedAmountForDate(client, selectedDate);
+            totalExpected += Math.max(expectedForDate, totalPaidForClient);
 
-            if (clientPayments.length > 0) {
-              const totalPaid = clientPayments.reduce(
-                (sum, p) => sum + p.amount,
-                0,
-              );
-              paidClients.push({
-                ...client,
-                paidAmount: totalPaid,
-                payments: clientPayments,
-              });
-              actualCollected += totalPaid;
+            if (totalPaidForClient > 0) {
+              // Merge payments with ADV created today as synthetic entries for display badges
+              const advSynthetic = advTodayAmt > 0
+                ? [{ id: `adv-${client.id}-${selectedDate}`, clientId: client.id, clientName: client.name, amount: advTodayAmt, date: selectedDate, type: "manual", paymentType: "adv" }]
+                : [];
+              const combined = clientPayments.concat(advSynthetic);
+              paidClients.push({ ...client, paidAmount: totalPaidForClient, payments: combined });
+              // Only add direct (same-date) amounts to actualCollected here; adv created today is added once below
+              actualCollected += directPaid;
             } else {
               notPaidClients.push(client);
             }
           });
-        actualCollected += advCreatedToday.reduce((sum, p) => sum + (p.amount || 0), 0);
+        // Add ADV created today (for future dates) to Actual
+        actualCollected += advCreatedToday.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
         // Ensure fully paid amounts are included in Expected Collection and Paid Today
         (function includeFullPays() {
@@ -6174,38 +6180,15 @@
             const cl = clients.find((c) => c.id === cid);
             if (!cl) return;
 
-            // Add full payment amounts to expected total for the day
+            // Add full payment amounts to expected and actual totals for the day
             totalExpected += amt;
+            actualCollected += amt;
 
             // Ensure fully-paid clients appear in the Paid Today list
             if (!paidIds.has(cid)) {
               const clientPayments = datePayments.filter((p) => p.clientId === cid);
               const totalPaid = clientPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
               paidClients.push({ ...cl, paidAmount: totalPaid, payments: clientPayments });
-            }
-          });
-        })();
-
-        // Include payments from clients already marked paid (manual full pay)
-        (function includePaidStatusClients() {
-          const paidIds = new Set(paidClients.map((c) => c.id));
-          const mapPaid = new Map();
-          datePayments.forEach((p) => {
-            const cl = clients.find((c) => c.id === p.clientId);
-            if (cl && cl.status === 'paid') {
-              const prev = mapPaid.get(p.clientId) || 0;
-              mapPaid.set(p.clientId, prev + (Number(p.amount) || 0));
-            }
-          });
-          mapPaid.forEach((amt, cid) => {
-            totalExpected += amt;
-            if (!paidIds.has(cid)) {
-              const cl = clients.find((c) => c.id === cid);
-              if (cl) {
-                const clientPayments = datePayments.filter((p) => p.clientId === cid);
-                const totalPaid = clientPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-                paidClients.push({ ...cl, paidAmount: totalPaid, payments: clientPayments });
-              }
             }
           });
         })();
@@ -6223,10 +6206,13 @@
             totalPaid: 0,
             types: new Set(),
             hasAdv: false,
+            hasFull: false,
+            fullPaid: 0,
           };
           prev.totalPaid += p.amount;
           prev.types.add(type);
           if (type === "adv") prev.hasAdv = true;
+          if (p.type === "full") { prev.hasFull = true; prev.fullPaid += (Number(p.amount)||0); }
           byClient.set(client.id, prev);
         });
         advCreatedToday.forEach((p) => {
@@ -6239,6 +6225,8 @@
             totalPaid: 0,
             types: new Set(),
             hasAdv: false,
+            hasFull: false,
+            fullPaid: 0,
             advForFuture: 0,
             advDetails: [],
           };
@@ -6372,7 +6360,8 @@
 
         list.innerHTML = customSummaries
           .map((entry) => {
-            const diff = entry.totalPaid - entry.dailyAmount;
+            const expected = entry.hasFull ? (entry.fullPaid || 0) : entry.dailyAmount;
+            const diff = entry.totalPaid - expected;
             let statusBadge = "";
             let extraLine = "";
             if (entry.advForFuture && entry.advForFuture > 0) {
@@ -6394,7 +6383,7 @@
                 '<span class="status-badge status-paid">Exact</span>';
             }
 
-            const typeBadges = Array.from(entry.types)
+            let typeBadges = Array.from(entry.types)
               .map((t) => {
                 const label =
                   t === "notebook"
@@ -6420,9 +6409,12 @@
                           : t === "abono"
                             ? "status-abono"
                             : "status-active";
-                return `<span class="status-badge ${cls}">${label}</span>`;
+                return `<span class=\"status-badge ${cls}\">${label}</span>`;
               })
               .join(" ");
+            if (entry.hasFull) {
+              typeBadges += ' <span class="status-badge status-paid">Full</span>';
+            }
 
             return `
           <div class="tracker-client-item">
@@ -6440,11 +6432,20 @@
           .join("");
       }
 
-      // Search tab clients
+      // Search tab clients (fuzzy, accent/space-insensitive)
+      function normalizeSearch(str) {
+        return (str || "")
+          .toLowerCase()
+          .normalize("NFD").replace(/\p{Diacritic}/gu, "")
+          .replace(/[^a-z0-9]+/gi, " ")
+          .trim();
+      }
       function searchTabClients(type) {
         const input = document.getElementById(`${type}Search`);
         if (!input) return;
-        const term = input.value.trim().toLowerCase();
+        const termRaw = input.value || "";
+        const term = normalizeSearch(termRaw);
+        const termParts = term.split(" ").filter(Boolean);
         const select = document.getElementById(`${type}Client`);
         if (!select) return;
         const options = Array.from(select.querySelectorAll("option"));
@@ -6455,8 +6456,11 @@
 
         options.forEach((option) => {
           if (option.value === "") return; // Skip placeholder
-          const name = (option.textContent || "").trim().toLowerCase();
-          const isVisible = term === "" || name.includes(term);
+          const nameRaw = (option.textContent || "").trim();
+          const name = normalizeSearch(nameRaw);
+          const isVisible = term === "" || (
+            name.includes(term) || termParts.every(p => name.includes(p))
+          );
           option.hidden = !isVisible; // more reliable than display for <option>
           if (isVisible) {
             visibleCount++;
@@ -6487,9 +6491,8 @@
           return;
         }
 
-        // Auto-select exact match; otherwise if a single match, select it
-        const toSelect =
-          exactMatch || (visibleCount === 1 ? firstVisible : null);
+        // Auto-select exact match; otherwise if a single match, select it; otherwise first visible
+        const toSelect = exactMatch || (visibleCount === 1 ? firstVisible : firstVisible);
         if (toSelect) {
           select.value = toSelect.value;
           // Fire change so custom iOS pickers' labels stay in sync
