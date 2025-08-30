@@ -4700,6 +4700,9 @@
 
         payments.notebook.push(payment);
 
+        // Update payment tracking for missed payment notifications
+        updatePaymentTracking(client.id, paymentDate);
+
         await saveData();
         updateStats();
         updateClientList();
