@@ -4271,8 +4271,8 @@
 
         // Collateral information
         const collateralDescription = document.getElementById("collateralDescription").value.trim();
-        const collateralPhotoInput = document.getElementById("collateralPhoto");
-        let collateralPhotoBase64 = null;
+        const collateralPhotosInput = document.getElementById("collateralPhotos");
+        let collateralPhotosBase64 = [];
 
         if (!name || !loanAmount || !startDate || !contactNumber || !address) {
           showNotification("Please fill in all required fields", "error");
