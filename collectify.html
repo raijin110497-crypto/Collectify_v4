@@ -3159,7 +3159,7 @@
         <div class="modal-header">
           <h2>Client Details</h2>
           <button class="close-btn" onclick="closeModal('viewClientModal')">
-            ✕
+            ���
           </button>
         </div>
         <div class="modal-body">
@@ -4547,7 +4547,7 @@
           const dup = findDuplicatePayment(
             parseInt(clientId),
             date,
-            ["notebook", "office", "gcash"].filter((t) => t !== type),
+            ["notebook", "office", "gcash", "abono"].filter((t) => t !== type),
           );
           if (dup) {
             showNotification(
