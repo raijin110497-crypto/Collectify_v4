@@ -4441,7 +4441,7 @@
               </div>
 
               <div class="client-actions" style="grid-template-columns: repeat(4, 1fr); gap: 6px;">
-                <button class="btn btn-secondary" style="padding: 8px 10px; font-size: 12px;" onclick="openViewClient(${client.id})">View</button>
+                <button class="btn btn-secondary" style="padding: 8px 10px; font-size: 12px;" onclick="openViewClient(${client.id}, this)">View</button>
                 <button class="btn btn-secondary" style="padding: 8px 10px; font-size: 12px;" onclick="editClient(${client.id})">Edit</button>
                 <button class="full-payment-btn" style="padding: 8px 10px; font-size: 12px;" onclick="openFullPaymentModal(${client.id})">Full Pay</button>
                 <button class="btn btn-danger" style="padding: 8px 10px; font-size: 12px;" onclick="openDeleteModal(${client.id})">Delete</button>
@@ -5798,7 +5798,7 @@
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                   <h4>${absence.clientName}</h4>
-                  <p>${new Date(absence.date).toLocaleDateString()} • ${absence.reason}</p>
+                  <p>${new Date(absence.date).toLocaleDateString()} ��� ${absence.reason}</p>
                 </div>
                 <button class="btn btn-danger" onclick="deleteAbsence(${absence.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
                   Delete
@@ -6971,7 +6971,7 @@
       }
 
       // View client details
-      function openViewClient(clientId) {
+      function openViewClient(clientId, originEl) {
         const client = clients.find((c) => c.id === clientId);
         if (!client) return;
 
@@ -7026,12 +7026,77 @@
             ${coMakerSection}
             ${collateralSection}
           </div>`;
+        const modalEl = document.getElementById("viewClientModal");
+        const modalContent = modalEl.querySelector(".modal-content");
         const contentEl = document.getElementById("viewClientContent");
         contentEl.innerHTML = html;
         contentEl.classList.remove("client-view-animate");
         void contentEl.offsetWidth;
         contentEl.classList.add("client-view-animate");
-        document.getElementById("viewClientModal").classList.add("active");
+        modalEl.classList.add("active");
+        startOpenExpandAnimation(originEl, modalEl, modalContent);
+      }
+
+      // Smooth expand-from-button animation for View modal
+      function startOpenExpandAnimation(originEl, modalEl, modalContent) {
+        try {
+          if (!originEl || !originEl.getBoundingClientRect) return;
+          // Inject one-time styles if missing
+          if (!document.getElementById('viewExpandStyles')) {
+            const st = document.createElement('style');
+            st.id = 'viewExpandStyles';
+            st.textContent = `
+              .modal.animating .modal-content { opacity: 0 !important; transform: none !important; }
+              .expand-seed {
+                position: fixed; left: 0; top: 0; width: 0; height: 0;
+                background: var(--ios-secondary-grouped-background);
+                border: 0.5px solid var(--ios-opaque-separator);
+                border-radius: var(--ios-border-radius);
+                box-shadow: var(--ios-shadow-elevated);
+                z-index: 1300;
+                transition:
+                  left 0.45s var(--ios-spring-timing),
+                  top 0.45s var(--ios-spring-timing),
+                  width 0.45s var(--ios-spring-timing),
+                  height 0.45s var(--ios-spring-timing),
+                  border-radius 0.45s var(--ios-spring-timing),
+                  box-shadow 0.45s var(--ios-spring-timing);
+              }
+            `;
+            document.head.appendChild(st);
+          }
+
+          const rect = originEl.getBoundingClientRect();
+          const seed = document.createElement('div');
+          seed.className = 'expand-seed';
+          seed.style.left = `${rect.left}px`;
+          seed.style.top = `${rect.top}px`;
+          seed.style.width = `${rect.width}px`;
+          seed.style.height = `${rect.height}px`;
+          document.body.appendChild(seed);
+
+          // Hide modal content during animation
+          modalEl.classList.add('animating');
+
+          // Compute target rect on next frame to let modal layout
+          requestAnimationFrame(() => {
+            const target = modalContent.getBoundingClientRect();
+            // Trigger transition
+            seed.style.left = `${target.left}px`;
+            seed.style.top = `${target.top}px`;
+            seed.style.width = `${target.width}px`;
+            seed.style.height = `${target.height}px`;
+            seed.style.borderRadius = '20px';
+            seed.style.boxShadow = '0 25px 50px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1)';
+
+            const done = () => {
+              seed.removeEventListener('transitionend', done);
+              modalEl.classList.remove('animating');
+              seed.remove();
+            };
+            seed.addEventListener('transitionend', done);
+          });
+        } catch (e) { /* no-op fallback */ }
       }
 
       // Function to enlarge collateral image
