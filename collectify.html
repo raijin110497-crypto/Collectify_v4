@@ -3842,7 +3842,7 @@
         document.getElementById("totalLoaned").textContent =
           `₱${totalLoaned.toLocaleString()}`;
         document.getElementById("totalCollected").textContent =
-          `₱${totalCollected.toLocaleString()}`;
+          `���${totalCollected.toLocaleString()}`;
         document.getElementById("loadToday").textContent =
           `₱${loadToday.toLocaleString()}`;
       }
@@ -4651,7 +4651,12 @@
               showNotification("Please choose a lender client with advance", "error");
               return;
             }
-            const ok = deductAdvanceFromClient(lenderClientId, amount, date);
+            const ok = deductAdvanceFromClient(
+              lenderClientId,
+              amount,
+              date,
+              { borrowerId: parseInt(clientId), borrowerName: client.name }
+            );
             if (!ok) {
               showNotification("Insufficient advance balance from selected lender", "error");
               return;
@@ -4789,7 +4794,7 @@
                   <h4>${payment.clientName}</h4>
                   <p>₱${payment.amount.toFixed(2)} • ${new Date(payment.date).toLocaleDateString()}</p>
                   ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}${(payment.repaid||0)>0 ? ` • Repaid: ₱${(payment.repaid||0).toFixed(2)} • Outstanding: ₱${Math.max(0, payment.amount - (payment.repaid||0)).toFixed(2)}` : ''}</p>` : ''}
-                  ${payment.paymentType === 'adv' && payment.initialAmount && payment.initialAmount > payment.amount ? `<p>Borrowed via Abono: ₱${(payment.initialAmount - payment.amount).toFixed(2)} • Remaining: ₱${payment.amount.toFixed(2)} of ₱${payment.initialAmount.toFixed(2)}</p>` : ''}
+                  ${payment.paymentType === 'adv' && payment.initialAmount && payment.initialAmount > payment.amount ? `<p>Borrowed via Abono: ₱${(payment.initialAmount - payment.amount).toFixed(2)}${formatAdvBorrowers(payment)} • Remaining: ₱${payment.amount.toFixed(2)} of ₱${payment.initialAmount.toFixed(2)}</p>` : ''}
                   <p><span class="status-badge status-active">${payment.type}</span></p>
                 </div>
                 <div style="display:flex; gap:8px;">
@@ -5697,7 +5702,7 @@
           .filter((p) => p.clientId == clientId && (!from || dateKeyForCompare(p.date) >= fromKey))
           .reduce((sum, p) => sum + (p.amount || 0), 0);
       }
-      function deductAdvanceFromClient(clientId, amount, fromDate) {
+      function deductAdvanceFromClient(clientId, amount, fromDate, meta) {
         const EPS = 1e-6;
         let remaining = amount;
         const from = fromDate || todayLocalDateStr();
@@ -5711,6 +5716,18 @@
           const take = Math.min(remaining, available);
           entry.amount = available - take;
           if (entry.amount < EPS) entry.amount = 0;
+          // Record borrower details on the Adv entry
+          if (take > EPS) {
+            const ev = {
+              borrowerId: meta && meta.borrowerId != null ? meta.borrowerId : null,
+              borrowerName: meta && meta.borrowerName ? meta.borrowerName : null,
+              amount: take,
+              date: from,
+            };
+            entry.borrowEvents = Array.isArray(entry.borrowEvents)
+              ? entry.borrowEvents.concat([ev])
+              : [ev];
+          }
           remaining -= take;
         }
         payments.adv = (payments.adv || []).filter((p) => (Number(p.amount) || 0) > EPS);
@@ -5997,6 +6014,17 @@
           `${isDarkMode ? "Dark" : "Light"} mode enabled`,
           "success",
         );
+      }
+
+      function formatAdvBorrowers(payment) {
+        try {
+          const events = Array.isArray(payment.borrowEvents) ? payment.borrowEvents : [];
+          const names = Array.from(new Set(events.map(e => (e && e.borrowerName) ? e.borrowerName : null).filter(Boolean)));
+          if (names.length === 0) return '';
+          if (names.length === 1) return ` • Borrower: ${names[0]}`;
+          if (names.length === 2) return ` • Borrowers: ${names[0]}, ${names[1]}`;
+          return ` • Borrowers: ${names[0]}, ${names[1]} +${names.length - 2}`;
+        } catch (e) { return ''; }
       }
 
       // Enhanced notification system
