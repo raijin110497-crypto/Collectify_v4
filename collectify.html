@@ -4791,6 +4791,7 @@
         updateStats();
         updateClientList();
         updatePaymentHistory("notebook");
+        if (currentActiveTab === 'summary') loadSummaryTab();
         showNotification(
           `Payment of ₱${amount.toFixed(2)} recorded for ${client.name}`,
           "success",
