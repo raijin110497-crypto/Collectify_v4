@@ -3660,6 +3660,12 @@
         setupIOSPicker("abonoClient", "abonoSearch");
         setupIOSPicker("abonoLenderClient", "abonoSearch");
         toggleAbonoLender();
+
+        // Check for missed payments on app load
+        checkMissedPayments();
+
+        // Set up periodic checking for missed payments (every 30 minutes)
+        setInterval(checkMissedPayments, 30 * 60 * 1000);
       });
 
       // Setup tab listeners
@@ -5815,7 +5821,7 @@
                 ${
                   isPaid
                     ? `Paid: ₱${client.paidAmount.toFixed(2)}`
-                    : `Expected: ₱${expectedForDate.toFixed(2)}`
+                    : `Expected: ��${expectedForDate.toFixed(2)}`
                 }
               </p>
               ${statusLine}
