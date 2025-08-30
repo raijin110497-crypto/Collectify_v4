@@ -5092,6 +5092,7 @@
         populateClientSelects();
         Object.keys(payments).forEach((type) => updatePaymentHistory(type));
         updateAbsenceHistory();
+        if (currentActiveTab === 'summary') loadSummaryTab();
         closeModal("deleteConfirmModal");
         showNotification(
           `Client ${clientName} deleted successfully`,
