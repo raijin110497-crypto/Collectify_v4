@@ -6174,8 +6174,9 @@
             const cl = clients.find((c) => c.id === cid);
             if (!cl) return;
 
-            // Add full payment amounts to expected total for the day
+            // Add full payment amounts to expected and actual totals for the day
             totalExpected += amt;
+            actualCollected += amt;
 
             // Ensure fully-paid clients appear in the Paid Today list
             if (!paidIds.has(cid)) {
