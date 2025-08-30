@@ -2034,6 +2034,32 @@
         to { opacity: 1; transform: scale(1); }
       }
     </style>
+    <style>
+      /* Client payment calendar */
+      .client-calendar { background: var(--ios-secondary-grouped-background); border-radius: var(--ios-border-radius-large); border: 0.5px solid var(--ios-opaque-separator); box-shadow: var(--ios-shadow); padding: 12px; }
+      .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+      .calendar-title { font-weight: 700; color: var(--ios-label); }
+      .cal-nav { -webkit-appearance: none; appearance: none; border: 1px solid var(--ios-opaque-separator); background: var(--ios-secondary-grouped-background); color: var(--ios-blue); border-radius: 10px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s var(--ios-spring-timing); }
+      .cal-nav:active { transform: scale(0.96); }
+      .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+      .calendar-dayname { font-size: 11px; color: var(--ios-secondary-label); text-align: center; padding: 4px 0; }
+      .calendar-cell { background: var(--ios-tertiary-system-background); border: 1px solid var(--ios-opaque-separator); border-radius: 10px; min-height: 56px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; transition: background 0.2s var(--ios-easing); }
+      .calendar-cell.disabled { opacity: 0.45; filter: grayscale(0.2); }
+      .calendar-cell.today { box-shadow: 0 0 0 2px rgba(0,122,255,0.25) inset; }
+      .calendar-cell.absent { background: rgba(255,59,48,0.08); }
+      .day-num { font-size: 12px; color: var(--ios-secondary-label); font-weight: 600; }
+      .cal-dots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+      .cal-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+      .cal-notebook { background: var(--ios-blue); }
+      .cal-office { background: var(--ios-purple); }
+      .cal-gcash { background: var(--ios-teal); }
+      .cal-adv { background: var(--ios-yellow); }
+      .cal-absent { background: var(--ios-red); }
+      .over-badge { align-self: flex-end; font-size: 9px; padding: 2px 6px; border-radius: 10px; background: var(--ios-pink); color: #fff; font-weight: 700; }
+      .calendar-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--ios-secondary-label); }
+      .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+      .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    </style>
   </head>
   <body>
     <div class="container">
@@ -3538,6 +3564,7 @@
         loanTerm: 48,
       };
       let currentActiveTab = "dashboard";
+      let calendarViewState = { clientId: null, year: 0, month: 0 };
       let db = null;
       const DB_NAME = "CollectifyDB";
       const DB_VERSION = 1;
@@ -5798,7 +5825,7 @@
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                   <h4>${absence.clientName}</h4>
-                  <p>${new Date(absence.date).toLocaleDateString()} ��� ${absence.reason}</p>
+                  <p>${new Date(absence.date).toLocaleDateString()} • ${absence.reason}</p>
                 </div>
                 <button class="btn btn-danger" onclick="deleteAbsence(${absence.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
                   Delete
@@ -7023,6 +7050,28 @@
             <div class="detail-row"><strong>Daily Amount:</strong> ₱${client.dailyAmount.toFixed(2)}</div>
             <div class="detail-row"><strong>Due Date:</strong> ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})</div>
             <div class="detail-row"><strong>Status:</strong> ${client.remainingBalance <= 0 ? "Paid" : "Active"}</div>
+
+            <div class="detail-section">
+              <hr style="margin: 15px 0; border: 0.5px solid var(--ios-opaque-separator);">
+              <h4 class="detail-row" style="color: var(--ios-blue); margin-bottom: 8px;">Payment Calendar</h4>
+              <div class="client-calendar detail-row">
+                <div class="calendar-header">
+                  <button type="button" class="cal-nav" aria-label="Previous month" onclick="changeClientCalendarMonth(-1)">‹</button>
+                  <div class="calendar-title" id="clientCalendarTitle">-</div>
+                  <button type="button" class="cal-nav" aria-label="Next month" onclick="changeClientCalendarMonth(1)">›</button>
+                </div>
+                <div class="calendar-grid" id="clientCalendarGrid"></div>
+                <div class="calendar-legend">
+                  <span class="legend-item"><span class="legend-dot" style="background: var(--ios-blue);"></span>Notebook</span>
+                  <span class="legend-item"><span class="legend-dot" style="background: var(--ios-purple);"></span>Office</span>
+                  <span class="legend-item"><span class="legend-dot" style="background: var(--ios-teal);"></span>GCash</span>
+                  <span class="legend-item"><span class="legend-dot" style="background: var(--ios-yellow);"></span>Advance</span>
+                  <span class="legend-item"><span class="legend-dot" style="background: var(--ios-red);"></span>Absent</span>
+                  <span class="legend-item"><span class="status-badge status-overpay" style="padding:2px 6px; font-size:9px;">Over</span>Overpay</span>
+                </div>
+              </div>
+            </div>
+
             ${coMakerSection}
             ${collateralSection}
           </div>`;
@@ -7034,6 +7083,12 @@
         void contentEl.offsetWidth;
         contentEl.classList.add("client-view-animate");
         modalEl.classList.add("active");
+        // Initialize calendar state to current month
+        const now = new Date();
+        calendarViewState.clientId = clientId;
+        calendarViewState.year = now.getFullYear();
+        calendarViewState.month = now.getMonth();
+        renderClientCalendar();
         startOpenExpandAnimation(originEl, modalEl, modalContent);
       }
 
@@ -7097,6 +7152,85 @@
             seed.addEventListener('transitionend', done);
           });
         } catch (e) { /* no-op fallback */ }
+      }
+
+      // Client Payment Calendar rendering
+      function changeClientCalendarMonth(delta) {
+        if (calendarViewState.clientId == null) return;
+        let m = calendarViewState.month + delta;
+        let y = calendarViewState.year;
+        if (m < 0) { m = 11; y -= 1; }
+        if (m > 11) { m = 0; y += 1; }
+        calendarViewState.month = m;
+        calendarViewState.year = y;
+        renderClientCalendar();
+      }
+      function getMonthName(m) {
+        return ["January","February","March","April","May","June","July","August","September","October","November","December"][m] || "";
+      }
+      function renderClientCalendar() {
+        try {
+          const titleEl = document.getElementById('clientCalendarTitle');
+          const gridEl = document.getElementById('clientCalendarGrid');
+          if (!titleEl || !gridEl) return;
+          const { clientId, year, month } = calendarViewState;
+          const client = clients.find(c => c.id == clientId);
+          if (!client) return;
+          titleEl.textContent = `${getMonthName(month)} ${year}`;
+
+          // Build day names row
+          const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+            .map(d => `<div class="calendar-dayname">${d}</div>`).join('');
+
+          const first = new Date(year, month, 1);
+          const firstWeekday = first.getDay();
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const cells = [];
+          // Leading blanks
+          for (let i = 0; i < firstWeekday; i++) cells.push('<div></div>');
+
+          const start = new Date(client.startDate);
+          const due = new Date(client.dueDate);
+          const today = new Date(); const todayKey = today.toISOString().split('T')[0];
+
+          for (let d = 1; d <= daysInMonth; d++) {
+            const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const cur = new Date(year, month, d);
+            const inRange = cur >= new Date(start.getFullYear(), start.getMonth(), start.getDate()) && cur <= new Date(due.getFullYear(), due.getMonth(), due.getDate());
+
+            const hasNotebook = (payments.notebook||[]).some(p=>p.clientId==clientId && p.date===ds);
+            const hasOffice = (payments.office||[]).some(p=>p.clientId==clientId && p.date===ds);
+            const hasGCash = (payments.gcash||[]).some(p=>p.clientId==clientId && p.date===ds);
+            const hasAdv = (payments.adv||[]).some(p=>p.clientId==clientId && p.date===ds);
+            const isAbsent = absences.some(a=>a.clientId==clientId && a.date===ds);
+
+            const expected = inRange ? expectedAmountForDate(client, ds) : 0;
+            const paidSum = ['notebook','office','gcash','abono']
+              .flatMap(t => (payments[t]||[]))
+              .filter(p=>p.clientId==clientId && p.date===ds)
+              .reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const overpay = expected > 0 && paidSum > expected + 0.0001;
+
+            const cellCls = [ 'calendar-cell', inRange ? '' : 'disabled', ds===todayKey ? 'today' : '', isAbsent ? 'absent' : '' ].filter(Boolean).join(' ');
+            const dots = [
+              hasNotebook ? '<span class="cal-dot cal-notebook" title="Notebook"></span>' : '',
+              hasOffice ? '<span class="cal-dot cal-office" title="Office"></span>' : '',
+              hasGCash ? '<span class="cal-dot cal-gcash" title="GCash"></span>' : '',
+              hasAdv ? '<span class="cal-dot cal-adv" title="Advance"></span>' : '',
+              isAbsent ? '<span class="cal-dot cal-absent" title="Absent"></span>' : ''
+            ].filter(Boolean).join('');
+
+            cells.push(`
+              <div class="${cellCls}">
+                <div class="day-num">${d}</div>
+                ${overpay ? '<span class="over-badge">Over</span>' : '<span></span>'}
+                <div class="cal-dots">${dots}</div>
+              </div>
+            `);
+          }
+
+          gridEl.innerHTML = dayNames + cells.join('');
+        } catch(e) { /* noop */ }
       }
 
       // Function to enlarge collateral image
