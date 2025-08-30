@@ -6377,7 +6377,7 @@
                 '<span class="status-badge status-paid">Exact</span>';
             }
 
-            const typeBadges = Array.from(entry.types)
+            let typeBadges = Array.from(entry.types)
               .map((t) => {
                 const label =
                   t === "notebook"
@@ -6403,9 +6403,12 @@
                           : t === "abono"
                             ? "status-abono"
                             : "status-active";
-                return `<span class="status-badge ${cls}">${label}</span>`;
+                return `<span class=\"status-badge ${cls}\">${label}</span>`;
               })
               .join(" ");
+            if (entry.hasFull) {
+              typeBadges += ' <span class="status-badge status-paid">Full</span>';
+            }
 
             return `
           <div class="tracker-client-item">
