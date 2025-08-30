@@ -3394,6 +3394,15 @@
         document.getElementById("startDate").value = today;
         document.getElementById("fullPaymentDate").value = today;
 
+        // Recompute default amounts when date changes (Saturday/Monday adjustments)
+        const bind = (id, type) => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener("change", () => updateDefaultAmountFor(type));
+        };
+        bind("paymentDate", "notebook");
+        bind("officePaymentDate", "office");
+        bind("gcashPaymentDate", "gcash");
+
         // Load payment histories for all tabs
         updatePaymentHistory("notebook");
         updatePaymentHistory("office");
@@ -4161,8 +4170,10 @@
         if (clientId) {
           const client = clients.find((c) => c.id == clientId);
           if (client) {
-            document.getElementById("paymentAmount").value =
-              client.dailyAmount.toFixed(2);
+            document.getElementById("paymentAmount").value = expectedAmountForDate(
+              client,
+              document.getElementById("paymentDate").value,
+            ).toFixed(2);
           }
         }
       }
@@ -4172,8 +4183,10 @@
         if (clientId) {
           const client = clients.find((c) => c.id == clientId);
           if (client) {
-            document.getElementById("officePaymentAmount").value =
-              client.dailyAmount.toFixed(2);
+            document.getElementById("officePaymentAmount").value = expectedAmountForDate(
+              client,
+              document.getElementById("officePaymentDate").value,
+            ).toFixed(2);
           }
         }
       }
@@ -4183,8 +4196,10 @@
         if (clientId) {
           const client = clients.find((c) => c.id == clientId);
           if (client) {
-            document.getElementById("gcashPaymentAmount").value =
-              client.dailyAmount.toFixed(2);
+            document.getElementById("gcashPaymentAmount").value = expectedAmountForDate(
+              client,
+              document.getElementById("gcashPaymentDate").value,
+            ).toFixed(2);
           }
         }
       }
@@ -4293,6 +4308,50 @@
         const sat = Math.ceil(half * 100) / 100;
         const mon = +(total - sat).toFixed(2);
         return [sat, mon];
+      }
+      function isSaturday(str) {
+        return getLocalWeekday(str) === 6;
+      }
+      function isMonday(str) {
+        return getLocalWeekday(str) === 1;
+      }
+      function expectedAmountForDate(client, dateStr) {
+        if (!dateStr) return client.dailyAmount;
+        const day = getLocalWeekday(dateStr);
+        if (day === 0) return 0; // Sunday is not a collection day
+        const [satSplit, monSplit] = splitSundayAmount(Math.round(client.dailyAmount));
+        if (day === 6) return client.dailyAmount + satSplit; // Saturday gets Saturday split
+        if (day === 1) return client.dailyAmount + monSplit; // Monday gets Monday split
+        return client.dailyAmount; // Regular day
+      }
+      function updateDefaultAmountFor(type) {
+        const map = {
+          notebook: {
+            selectId: "notebookClient",
+            amountId: "paymentAmount",
+            dateId: "paymentDate",
+          },
+          office: {
+            selectId: "officeClient",
+            amountId: "officePaymentAmount",
+            dateId: "officePaymentDate",
+          },
+          gcash: {
+            selectId: "gcashClient",
+            amountId: "gcashPaymentAmount",
+            dateId: "gcashPaymentDate",
+          },
+        };
+        const cfg = map[type];
+        if (!cfg) return;
+        const clientId = document.getElementById(cfg.selectId)?.value;
+        const dateStr = document.getElementById(cfg.dateId)?.value;
+        if (!clientId) return;
+        const client = clients.find((c) => c.id == clientId);
+        if (!client) return;
+        const val = expectedAmountForDate(client, dateStr);
+        const el = document.getElementById(cfg.amountId);
+        if (el) el.value = val.toFixed(2);
       }
 
       // Add payment function
@@ -4764,7 +4823,7 @@
           .forEach((client) => {
             // Exclude clients marked absent from expected collection for the selected date
             if (!isClientAbsentOnDate(client.id, selectedDate)) {
-              totalExpected += client.dailyAmount;
+              totalExpected += expectedAmountForDate(client, selectedDate);
             }
 
             // Check if client paid on selected date
@@ -4797,7 +4856,7 @@
           const prev = byClient.get(client.id) || {
             clientId: client.id,
             clientName: client.name,
-            dailyAmount: client.dailyAmount,
+            dailyAmount: expectedAmountForDate(client, selectedDate),
             totalPaid: 0,
             types: new Set(),
             hasAdv: false,
@@ -4847,6 +4906,7 @@
 
         list.innerHTML = clientsArr
           .map((client) => {
+            const expectedForDate = expectedAmountForDate(client, selectedDate);
             let statusLine = "";
             if (isPaid) {
               const types = Array.from(
@@ -4897,13 +4957,13 @@
                 ${
                   isPaid
                     ? `Paid: ₱${client.paidAmount.toFixed(2)}`
-                    : `Expected: ₱${client.dailyAmount.toFixed(2)}`
+                    : `Expected: ₱${expectedForDate.toFixed(2)}`
                 }
               </p>
               ${statusLine}
             </div>
             <div class="tracker-amount ${isPaid ? "paid" : "expected"}">
-              ₱${isPaid ? client.paidAmount.toFixed(2) : client.dailyAmount.toFixed(2)}
+              ₱${isPaid ? client.paidAmount.toFixed(2) : expectedForDate.toFixed(2)}
             </div>
           </div>`;
           })
