@@ -3268,7 +3268,7 @@
         <div class="modal-header">
           <h2>Edit Payment</h2>
           <button class="close-btn" onclick="closeModal('editPaymentModal')">
-            ✕
+            ��
           </button>
         </div>
         <div class="modal-body">
@@ -6291,7 +6291,7 @@
 
             // Reconstruct payments object from flat array
             if (savedPayments.length > 0) {
-              payments = { notebook: [], office: [], gcash: [], adv: [] };
+              payments = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
               savedPayments.forEach((payment) => {
                 const type = payment.paymentType || "notebook";
                 if (!payments[type]) payments[type] = [];
