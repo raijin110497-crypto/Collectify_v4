@@ -3950,6 +3950,20 @@
           remainingBalance: totalAmount,
           status: "active",
           interestRate: interestRate,
+          // Co-maker information
+          coMaker: {
+            name: coMakerName,
+            contactNumber: coMakerContact,
+            address: coMakerAddress
+          },
+          // Collateral information
+          collateral: {
+            description: collateralDescription,
+            photoBase64: collateralPhotoBase64
+          },
+          // Payment tracking for notification system
+          consecutiveMissedDays: 0,
+          lastPaymentDate: null
         };
 
         clients.push(client);
