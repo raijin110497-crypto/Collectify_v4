@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Collectify" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
     <title>Collectify - Lending Management</title>
     <style>
       /* iOS Design System Variables */
@@ -5524,15 +5524,8 @@
             return;
           }
         } catch (err) {
-          if (
-            err &&
-            (err.name === "AbortError" || err.name === "NotAllowedError")
-          ) {
-            showNotification("Export canceled", "error");
-            return;
-          }
-          console.warn("showSaveFilePicker failed, falling back", err);
-          // continue to next strategy
+          console.warn("showSaveFilePicker failed or canceled, trying fallback", err);
+          // continue to next strategy without interrupting
         }
 
         // 2) Try Web Share API with files (Android share sheet lets user choose destination via apps)
@@ -5548,14 +5541,23 @@
             return;
           }
         } catch (err) {
-          if (
-            err &&
-            (err.name === "AbortError" || err.name === "NotAllowedError")
-          ) {
-            showNotification("Export canceled", "error");
+          console.warn("Web Share with files failed or canceled, trying fallback", err);
+          // continue to next strategy
+        }
+
+        // 2.5) If files can't be shared, try text-only share with base64 payload
+        try {
+          if (navigator.share) {
+            const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+            await navigator.share({
+              title: "Collectify Backup",
+              text: `collectify-backup ${filename}\n${b64}`,
+            });
+            showNotification("Data exported successfully", "success");
             return;
           }
-          console.warn("Web Share with files failed, falling back", err);
+        } catch (err) {
+          console.warn("Text share failed, trying download fallback", err);
           // continue to next strategy
         }
 
@@ -5565,15 +5567,30 @@
           const a = document.createElement("a");
           a.href = url;
           a.download = filename;
+          a.rel = "noopener";
+          a.target = "_blank";
           document.body.appendChild(a);
           a.click();
           a.remove();
-          URL.revokeObjectURL(url);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
           showNotification("Data exported successfully", "success");
+          return;
         } catch (err) {
-          console.error("Export failed", err);
-          showNotification("Export failed", "error");
+          console.warn("Download link failed, trying clipboard backup", err);
         }
+
+        // 4) Last resort: copy JSON to clipboard
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+            showNotification("Backup copied to clipboard", "success");
+            return;
+          }
+        } catch (err) {
+          console.error("Clipboard export failed", err);
+        }
+
+        showNotification("Export failed", "error");
       }
 
       // Import data
