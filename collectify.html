@@ -4728,6 +4728,7 @@
                 <div>
                   <h4>${payment.clientName}</h4>
                   <p>₱${payment.amount.toFixed(2)} • ${new Date(payment.date).toLocaleDateString()}</p>
+                  ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}</p>` : ''}
                   <p><span class="status-badge status-active">${payment.type}</span></p>
                 </div>
                 <div style="display:flex; gap:8px;">
