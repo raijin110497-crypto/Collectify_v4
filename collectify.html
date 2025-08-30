@@ -3149,11 +3149,11 @@
               <textarea id="collateralDescription" placeholder="Describe the collateral item (e.g., Motorcycle - Honda Click 150, Red, 2020 model)"></textarea>
             </div>
             <div class="form-group">
-              <label>Collateral Photo:</label>
-              <input type="file" id="collateralPhoto" accept="image/*" onchange="previewCollateralImage()" />
+              <label>Collateral Photos (up to 3):</label>
+              <input type="file" id="collateralPhotos" accept="image/*" multiple onchange="previewCollateralImages()" />
               <div id="collateralPreview" style="margin-top: 10px; display: none;">
-                <img id="collateralPreviewImg" style="max-width: 200px; max-height: 200px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator);" />
-                <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeCollateralImage()">Remove Photo</button>
+                <div id="collateralPreviewList" class="collateral-preview-list"></div>
+                <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeCollateralImages()">Remove Photos</button>
               </div>
             </div>
           </div>
