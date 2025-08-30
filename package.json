@@ -1,0 +1,11 @@
+{
+  "name": "collectify-static",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Collectify static site with a minimal Node dev server",
+  "license": "MIT",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  }
+}
