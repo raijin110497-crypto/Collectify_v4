@@ -5598,6 +5598,7 @@
           // Refresh Adv history so deductions are visible immediately
           updatePaymentHistory("adv");
         }
+        if (currentActiveTab === 'summary') loadSummaryTab();
         showNotification(
           `Payment of ���${amount.toFixed(2)} recorded for ${client.name}`,
           "success",
