@@ -4764,24 +4764,32 @@
         document.getElementById("editCollateralDescription").value =
           (client.collateral && client.collateral.description) || "";
 
-        // Show current collateral photo if exists
+        // Show current collateral photos if exist
         const currentPhotoDiv = document.getElementById("editCollateralCurrentPhoto");
-        if (client.collateral && client.collateral.photoBase64) {
-          currentPhotoDiv.innerHTML = `
-            <img src="${client.collateral.photoBase64}"
-                 style="max-width: 200px; max-height: 150px; border-radius: var(--ios-border-radius);
-                        border: 1px solid var(--ios-opaque-separator); cursor: pointer;"
-                 onclick="enlargeCollateralImage('${client.collateral.photoBase64}')"
-                 alt="Current Collateral Photo">
-            <br><small style="color: var(--ios-secondary-label);">Current photo (tap to enlarge)</small>
-          `;
+        if (client.collateral && (client.collateral.photosBase64 || client.collateral.photoBase64)) {
+          const imgs = (client.collateral.photosBase64 && client.collateral.photosBase64.length)
+            ? client.collateral.photosBase64
+            : (client.collateral.photoBase64 ? [client.collateral.photoBase64] : []);
+          if (imgs.length) {
+            currentPhotoDiv.innerHTML = imgs.map(src => `
+              <img src="${src}"
+                   style="max-width: 120px; max-height: 120px; border-radius: var(--ios-border-radius);
+                          border: 1px solid var(--ios-opaque-separator); cursor: pointer;"
+                   onclick="enlargeCollateralImage('${src}')"
+                   alt="Current Collateral Photo">`).join(' ');
+          } else {
+            currentPhotoDiv.innerHTML = '<small style="color: var(--ios-secondary-label);">No photo uploaded</small>';
+          }
         } else {
           currentPhotoDiv.innerHTML = '<small style="color: var(--ios-secondary-label);">No photo uploaded</small>';
         }
 
         // Clear edit preview
-        document.getElementById("editCollateralPhoto").value = "";
+        const ecp = document.getElementById("editCollateralPhotos");
+        if (ecp) ecp.value = "";
         document.getElementById("editCollateralPreview").style.display = "none";
+        const ecpList = document.getElementById("editCollateralPreviewList");
+        if (ecpList) ecpList.innerHTML = "";
 
         document.getElementById("editClientModal").classList.add("active");
 
