@@ -6138,6 +6138,34 @@
           });
         actualCollected += advCreatedToday.reduce((sum, p) => sum + (p.amount || 0), 0);
 
+        // Ensure fully paid amounts are included in Expected Collection and Paid Today
+        (function includeFullPays() {
+          const fullByClient = new Map();
+          datePayments.forEach((p) => {
+            if (p.type === "full") {
+              const prev = fullByClient.get(p.clientId) || 0;
+              fullByClient.set(p.clientId, prev + (Number(p.amount) || 0));
+            }
+          });
+          if (fullByClient.size === 0) return;
+
+          const paidIds = new Set(paidClients.map((c) => c.id));
+          fullByClient.forEach((amt, cid) => {
+            const cl = clients.find((c) => c.id === cid);
+            if (!cl) return;
+
+            // Add full payment amounts to expected total for the day
+            totalExpected += amt;
+
+            // Ensure fully-paid clients appear in the Paid Today list
+            if (!paidIds.has(cid)) {
+              const clientPayments = datePayments.filter((p) => p.clientId === cid);
+              const totalPaid = clientPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+              paidClients.push({ ...cl, paidAmount: totalPaid, payments: clientPayments });
+            }
+          });
+        })();
+
         // Build custom payments summary per client
         const byClient = new Map();
         datePayments.forEach((p) => {
