@@ -4467,7 +4467,7 @@
                         if (client.coMaker && (client.coMaker.name || client.coMaker.contactNumber)) {
                           indicators.push('<span class="status-badge status-office" style="font-size: 8px; padding: 2px 4px;">Co-maker</span>');
                         }
-                        if (client.collateral && (client.collateral.description || client.collateral.photoBase64)) {
+                        if (client.collateral && (client.collateral.description || client.collateral.photoBase64 || (client.collateral.photosBase64 && client.collateral.photosBase64.length))) {
                           indicators.push('<span class="status-badge status-purple" style="font-size: 8px; padding: 2px 4px;">Collateral</span>');
                         }
                         return indicators.join(' ');
