@@ -5956,6 +5956,7 @@
             payments[type] = [];
             await saveData();
             updatePaymentHistory(type);
+            if (currentActiveTab === 'summary') loadSummaryTab();
             showNotification(
               `${type.charAt(0).toUpperCase() + type.slice(1)} payment history cleared`,
               "success",
