@@ -3348,6 +3348,7 @@
       let currentEditingClient = null;
       let currentEditingPayment = null;
       let currentRepayingAbono = null;
+      let lastAdvFocusClientId = null;
       let isDarkMode = false;
       let defaultSettings = {
         interestRate: 20,
@@ -3618,6 +3619,18 @@
           loadDailyTracker();
         } else if (tabName === "settings") {
           updateSettingsInfo();
+        } else if (tabName === "adv") {
+          // Auto-focus the lender whose advance was affected by Abono
+          if (lastAdvFocusClientId) {
+            const sel = document.getElementById("advClient");
+            if (sel) {
+              sel.value = String(lastAdvFocusClientId);
+              sel.dispatchEvent(new Event("change", { bubbles: true }));
+              selectAdvClient();
+            }
+          }
+          // Ensure Adv list reflects the latest deductions
+          updatePaymentHistory("adv");
         }
       }
 
@@ -4646,6 +4659,8 @@
             const lender = clients.find((c) => c.id == lenderClientId);
             lenderName = lender ? lender.name : "Client";
           }
+          // Remember which lender's advance changed, to auto-focus in Adv tab
+          lastAdvFocusClientId = lenderClientId || null;
           abonoMeta = { lenderType, lenderClientId, lenderName };
         }
 
@@ -4736,6 +4751,10 @@
         updateStats();
         updateClientList();
         updatePaymentHistory(type);
+        if (type === "abono") {
+          // Refresh Adv history so deductions are visible immediately
+          updatePaymentHistory("adv");
+        }
         showNotification(
           `Payment of ₱${amount.toFixed(2)} recorded for ${client.name}`,
           "success",
