@@ -6609,6 +6609,23 @@
           },
 
           {
+            text: "Overdue tab: review overdue and due soon clients.",
+            selector: '.sidebar .tab[data-tab="overdue"]',
+            padding: 6,
+            needsSidebar: true,
+            wait: 450,
+            openTab: "overdue",
+          },
+          {
+            text: "Here you can Full Pay, set a Repayment Plan, or record a plan payment.",
+            selector: "#overdueList",
+            padding: 8,
+            onBefore: () => {
+              closeSidebar();
+              switchTab("overdue");
+            },
+          },
+          {
             text: "Notebook: record daily payments.",
             selector: '.sidebar .tab[data-tab="notebook"]',
             padding: 6,
@@ -6753,6 +6770,40 @@
             padding: 8,
           },
 
+          {
+            text: "Abono tab: borrow from a client's advance into another client.",
+            selector: '.sidebar .tab[data-tab="abono"]',
+            padding: 6,
+            needsSidebar: true,
+            wait: 450,
+            openTab: "abono",
+          },
+          {
+            text: "Pick the borrower here.",
+            selector: "#abonoClientPickerBtn",
+            padding: 6,
+            onBefore: () => {
+              closeSidebar();
+              switchTab("abono");
+              const btn = document.getElementById("abonoClientPickerBtn");
+              if (btn) btn.click();
+            },
+          },
+          {
+            text: "Optionally choose a lender with available advance.",
+            selector: "#abonoLenderClientPickerBtn",
+            padding: 6,
+          },
+          {
+            text: "Enter the Abono amount and date.",
+            selector: "#abonoPaymentAmount",
+            padding: 6,
+          },
+          {
+            text: "Save the Abono transfer here.",
+            selector: "button.btn.btn-success[onclick=\"addPayment('abono')\"]",
+            padding: 8,
+          },
           {
             text: "Absent tab: mark a client absent for a date.",
             selector: '.sidebar .tab[data-tab="absent"]',
