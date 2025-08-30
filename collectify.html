@@ -4343,56 +4343,50 @@
             <div class="client-item">
               <div class="client-header">
                 <div class="client-info">
-                  <h4>${client.name}</h4>
-                  <p>
-                    <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.86 19.86 0 0 1 8 18a19.5 19.5 0 0 1-6-6A19.86 19.86 0 0 1 2.08 4 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.81.31 1.6.57 2.35a2 2 0 0 1-.45 2.11L8 8a16 16 0 0 0 8 8l.82-1.23a2 2 0 0 1 2.11-.45c.75.26 1.54.45 2.35.57A2 2 0 0 1 22 16.92z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                    ${formatPhone(client.contactNumber || "-")}
-                  </p>
-                  <p>
-                    <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true">
-                      <rect x="3" y="6" width="18" height="12" rx="2" ry="2" stroke="currentColor" stroke-width="2"></rect>
-                      <path d="M3 10h10a3 3 0 0 0 3-3V6" stroke="currentColor" stroke-width="2"></path>
-                      <circle cx="17" cy="12" r="1" fill="currentColor"></circle>
-                    </svg>
-                    Loan: ₱${client.loanAmount.toLocaleString()} | Total: ₱${client.totalAmount.toFixed(2)} | Remaining: ₱${client.remainingBalance.toFixed(2)}
-                  </p>
-                  <p>
-                    <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-                      <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-                      <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-                    </svg>
-                    Due: ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})
-                  </p>
-                  ${(() => {
-                    let indicators = [];
-                    if (client.coMaker && (client.coMaker.name || client.coMaker.contactNumber)) {
-                      indicators.push('<span class="status-badge status-office" style="font-size: 9px; padding: 2px 6px;">Co-maker</span>');
-                    }
-                    if (client.collateral && (client.collateral.description || client.collateral.photoBase64)) {
-                      indicators.push('<span class="status-badge status-purple" style="font-size: 9px; padding: 2px 6px;">Collateral</span>');
-                    }
-                    return indicators.length > 0 ? '<p style="margin-top: 6px;">' + indicators.join(' ') + '</p>' : '';
-                  })()}
-                </div>
-                <div class="client-status">
-                  ${statusBadge}
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                    <h4 style="margin: 0; font-size: 16px;">${client.name}</h4>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                      ${(() => {
+                        let indicators = [];
+                        if (client.coMaker && (client.coMaker.name || client.coMaker.contactNumber)) {
+                          indicators.push('<span class="status-badge status-office" style="font-size: 8px; padding: 2px 4px;">Co-maker</span>');
+                        }
+                        if (client.collateral && (client.collateral.description || client.collateral.photoBase64)) {
+                          indicators.push('<span class="status-badge status-purple" style="font-size: 8px; padding: 2px 4px;">Collateral</span>');
+                        }
+                        return indicators.join(' ');
+                      })()}
+                      ${statusBadge}
+                    </div>
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin-bottom: 8px;">
+                    <div>
+                      <span style="color: var(--ios-secondary-label);">📞</span>
+                      ${formatPhone(client.contactNumber || "-")}
+                    </div>
+                    <div>
+                      <span style="color: var(--ios-secondary-label);">💰</span>
+                      Remaining: ₱${client.remainingBalance.toFixed(0)}
+                    </div>
+                  </div>
+
+                  <div style="font-size: 12px; color: var(--ios-secondary-label); margin-bottom: 8px;">
+                    Loan: ₱${client.loanAmount.toLocaleString()} • Due: ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})
+                  </div>
                 </div>
               </div>
-              
+
               <!-- Progress bar -->
-              <div class="progress-bar">
+              <div class="progress-bar" style="margin: 8px 0;">
                 <div class="progress-fill" style="background-color: ${progressBarColor}; width: ${progressPercentage}%;"></div>
               </div>
-              
-              <div class="client-actions">
-                <button class="btn btn-secondary" onclick="openViewClient(${client.id})">View</button>
-                <button class="btn btn-secondary" onclick="editClient(${client.id})">Edit</button>
-                <button class="full-payment-btn" onclick="openFullPaymentModal(${client.id})">Full Pay</button>
-                <button class="btn btn-danger" onclick="openDeleteModal(${client.id})">Delete</button>
+
+              <div class="client-actions" style="grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                <button class="btn btn-secondary" style="padding: 8px 10px; font-size: 12px;" onclick="openViewClient(${client.id})">View</button>
+                <button class="btn btn-secondary" style="padding: 8px 10px; font-size: 12px;" onclick="editClient(${client.id})">Edit</button>
+                <button class="full-payment-btn" style="padding: 8px 10px; font-size: 12px;" onclick="openFullPaymentModal(${client.id})">Full Pay</button>
+                <button class="btn btn-danger" style="padding: 8px 10px; font-size: 12px;" onclick="openDeleteModal(${client.id})">Delete</button>
               </div>
             </div>
           `;
