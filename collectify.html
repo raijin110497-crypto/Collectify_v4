@@ -2059,6 +2059,11 @@
       .calendar-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--ios-secondary-label); }
       .legend-item { display: inline-flex; align-items: center; gap: 6px; }
       .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+      .cal-amounts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+      .cal-amt { font-size: 10px; padding: 1px 6px; border-radius: 12px; color: #fff; line-height: 1.2; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+      .calendar-cell.disabled .cal-amt { opacity: 0.6; }
+      .collateral-preview-list { display: flex; gap: 8px; flex-wrap: wrap; }
+      .collateral-preview-list img { max-width: 120px; max-height: 120px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator); cursor: pointer; }
     </style>
   </head>
   <body>
@@ -3146,11 +3151,11 @@
               <textarea id="collateralDescription" placeholder="Describe the collateral item (e.g., Motorcycle - Honda Click 150, Red, 2020 model)"></textarea>
             </div>
             <div class="form-group">
-              <label>Collateral Photo:</label>
-              <input type="file" id="collateralPhoto" accept="image/*" onchange="previewCollateralImage()" />
+              <label>Collateral Photos (up to 3):</label>
+              <input type="file" id="collateralPhotos" accept="image/*" multiple onchange="previewCollateralImages()" />
               <div id="collateralPreview" style="margin-top: 10px; display: none;">
-                <img id="collateralPreviewImg" style="max-width: 200px; max-height: 200px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator);" />
-                <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeCollateralImage()">Remove Photo</button>
+                <div id="collateralPreviewList" class="collateral-preview-list"></div>
+                <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeCollateralImages()">Remove Photos</button>
               </div>
             </div>
           </div>
@@ -3301,13 +3306,13 @@
               <textarea id="editCollateralDescription" placeholder="Describe the collateral item"></textarea>
             </div>
             <div class="form-group">
-              <label>Current Collateral Photo:</label>
-              <div id="editCollateralCurrentPhoto" style="margin-bottom: 10px;"></div>
-              <label>Update Collateral Photo:</label>
-              <input type="file" id="editCollateralPhoto" accept="image/*" onchange="previewEditCollateralImage()" />
+              <label>Current Collateral Photos:</label>
+              <div id="editCollateralCurrentPhoto" class="collateral-preview-list" style="margin-bottom: 10px;"></div>
+              <label>Update Collateral Photos (up to 3):</label>
+              <input type="file" id="editCollateralPhotos" accept="image/*" multiple onchange="previewEditCollateralImages()" />
               <div id="editCollateralPreview" style="margin-top: 10px; display: none;">
-                <img id="editCollateralPreviewImg" style="max-width: 200px; max-height: 200px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator);" />
-                <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeEditCollateralImage()">Remove New Photo</button>
+                <div id="editCollateralPreviewList" class="collateral-preview-list"></div>
+                <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeEditCollateralImages()">Remove New Photos</button>
               </div>
             </div>
           </div>
@@ -3420,8 +3425,8 @@
       <div class="modal-content">
         <div class="modal-header">
           <h2>Edit Payment</h2>
-          <button class="close-btn" onclick="closeModal('editPaymentModal')">
-            ��
+          <button class="close-btn" onclick="closeModal('editPaymentModal')" aria-label="Close">
+            ✕
           </button>
         </div>
         <div class="modal-body">
@@ -3939,9 +3944,11 @@
           document.getElementById("coMakerAddress").value = "";
           // Clear collateral fields
           document.getElementById("collateralDescription").value = "";
-          document.getElementById("collateralPhoto").value = "";
+          const cp = document.getElementById("collateralPhotos");
+          if (cp) cp.value = "";
+          const cpList = document.getElementById("collateralPreviewList");
+          if (cpList) cpList.innerHTML = "";
           document.getElementById("collateralPreview").style.display = "none";
-          document.getElementById("collateralPreviewImg").src = "";
           const today = new Date().toISOString().split("T")[0];
           document.getElementById("startDate").value = today;
           calculateLoanDetails();
@@ -3977,26 +3984,43 @@
         }
       }
 
-      // Collateral image preview functions
-      function previewCollateralImage() {
-        const input = document.getElementById('collateralPhoto');
+      // Collateral image preview functions (multi-photo)
+      function previewCollateralImages() {
+        const input = document.getElementById('collateralPhotos');
         const preview = document.getElementById('collateralPreview');
-        const img = document.getElementById('collateralPreviewImg');
-
-        if (input.files && input.files[0]) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            img.src = e.target.result;
-            preview.style.display = 'block';
-          };
-          reader.readAsDataURL(input.files[0]);
+        const list = document.getElementById('collateralPreviewList');
+        if (!input || !preview || !list) return;
+        list.innerHTML = '';
+        if (input.files && input.files.length) {
+          const files = Array.from(input.files).slice(0, 3);
+          files.forEach((file) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const img = document.createElement('img');
+              img.src = e.target.result;
+              img.style.maxWidth = '120px';
+              img.style.maxHeight = '120px';
+              img.style.borderRadius = 'var(--ios-border-radius)';
+              img.style.border = '1px solid var(--ios-opaque-separator)';
+              img.style.cursor = 'pointer';
+              img.onclick = () => enlargeCollateralImage(img.src);
+              list.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+          });
+          preview.style.display = 'block';
+        } else {
+          preview.style.display = 'none';
         }
       }
 
-      function removeCollateralImage() {
-        document.getElementById('collateralPhoto').value = '';
-        document.getElementById('collateralPreview').style.display = 'none';
-        document.getElementById('collateralPreviewImg').src = '';
+      function removeCollateralImages() {
+        const input = document.getElementById('collateralPhotos');
+        if (input) input.value = '';
+        const list = document.getElementById('collateralPreviewList');
+        if (list) list.innerHTML = '';
+        const preview = document.getElementById('collateralPreview');
+        if (preview) preview.style.display = 'none';
       }
 
       // Convert image file to base64 for IndexedDB storage
@@ -4087,8 +4111,8 @@
             <hr style="margin: 10px 0; border: 0.5px solid var(--ios-opaque-separator);">
             <p><strong>${coMakerInfo}</strong></p>
             <p><strong>${collateralInfo}</strong></p>
-            ${client.collateral && client.collateral.photoBase64 ?
-              `<img src="${client.collateral.photoBase64}" style="max-width: 200px; max-height: 150px; border-radius: var(--ios-border-radius); margin-top: 8px;" alt="Collateral Photo">` : ''
+            ${client.collateral && (client.collateral.photosBase64?.[0] || client.collateral.photoBase64) ?
+              `<img src="${(client.collateral.photosBase64 && client.collateral.photosBase64[0]) || client.collateral.photoBase64}" style="max-width: 200px; max-height: 150px; border-radius: var(--ios-border-radius); margin-top: 8px;" alt="Collateral Photo">` : ''
             }
             <div style="margin-top: 15px;">
               <button class="btn btn-primary" onclick="contactCoMaker('${client.id}')">Contact Co-maker</button>
@@ -4186,26 +4210,43 @@
         }
       }
 
-      // Edit collateral image preview functions
-      function previewEditCollateralImage() {
-        const input = document.getElementById('editCollateralPhoto');
+      // Edit collateral image preview functions (multi-photo)
+      function previewEditCollateralImages() {
+        const input = document.getElementById('editCollateralPhotos');
         const preview = document.getElementById('editCollateralPreview');
-        const img = document.getElementById('editCollateralPreviewImg');
-
-        if (input.files && input.files[0]) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            img.src = e.target.result;
-            preview.style.display = 'block';
-          };
-          reader.readAsDataURL(input.files[0]);
+        const list = document.getElementById('editCollateralPreviewList');
+        if (!input || !preview || !list) return;
+        list.innerHTML = '';
+        if (input.files && input.files.length) {
+          const files = Array.from(input.files).slice(0, 3);
+          files.forEach((file) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const img = document.createElement('img');
+              img.src = e.target.result;
+              img.style.maxWidth = '120px';
+              img.style.maxHeight = '120px';
+              img.style.borderRadius = 'var(--ios-border-radius)';
+              img.style.border = '1px solid var(--ios-opaque-separator)';
+              img.style.cursor = 'pointer';
+              img.onclick = () => enlargeCollateralImage(img.src);
+              list.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+          });
+          preview.style.display = 'block';
+        } else {
+          preview.style.display = 'none';
         }
       }
 
-      function removeEditCollateralImage() {
-        document.getElementById('editCollateralPhoto').value = '';
-        document.getElementById('editCollateralPreview').style.display = 'none';
-        document.getElementById('editCollateralPreviewImg').src = '';
+      function removeEditCollateralImages() {
+        const input = document.getElementById('editCollateralPhotos');
+        if (input) input.value = '';
+        const list = document.getElementById('editCollateralPreviewList');
+        if (list) list.innerHTML = '';
+        const preview = document.getElementById('editCollateralPreview');
+        if (preview) preview.style.display = 'none';
       }
 
       // Add new client with validation
@@ -4230,20 +4271,21 @@
 
         // Collateral information
         const collateralDescription = document.getElementById("collateralDescription").value.trim();
-        const collateralPhotoInput = document.getElementById("collateralPhoto");
-        let collateralPhotoBase64 = null;
+        const collateralPhotosInput = document.getElementById("collateralPhotos");
+        let collateralPhotosBase64 = [];
 
         if (!name || !loanAmount || !startDate || !contactNumber || !address) {
           showNotification("Please fill in all required fields", "error");
           return;
         }
 
-        // Process collateral image if provided
-        if (collateralPhotoInput.files && collateralPhotoInput.files[0]) {
+        // Process collateral images if provided
+        if (collateralPhotosInput && collateralPhotosInput.files && collateralPhotosInput.files.length) {
           try {
-            collateralPhotoBase64 = await convertImageToBase64(collateralPhotoInput.files[0]);
+            const files = Array.from(collateralPhotosInput.files).slice(0, 3);
+            collateralPhotosBase64 = await Promise.all(files.map(f => convertImageToBase64(f)));
           } catch (error) {
-            showNotification("Error processing collateral image", "error");
+            showNotification("Error processing collateral images", "error");
             return;
           }
         }
@@ -4288,7 +4330,8 @@
           // Collateral information
           collateral: {
             description: collateralDescription,
-            photoBase64: collateralPhotoBase64
+            photosBase64: collateralPhotosBase64,
+            photoBase64: collateralPhotosBase64[0] || null
           },
           // Payment tracking for notification system
           consecutiveMissedDays: 0,
@@ -4424,7 +4467,7 @@
                         if (client.coMaker && (client.coMaker.name || client.coMaker.contactNumber)) {
                           indicators.push('<span class="status-badge status-office" style="font-size: 8px; padding: 2px 4px;">Co-maker</span>');
                         }
-                        if (client.collateral && (client.collateral.description || client.collateral.photoBase64)) {
+                        if (client.collateral && (client.collateral.description || client.collateral.photoBase64 || (client.collateral.photosBase64 && client.collateral.photosBase64.length))) {
                           indicators.push('<span class="status-badge status-purple" style="font-size: 8px; padding: 2px 4px;">Collateral</span>');
                         }
                         return indicators.join(' ');
@@ -4721,24 +4764,32 @@
         document.getElementById("editCollateralDescription").value =
           (client.collateral && client.collateral.description) || "";
 
-        // Show current collateral photo if exists
+        // Show current collateral photos if exist
         const currentPhotoDiv = document.getElementById("editCollateralCurrentPhoto");
-        if (client.collateral && client.collateral.photoBase64) {
-          currentPhotoDiv.innerHTML = `
-            <img src="${client.collateral.photoBase64}"
-                 style="max-width: 200px; max-height: 150px; border-radius: var(--ios-border-radius);
-                        border: 1px solid var(--ios-opaque-separator); cursor: pointer;"
-                 onclick="enlargeCollateralImage('${client.collateral.photoBase64}')"
-                 alt="Current Collateral Photo">
-            <br><small style="color: var(--ios-secondary-label);">Current photo (tap to enlarge)</small>
-          `;
+        if (client.collateral && (client.collateral.photosBase64 || client.collateral.photoBase64)) {
+          const imgs = (client.collateral.photosBase64 && client.collateral.photosBase64.length)
+            ? client.collateral.photosBase64
+            : (client.collateral.photoBase64 ? [client.collateral.photoBase64] : []);
+          if (imgs.length) {
+            currentPhotoDiv.innerHTML = imgs.map(src => `
+              <img src="${src}"
+                   style="max-width: 120px; max-height: 120px; border-radius: var(--ios-border-radius);
+                          border: 1px solid var(--ios-opaque-separator); cursor: pointer;"
+                   onclick="enlargeCollateralImage('${src}')"
+                   alt="Current Collateral Photo">`).join(' ');
+          } else {
+            currentPhotoDiv.innerHTML = '<small style="color: var(--ios-secondary-label);">No photo uploaded</small>';
+          }
         } else {
           currentPhotoDiv.innerHTML = '<small style="color: var(--ios-secondary-label);">No photo uploaded</small>';
         }
 
         // Clear edit preview
-        document.getElementById("editCollateralPhoto").value = "";
+        const ecp = document.getElementById("editCollateralPhotos");
+        if (ecp) ecp.value = "";
         document.getElementById("editCollateralPreview").style.display = "none";
+        const ecpList = document.getElementById("editCollateralPreviewList");
+        if (ecpList) ecpList.innerHTML = "";
 
         document.getElementById("editClientModal").classList.add("active");
 
@@ -4802,15 +4853,16 @@
 
         // Collateral information
         const collateralDescription = document.getElementById("editCollateralDescription").value.trim();
-        const editCollateralPhotoInput = document.getElementById("editCollateralPhoto");
-        let newCollateralPhotoBase64 = null;
+        const editCollateralPhotosInput = document.getElementById("editCollateralPhotos");
+        let newCollateralPhotosBase64 = [];
 
-        // Process new collateral image if provided
-        if (editCollateralPhotoInput.files && editCollateralPhotoInput.files[0]) {
+        // Process new collateral images if provided
+        if (editCollateralPhotosInput && editCollateralPhotosInput.files && editCollateralPhotosInput.files.length) {
           try {
-            newCollateralPhotoBase64 = await convertImageToBase64(editCollateralPhotoInput.files[0]);
+            const files = Array.from(editCollateralPhotosInput.files).slice(0, 3);
+            newCollateralPhotosBase64 = await Promise.all(files.map(f => convertImageToBase64(f)));
           } catch (error) {
-            showNotification("Error processing collateral image", "error");
+            showNotification("Error processing collateral images", "error");
             return;
           }
         }
@@ -4832,9 +4884,10 @@
         // Update collateral information
         if (!client.collateral) client.collateral = {};
         client.collateral.description = collateralDescription;
-        // Only update photo if a new one was uploaded, otherwise keep existing
-        if (newCollateralPhotoBase64) {
-          client.collateral.photoBase64 = newCollateralPhotoBase64;
+        // Only update photos if new ones were uploaded, otherwise keep existing
+        if (newCollateralPhotosBase64 && newCollateralPhotosBase64.length) {
+          client.collateral.photosBase64 = newCollateralPhotosBase64;
+          client.collateral.photoBase64 = newCollateralPhotosBase64[0];
         }
 
         // Recalculate total amount and daily amount
@@ -5481,7 +5534,7 @@
           updatePaymentHistory("adv");
         }
         showNotification(
-          `Payment of ₱${amount.toFixed(2)} recorded for ${client.name}`,
+          `Payment of ���${amount.toFixed(2)} recorded for ${client.name}`,
           "success",
         );
       }
@@ -7017,7 +7070,7 @@
 
         // Build collateral information section
         let collateralSection = '';
-        if (client.collateral && (client.collateral.description || client.collateral.photoBase64)) {
+        if (client.collateral && (client.collateral.description || client.collateral.photoBase64 || (client.collateral.photosBase64 && client.collateral.photosBase64.length))) {
           collateralSection = `
             <div class="detail-section">
               <hr style="margin: 15px 0; border: 0.5px solid var(--ios-opaque-separator);">
@@ -7025,15 +7078,20 @@
               <div class="detail-row"><strong>Description:</strong> ${client.collateral.description || 'Not provided'}</div>
             </div>`;
 
-          if (client.collateral.photoBase64) {
+          const collImgs = (client.collateral.photosBase64 && client.collateral.photosBase64.length)
+            ? client.collateral.photosBase64
+            : (client.collateral.photoBase64 ? [client.collateral.photoBase64] : []);
+          if (collImgs.length) {
             collateralSection += `
               <div class="detail-row" style="margin-top: 10px;">
-                <strong>Photo:</strong><br>
-                <img class="detail-image" src="${client.collateral.photoBase64}"
-                     style="max-width: 100%; max-height: 300px; border-radius: var(--ios-border-radius);
+                <strong>Photo${collImgs.length>1 ? 's' : ''}:</strong><br>
+                <div class="collateral-preview-list">
+                  ${collImgs.map(src => `<img class="detail-image" src="${src}"
+                     style="max-width: 120px; max-height: 120px; border-radius: var(--ios-border-radius);
                             border: 1px solid var(--ios-opaque-separator); margin-top: 8px; cursor: pointer;"
-                     onclick="enlargeCollateralImage('${client.collateral.photoBase64}')"
-                     alt="Collateral Photo">
+                     onclick="enlargeCollateralImage('${src}')"
+                     alt="Collateral Photo">`).join('')}
+                </div>
                 <br><small style="color: var(--ios-secondary-label);">Tap image to enlarge</small>
               </div>`;
           }
@@ -7220,11 +7278,24 @@
               isAbsent ? '<span class="cal-dot cal-absent" title="Absent"></span>' : ''
             ].filter(Boolean).join('');
 
+            // Sum amounts per source for this day
+            const nbAmt = (payments.notebook||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const ofAmt = (payments.office||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const gcAmt = (payments.gcash||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const adAmt = (payments.adv||[]).filter(p=>p.clientId==clientId && p.date===ds).reduce((s,p)=>s + (Number(p.amount)||0), 0);
+            const amountsHtml = [
+              nbAmt>0 ? `<span class="cal-amt cal-notebook">₱${nbAmt.toFixed(0)}</span>` : '',
+              ofAmt>0 ? `<span class="cal-amt cal-office">₱${ofAmt.toFixed(0)}</span>` : '',
+              gcAmt>0 ? `<span class="cal-amt cal-gcash">₱${gcAmt.toFixed(0)}</span>` : '',
+              adAmt>0 ? `<span class="cal-amt cal-adv" title="Advance">���${adAmt.toFixed(0)}</span>` : ''
+            ].filter(Boolean).join('');
+
             cells.push(`
               <div class="${cellCls}">
                 <div class="day-num">${d}</div>
                 ${overpay ? '<span class="over-badge">Over</span>' : '<span></span>'}
                 <div class="cal-dots">${dots}</div>
+                ${amountsHtml ? `<div class="cal-amounts">${amountsHtml}</div>` : ''}
               </div>
             `);
           }
