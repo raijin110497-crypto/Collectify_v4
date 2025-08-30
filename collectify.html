@@ -2716,6 +2716,66 @@
             </div>
           </div>
 
+          <!-- Abono Tab -->
+          <div class="tab-panel" id="abono">
+            <h2>Abono Transfers</h2>
+            <div class="form-group">
+              <input type="text" class="search-bar" placeholder="Search clients..." id="abonoSearch" oninput="searchTabClients('abono')" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Borrower (Client):</label>
+                <select id="abonoClient" onchange="selectAbonoClient()">
+                  <option value="">Choose a client...</option>
+                </select>
+                <div id="abonoClientPickerContainer">
+                  <button type="button" id="abonoClientPickerBtn" class="ios-select-button" aria-haspopup="dialog" aria-expanded="false">
+                    <span class="label" id="abonoClientPickerLabel">Choose a client...</span>
+                    <span class="chevron">›</span>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Lender Source:</label>
+                <select id="abonoLenderType" onchange="toggleAbonoLender()">
+                  <option value="client">Client advance</option>
+                  <option value="me">Me</option>
+                </select>
+              </div>
+              <div class="form-group" id="abonoLenderClientGroup">
+                <label>Lender Client (has advance):</label>
+                <select id="abonoLenderClient" onchange="updateAbonoLenderInfo()">
+                  <option value="">Choose a client...</option>
+                </select>
+                <div id="abonoLenderClientPickerContainer">
+                  <button type="button" id="abonoLenderClientPickerBtn" class="ios-select-button" aria-haspopup="dialog" aria-expanded="false">
+                    <span class="label" id="abonoLenderClientPickerLabel">Choose a client...</span>
+                    <span class="chevron">›</span>
+                  </button>
+                </div>
+                <small id="abonoLenderInfo" style="color: var(--ios-secondary-label); display:block; margin-top:6px;">Available advance: ₱0.00</small>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Abono Amount:</label>
+                <input type="number" id="abonoPaymentAmount" placeholder="0.00" step="0.01" />
+              </div>
+              <div class="form-group">
+                <label>Abono Date:</label>
+                <input type="date" id="abonoPaymentDate" />
+              </div>
+            </div>
+            <button class="btn btn-success" onclick="addPayment('abono')">Record Abono</button>
+            <div id="abonoPaymentHistory">
+              <div style="display:flex; justify-content: space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                <h3>Abono History</h3>
+                <button class="btn btn-danger" onclick="confirmClearPaymentHistory('abono')">Clear All</button>
+              </div>
+              <div id="abonoPaymentList"></div>
+            </div>
+          </div>
+
           <!-- Absent Tab -->
           <div class="tab-panel" id="absent">
             <h2>Absent Tracking</h2>
