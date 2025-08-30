@@ -6952,6 +6952,7 @@
                       updatePaymentHistory(type),
                     );
                     updateAbsenceHistory();
+                    if (currentActiveTab === 'summary') loadSummaryTab();
                     updateSettingsInfo();
 
                     showNotification("Data imported successfully", "success");
