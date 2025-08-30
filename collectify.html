@@ -5152,7 +5152,9 @@
                           ? "GCash"
                           : t === "adv"
                             ? "Adv"
-                            : t;
+                            : t === "abono"
+                              ? "Abono"
+                              : t;
                   const cls =
                     t === "notebook"
                       ? "status-notebook"
