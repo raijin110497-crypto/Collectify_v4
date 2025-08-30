@@ -3674,13 +3674,10 @@
           0,
         );
 
-        // Calculate load today = expected daily collection for today (active and within term)
+        // Calculate load today = expected collection for today with Sat/Mon adjustments and Sunday off
         const now = new Date();
-        const today = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-        );
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
         const loadToday = clients
           .filter((c) => {
             if (c.status !== "active") return false;
@@ -3690,7 +3687,7 @@
             const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
             return sd <= today && today <= dd;
           })
-          .reduce((sum, c) => sum + c.dailyAmount, 0);
+          .reduce((sum, c) => sum + expectedAmountForDate(c, todayStr), 0);
 
         document.getElementById("totalClients").textContent = totalClients;
         document.getElementById("activeLoans").textContent = activeLoans;
