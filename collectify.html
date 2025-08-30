@@ -4682,6 +4682,7 @@
           createdAt: todayLocalDateStr(),
           type: "manual",
           paymentType: type,
+          ...abonoMeta,
         };
 
         payments[type].push(payment);
