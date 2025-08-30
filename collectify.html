@@ -5141,28 +5141,39 @@
         if (!amt || !date || amt <= 0) { showNotification("Enter a valid amount and date", "error"); return; }
         if (amt > outstanding + 1e-6) { showNotification("Amount exceeds outstanding", "error"); return; }
 
-        // Schedule back into lender's Adv as future credits
+        // 1) Try restoring the lender's Adv back to original amounts first
         let remaining = amt;
-        let cursor = date;
-        const createdAt = todayLocalDateStr();
-        let safety = 0;
-        while (remaining > 1e-9 && safety < 500) {
-          const nextDate = getNextCollectionDate(cursor, lender.id);
-          const expected = expectedAmountForDate(lender, nextDate);
-          const toApply = Math.min(remaining, expected || remaining);
-          addOrMergePaymentForDate(lender, nextDate, toApply, 'adv', createdAt);
-          remaining -= toApply;
-          cursor = nextDate;
-          safety++;
+        remaining = restoreAdvanceToClient(lender.id, remaining, date);
+
+        // 2) If there is still remaining, schedule as fresh future Adv credits
+        if (remaining > 1e-9) {
+          let cursor = date;
+          const createdAt = todayLocalDateStr();
+          let safety = 0;
+          while (remaining > 1e-9 && safety < 500) {
+            const nextDate = getNextCollectionDate(cursor, lender.id);
+            const expected = expectedAmountForDate(lender, nextDate);
+            const toApply = Math.min(remaining, expected || remaining);
+            addOrMergePaymentForDate(lender, nextDate, toApply, 'adv', createdAt);
+            remaining -= toApply;
+            cursor = nextDate;
+            safety++;
+          }
         }
 
+        // 3) Update abono entry and remove when fully repaid
         entry.repaid = (entry.repaid || 0) + amt;
+        const isCleared = (entry.repaid || 0) >= (entry.amount || 0) - 1e-6;
+        if (isCleared) {
+          payments.abono = (payments.abono || []).filter(p => p.id !== entry.id);
+        }
+
         await saveData();
         updatePaymentHistory('abono');
         updatePaymentHistory('adv');
         updateSettingsInfo();
         document.getElementById("repayAbonoModal")?.classList.remove("active");
-        showNotification("Repayment recorded and Adv updated", "success");
+        showNotification(isCleared ? "Repayment complete. Entry removed and Adv restored." : "Repayment recorded and Adv updated", "success");
         currentRepayingAbono = null;
       }
 
@@ -5927,6 +5938,27 @@
         return remaining <= EPS;
       }
 
+      function restoreAdvanceToClient(clientId, amount, fromDate) {
+        const EPS = 1e-6;
+        let remaining = amount;
+        const from = fromDate || todayLocalDateStr();
+        const fromKey = dateKeyForCompare(from);
+        // Prefer restoring the earliest affected future entries first
+        const advList = (payments.adv || [])
+          .filter((p) => p.clientId == clientId && (!from || dateKeyForCompare(p.date) >= fromKey))
+          .sort((a, b) => dateKeyForCompare(a.date) - dateKeyForCompare(b.date));
+        for (const entry of advList) {
+          if (remaining <= EPS) break;
+          const init = Number(entry.initialAmount ?? entry.amount ?? 0);
+          // If no initialAmount recorded, treat current amount as the cap (no capacity to restore)
+          const cap = Math.max(0, init - (Number(entry.amount) || 0));
+          if (cap <= EPS) continue;
+          const put = Math.min(remaining, cap);
+          entry.amount = (Number(entry.amount) || 0) + put;
+          remaining -= put;
+        }
+        return remaining; // any leftover can be scheduled as fresh Adv entries
+      }
       function toggleAbonoLender() {
         const type = document.getElementById('abonoLenderType')?.value || 'client';
         const grp = document.getElementById('abonoLenderClientGroup');
