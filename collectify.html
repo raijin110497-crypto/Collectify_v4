@@ -6426,11 +6426,20 @@
           .join("");
       }
 
-      // Search tab clients
+      // Search tab clients (fuzzy, accent/space-insensitive)
+      function normalizeSearch(str) {
+        return (str || "")
+          .toLowerCase()
+          .normalize("NFD").replace(/\p{Diacritic}/gu, "")
+          .replace(/[^a-z0-9]+/gi, " ")
+          .trim();
+      }
       function searchTabClients(type) {
         const input = document.getElementById(`${type}Search`);
         if (!input) return;
-        const term = input.value.trim().toLowerCase();
+        const termRaw = input.value || "";
+        const term = normalizeSearch(termRaw);
+        const termParts = term.split(" ").filter(Boolean);
         const select = document.getElementById(`${type}Client`);
         if (!select) return;
         const options = Array.from(select.querySelectorAll("option"));
@@ -6441,8 +6450,11 @@
 
         options.forEach((option) => {
           if (option.value === "") return; // Skip placeholder
-          const name = (option.textContent || "").trim().toLowerCase();
-          const isVisible = term === "" || name.includes(term);
+          const nameRaw = (option.textContent || "").trim();
+          const name = normalizeSearch(nameRaw);
+          const isVisible = term === "" || (
+            name.includes(term) || termParts.every(p => name.includes(p))
+          );
           option.hidden = !isVisible; // more reliable than display for <option>
           if (isVisible) {
             visibleCount++;
@@ -6473,9 +6485,8 @@
           return;
         }
 
-        // Auto-select exact match; otherwise if a single match, select it
-        const toSelect =
-          exactMatch || (visibleCount === 1 ? firstVisible : null);
+        // Auto-select exact match; otherwise if a single match, select it; otherwise first visible
+        const toSelect = exactMatch || (visibleCount === 1 ? firstVisible : firstVisible);
         if (toSelect) {
           select.value = toSelect.value;
           // Fire change so custom iOS pickers' labels stay in sync
@@ -7337,7 +7348,7 @@
             <div class="detail-row"><strong>Address:</strong> ${client.address || "-"}</div>
             <div class="detail-row"><strong>Loan Amount:</strong> ₱${client.loanAmount.toLocaleString()}</div>
             <div class="detail-row"><strong>Total Amount:</strong> ₱${client.totalAmount.toFixed(2)}</div>
-            <div class="detail-row"><strong>Daily Amount:</strong> ₱${client.dailyAmount.toFixed(2)}</div>
+            <div class="detail-row"><strong>Daily Amount:</strong> ��${client.dailyAmount.toFixed(2)}</div>
             <div class="detail-row"><strong>Due Date:</strong> ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})</div>
             <div class="detail-row"><strong>Status:</strong> ${client.remainingBalance <= 0 ? "Paid" : "Active"}</div>
 
