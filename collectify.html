@@ -6009,6 +6009,7 @@
         updateAbsenceHistory();
         updateSettingsInfo();
         closeAllModals();
+        closeAllSheets();
         closeTutorialLayer();
       }
 
@@ -6024,6 +6025,14 @@
           const el = document.getElementById(id);
           if (el) el.classList.remove("active");
         });
+      }
+
+      function closeAllSheets() {
+        try {
+          document.querySelectorAll('.ios-sheet-overlay.show').forEach((el)=>el.classList.remove('show'));
+          document.querySelectorAll('.ios-sheet.show').forEach((el)=>el.classList.remove('show'));
+          document.querySelectorAll('.ios-select-button[aria-expanded="true"]').forEach((b)=>b.setAttribute('aria-expanded','false'));
+        } catch (e) {}
       }
 
       function buildTutorialSteps() {
@@ -6075,11 +6084,13 @@
           },
           {
             text: "Pick a client to record a payment.",
-            selector: "#notebookClient",
+            selector: "#notebookClientPickerBtn",
             padding: 6,
             onBefore: () => {
               closeSidebar();
               switchTab("notebook");
+              const btn = document.getElementById("notebookClientPickerBtn");
+              if (btn) btn.click();
             },
           },
           {
@@ -6127,11 +6138,13 @@
           },
           {
             text: "Pick a client for office payment here.",
-            selector: "#officeClient",
+            selector: "#officeClientPickerBtn",
             padding: 6,
             onBefore: () => {
               closeSidebar();
               switchTab("office");
+              const btn = document.getElementById("officeClientPickerBtn");
+              if (btn) btn.click();
             },
           },
           {
@@ -6156,11 +6169,13 @@
           },
           {
             text: "Pick a client for GCash payment here.",
-            selector: "#gcashClient",
+            selector: "#gcashClientPickerBtn",
             padding: 6,
             onBefore: () => {
               closeSidebar();
               switchTab("gcash");
+              const btn = document.getElementById("gcashClientPickerBtn");
+              if (btn) btn.click();
             },
           },
           {
@@ -6184,11 +6199,13 @@
           },
           {
             text: "Pick a client for Adv entry here.",
-            selector: "#advClient",
+            selector: "#advClientPickerBtn",
             padding: 6,
             onBefore: () => {
               closeSidebar();
               switchTab("adv");
+              const btn = document.getElementById("advClientPickerBtn");
+              if (btn) btn.click();
             },
           },
           {
@@ -6212,11 +6229,13 @@
           },
           {
             text: "Pick a client to mark absent.",
-            selector: "#absentClient",
+            selector: "#absentClientPickerBtn",
             padding: 6,
             onBefore: () => {
               closeSidebar();
               switchTab("absent");
+              const btn = document.getElementById("absentClientPickerBtn");
+              if (btn) btn.click();
             },
           },
           {
@@ -6311,6 +6330,7 @@
 
       function onTutorialClick() {
         if (!tutorial.active) return;
+        closeAllSheets();
         const step = tutorial.steps[tutorial.index];
         if (step && step.openTab) {
           closeSidebar();
