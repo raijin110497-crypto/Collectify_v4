@@ -3159,7 +3159,7 @@
         <div class="modal-header">
           <h2>Client Details</h2>
           <button class="close-btn" onclick="closeModal('viewClientModal')">
-            ���
+            ✕
           </button>
         </div>
         <div class="modal-body">
@@ -4583,6 +4583,29 @@
           updatePaymentHistory("adv");
           showNotification(`Advance scheduled into ${createdCount} future day(s)`, "success");
           return;
+        }
+
+        // Abono-specific: validate lender and optionally deduct from lender's advances
+        let abonoMeta = {};
+        if (type === "abono") {
+          const lenderType = (document.getElementById("abonoLenderType")?.value) || "client";
+          let lenderName = "Me";
+          let lenderClientId = null;
+          if (lenderType === "client") {
+            lenderClientId = parseInt(document.getElementById("abonoLenderClient")?.value || "0");
+            if (!lenderClientId) {
+              showNotification("Please choose a lender client with advance", "error");
+              return;
+            }
+            const ok = deductAdvanceFromClient(lenderClientId, amount, date);
+            if (!ok) {
+              showNotification("Insufficient advance balance from selected lender", "error");
+              return;
+            }
+            const lender = clients.find((c) => c.id == lenderClientId);
+            lenderName = lender ? lender.name : "Client";
+          }
+          abonoMeta = { lenderType, lenderClientId, lenderName };
         }
 
         // Sunday split logic (Sunday is not a collection day)
