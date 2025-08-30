@@ -2000,6 +2000,39 @@
         .stat-card h3 { font-size: clamp(0.9rem, 3.2vw, 1.3rem); }
         .stat-card p  { font-size: clamp(0.8rem, 2.4vw, 1rem); }
       }
+      /* Client view animations */
+      .client-view-animate .detail-row {
+        opacity: 0;
+        transform: translateY(8px);
+        animation: detailIn 0.45s var(--ios-spring-timing) forwards;
+      }
+      @keyframes detailIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      /* Staggered delays for first items */
+      .client-view-animate .detail-row:nth-child(1) { animation-delay: 0.02s; }
+      .client-view-animate .detail-row:nth-child(2) { animation-delay: 0.06s; }
+      .client-view-animate .detail-row:nth-child(3) { animation-delay: 0.10s; }
+      .client-view-animate .detail-row:nth-child(4) { animation-delay: 0.14s; }
+      .client-view-animate .detail-row:nth-child(5) { animation-delay: 0.18s; }
+      .client-view-animate .detail-row:nth-child(6) { animation-delay: 0.22s; }
+      .client-view-animate .detail-row:nth-child(7) { animation-delay: 0.26s; }
+      .client-view-animate .detail-row:nth-child(8) { animation-delay: 0.30s; }
+      .client-view-animate .detail-row:nth-child(9) { animation-delay: 0.34s; }
+      .client-view-animate .detail-row:nth-child(10) { animation-delay: 0.38s; }
+      .client-view-animate .detail-row:nth-child(11) { animation-delay: 0.42s; }
+      .client-view-animate .detail-row:nth-child(12) { animation-delay: 0.46s; }
+
+      .detail-image {
+        opacity: 0;
+        transform: scale(0.98);
+        animation: popIn 0.5s var(--ios-spring-timing) 0.2s forwards;
+      }
+      @keyframes popIn {
+        from { opacity: 0; transform: scale(0.98); }
+        to { opacity: 1; transform: scale(1); }
+      }
     </style>
   </head>
   <body>
@@ -6946,26 +6979,30 @@
         let coMakerSection = '';
         if (client.coMaker && (client.coMaker.name || client.coMaker.contactNumber || client.coMaker.address)) {
           coMakerSection = `
-            <hr style="margin: 15px 0; border: 0.5px solid var(--ios-opaque-separator);">
-            <h4 style="color: var(--ios-blue); margin-bottom: 10px;">Co-maker Information</h4>
-            <div><strong>Name:</strong> ${client.coMaker.name || 'Not provided'}</div>
-            <div><strong>Contact:</strong> ${formatPhone(client.coMaker.contactNumber || 'Not provided')}</div>
-            <div><strong>Address:</strong> ${client.coMaker.address || 'Not provided'}</div>`;
+            <div class="detail-section">
+              <hr style="margin: 15px 0; border: 0.5px solid var(--ios-opaque-separator);">
+              <h4 class="detail-row" style="color: var(--ios-blue); margin-bottom: 10px;">Co-maker Information</h4>
+              <div class="detail-row"><strong>Name:</strong> ${client.coMaker.name || 'Not provided'}</div>
+              <div class="detail-row"><strong>Contact:</strong> ${formatPhone(client.coMaker.contactNumber || 'Not provided')}</div>
+              <div class="detail-row"><strong>Address:</strong> ${client.coMaker.address || 'Not provided'}</div>
+            </div>`;
         }
 
         // Build collateral information section
         let collateralSection = '';
         if (client.collateral && (client.collateral.description || client.collateral.photoBase64)) {
           collateralSection = `
-            <hr style="margin: 15px 0; border: 0.5px solid var(--ios-opaque-separator);">
-            <h4 style="color: var(--ios-blue); margin-bottom: 10px;">Collateral Information</h4>
-            <div><strong>Description:</strong> ${client.collateral.description || 'Not provided'}</div>`;
+            <div class="detail-section">
+              <hr style="margin: 15px 0; border: 0.5px solid var(--ios-opaque-separator);">
+              <h4 class="detail-row" style="color: var(--ios-blue); margin-bottom: 10px;">Collateral Information</h4>
+              <div class="detail-row"><strong>Description:</strong> ${client.collateral.description || 'Not provided'}</div>
+            </div>`;
 
           if (client.collateral.photoBase64) {
             collateralSection += `
-              <div style="margin-top: 10px;">
+              <div class="detail-row" style="margin-top: 10px;">
                 <strong>Photo:</strong><br>
-                <img src="${client.collateral.photoBase64}"
+                <img class="detail-image" src="${client.collateral.photoBase64}"
                      style="max-width: 100%; max-height: 300px; border-radius: var(--ios-border-radius);
                             border: 1px solid var(--ios-opaque-separator); margin-top: 8px; cursor: pointer;"
                      onclick="enlargeCollateralImage('${client.collateral.photoBase64}')"
@@ -6976,20 +7013,24 @@
         }
 
         const html = `
-          <div style="display:grid; gap:8px;">
-            <h4 style="color: var(--ios-blue); margin-bottom: 10px;">Basic Information</h4>
-            <div><strong>Name:</strong> ${client.name}</div>
-            <div><strong>Contact:</strong> ${formatPhone(client.contactNumber || "-")}</div>
-            <div><strong>Address:</strong> ${client.address || "-"}</div>
-            <div><strong>Loan Amount:</strong> ₱${client.loanAmount.toLocaleString()}</div>
-            <div><strong>Total Amount:</strong> ₱${client.totalAmount.toFixed(2)}</div>
-            <div><strong>Daily Amount:</strong> ₱${client.dailyAmount.toFixed(2)}</div>
-            <div><strong>Due Date:</strong> ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})</div>
-            <div><strong>Status:</strong> ${client.remainingBalance <= 0 ? "Paid" : "Active"}</div>
+          <div class="client-detail-stagger" style="display:grid; gap:8px;">
+            <h4 class="detail-row" style="color: var(--ios-blue); margin-bottom: 10px;">Basic Information</h4>
+            <div class="detail-row"><strong>Name:</strong> ${client.name}</div>
+            <div class="detail-row"><strong>Contact:</strong> ${formatPhone(client.contactNumber || "-")}</div>
+            <div class="detail-row"><strong>Address:</strong> ${client.address || "-"}</div>
+            <div class="detail-row"><strong>Loan Amount:</strong> ₱${client.loanAmount.toLocaleString()}</div>
+            <div class="detail-row"><strong>Total Amount:</strong> ₱${client.totalAmount.toFixed(2)}</div>
+            <div class="detail-row"><strong>Daily Amount:</strong> ₱${client.dailyAmount.toFixed(2)}</div>
+            <div class="detail-row"><strong>Due Date:</strong> ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})</div>
+            <div class="detail-row"><strong>Status:</strong> ${client.remainingBalance <= 0 ? "Paid" : "Active"}</div>
             ${coMakerSection}
             ${collateralSection}
           </div>`;
-        document.getElementById("viewClientContent").innerHTML = html;
+        const contentEl = document.getElementById("viewClientContent");
+        contentEl.innerHTML = html;
+        contentEl.classList.remove("client-view-animate");
+        void contentEl.offsetWidth;
+        contentEl.classList.add("client-view-animate");
         document.getElementById("viewClientModal").classList.add("active");
       }
 
