@@ -1100,6 +1100,10 @@
         background: var(--ios-pink);
         color: white;
       }
+      .status-due-soon {
+        background: var(--ios-yellow);
+        color: #222;
+      }
 
       /* Tighter layout for status badges in tracker lists */
       .tracker-client-info p .status-badge {
@@ -2034,6 +2038,9 @@
           <button class="tab" data-tab="daily-tracker" onclick="closeSidebar()">
             <span>Daily Tracker</span>
           </button>
+          <button class="tab" data-tab="overdue" onclick="closeSidebar()">
+            <span>Overdue</span>
+          </button>
         </div>
         <div class="settings-group">
           <button class="tab" data-tab="office" onclick="closeSidebar()">
@@ -2084,6 +2091,7 @@
           <button class="tab active" data-tab="dashboard">Dashboard</button>
           <button class="tab" data-tab="notebook">Notebook</button>
           <button class="tab" data-tab="daily-tracker">Daily Tracker</button>
+          <button class="tab" data-tab="overdue">Overdue</button>
           <button class="tab" data-tab="office">Office</button>
           <button class="tab" data-tab="gcash">GCash</button>
           <button class="tab" data-tab="adv">Adv</button>
@@ -2862,6 +2870,24 @@
             </div>
           </div>
 
+          <!-- Overdue Tab -->
+          <div class="tab-panel" id="overdue">
+            <h2>Overdue & Due Soon</h2>
+            <div class="form-group">
+              <small style="color: var(--ios-secondary-label);">Due soon = due within 3 days</small>
+            </div>
+            <div style="display:grid; gap:16px;">
+              <div>
+                <h3 style="color: var(--ios-red);">Overdue Clients</h3>
+                <div id="overdueClientsList" style="background: var(--ios-secondary-grouped-background); border-radius: var(--ios-border-radius-large); padding: 15px;"></div>
+              </div>
+              <div>
+                <h3 style="color: var(--ios-yellow);">Due Soon</h3>
+                <div id="dueSoonClientsList" style="background: var(--ios-secondary-grouped-background); border-radius: var(--ios-border-radius-large); padding: 15px;"></div>
+              </div>
+            </div>
+          </div>
+
           <!-- Settings Tab -->
           <div class="tab-panel" id="settings">
             <h2>Settings</h2>
@@ -3619,6 +3645,8 @@
           loadDailyTracker();
         } else if (tabName === "settings") {
           updateSettingsInfo();
+        } else if (tabName === "overdue") {
+          updateOverdueLists();
         } else if (tabName === "adv") {
           // Auto-focus the lender whose advance was affected by Abono
           if (lastAdvFocusClientId) {
@@ -3845,6 +3873,7 @@
           `���${totalCollected.toLocaleString()}`;
         document.getElementById("loadToday").textContent =
           `₱${loadToday.toLocaleString()}`;
+        if (document.getElementById('overdueClientsList')) updateOverdueLists();
       }
 
       function formatPhone(phone) {
@@ -3972,14 +4001,21 @@
       }
 
       // Get status badge
+      function daysUntilDue(client) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const d = new Date(client.dueDate);
+        const due = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        return Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+      }
       function getStatusBadge(client) {
-        const today = new Date();
-        const dueDate = new Date(client.dueDate);
-
+        const left = daysUntilDue(client);
         if (client.remainingBalance <= 0) {
           return '<span class="status-badge status-paid">Paid</span>';
-        } else if (dueDate < today) {
+        } else if (left < 0) {
           return '<span class="status-badge status-overdue">Overdue</span>';
+        } else if (left <= 3) {
+          return '<span class="status-badge status-due-soon">Due soon</span>';
         } else {
           return '<span class="status-badge status-active">Active</span>';
         }
@@ -5330,6 +5366,31 @@
           </div>`;
           })
           .join("");
+      }
+
+      // Overdue/Due Soon lists
+      function updateOverdueLists() {
+        const overdueList = document.getElementById('overdueClientsList');
+        const dueSoonList = document.getElementById('dueSoonClientsList');
+        if (!overdueList || !dueSoonList) return;
+        const active = clients.filter(c => c.status !== 'paid' && (c.remainingBalance || 0) > 0);
+        const rowsOver = [];
+        const rowsSoon = [];
+        active.forEach(c => {
+          const left = daysUntilDue(c);
+          const line = `
+            <div class="tracker-client-item ${left<0?'not-paid':'paid'}" style="border-left-color: ${left<0?'var(--ios-red)':'var(--ios-yellow)'}">
+              <div class="tracker-client-info">
+                <h5>${c.name}</h5>
+                <p>Remaining: ₱${(c.remainingBalance||0).toFixed(2)} • Due: ${new Date(c.dueDate).toLocaleDateString()}</p>
+              </div>
+              <div class="tracker-amount expected">${left<0?`${Math.abs(left)}d overdue`:`${left}d left`}</div>
+            </div>`;
+          if (left < 0) rowsOver.push(line);
+          else if (left <= 3) rowsSoon.push(line);
+        });
+        overdueList.innerHTML = rowsOver.length ? rowsOver.join('') : '<div class="no-data">No overdue clients</div>';
+        dueSoonList.innerHTML = rowsSoon.length ? rowsSoon.join('') : '<div class="no-data">No clients due soon</div>';
       }
 
       // Update custom payments list
