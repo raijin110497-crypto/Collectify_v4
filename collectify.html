@@ -3268,7 +3268,7 @@
         <div class="modal-header">
           <h2>Edit Payment</h2>
           <button class="close-btn" onclick="closeModal('editPaymentModal')">
-            ✕
+            ��
           </button>
         </div>
         <div class="modal-body">
@@ -5890,10 +5890,9 @@
         }
       }
       function computeAvailableAdvance(clientId, fromDate) {
-        const from = fromDate || todayLocalDateStr();
-        const fromKey = dateKeyForCompare(from);
+        // Calculate total available advance for a client (all advances regardless of date)
         return (payments.adv || [])
-          .filter((p) => p.clientId == clientId && (!from || dateKeyForCompare(p.date) >= fromKey))
+          .filter((p) => p.clientId == clientId)
           .reduce((sum, p) => sum + (p.amount || 0), 0);
       }
       function deductAdvanceFromClient(clientId, amount, fromDate, meta) {
@@ -5924,7 +5923,7 @@
           }
           remaining -= take;
         }
-        payments.adv = (payments.adv || []).filter((p) => (Number(p.amount) || 0) > EPS);
+        // Don't remove advance payments with zero amounts - keep them for history
         return remaining <= EPS;
       }
 
@@ -6292,7 +6291,7 @@
 
             // Reconstruct payments object from flat array
             if (savedPayments.length > 0) {
-              payments = { notebook: [], office: [], gcash: [], adv: [] };
+              payments = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
               savedPayments.forEach((payment) => {
                 const type = payment.paymentType || "notebook";
                 if (!payments[type]) payments[type] = [];
