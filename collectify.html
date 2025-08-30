@@ -5466,6 +5466,7 @@
           updateStats();
           updateClientList();
           updatePaymentHistory("adv");
+          if (currentActiveTab === 'summary') loadSummaryTab();
           showNotification(`Advance scheduled into ${createdCount} future day(s)`, "success");
           return;
         }
