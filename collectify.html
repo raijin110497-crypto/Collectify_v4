@@ -4951,9 +4951,11 @@
           };
           prev.hasAdv = true;
           prev.types.add("adv");
-          prev.advForFuture = (prev.advForFuture || 0) + (p.amount || 0);
+          const advAmt = p.amount || 0;
+          prev.advForFuture = (prev.advForFuture || 0) + advAmt;
+          prev.totalPaid += advAmt; // include advances created today in total paid today
           prev.advDetails = prev.advDetails || [];
-          prev.advDetails.push({ amount: p.amount || 0, forDate: p.date });
+          prev.advDetails.push({ amount: advAmt, forDate: p.date });
           byClient.set(client.id, prev);
         });
 
@@ -5130,7 +5132,7 @@
               ${extraLine}
             </div>
             <div class="tracker-amount paid">
-              ₱${entry.totalPaid.toFixed(2)}
+              ���${entry.totalPaid.toFixed(2)}
             </div>
           </div>`;
           })
