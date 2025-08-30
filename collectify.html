@@ -3693,7 +3693,7 @@
         document.getElementById("dailyAmount").textContent =
           `₱${dailyAmount.toFixed(2)}`;
         document.getElementById("totalAmount").textContent =
-          `���${totalAmount.toFixed(2)}`;
+          `₱${totalAmount.toFixed(2)}`;
 
         if (startDate) {
           const due = new Date(startDate);
@@ -4312,6 +4312,18 @@
             const dateStr = document.getElementById("advPaymentDate").value;
             const val = expectedAmountForDate(client, dateStr);
             document.getElementById("advPaymentAmount").value = val.toFixed(2);
+          }
+        }
+      }
+
+      function selectAbonoClient() {
+        const clientId = document.getElementById("abonoClient").value;
+        if (clientId) {
+          const client = clients.find((c) => c.id == clientId);
+          if (client) {
+            const dateStr = document.getElementById("abonoPaymentDate").value;
+            const val = expectedAmountForDate(client, dateStr);
+            document.getElementById("abonoPaymentAmount").value = val.toFixed(2);
           }
         }
       }
