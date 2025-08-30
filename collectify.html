@@ -5679,6 +5679,7 @@
           .reduce((sum, p) => sum + (p.amount || 0), 0);
       }
       function deductAdvanceFromClient(clientId, amount, fromDate) {
+        const EPS = 1e-6;
         let remaining = amount;
         const from = fromDate || todayLocalDateStr();
         const fromKey = dateKeyForCompare(from);
@@ -5686,13 +5687,15 @@
           .filter((p) => p.clientId == clientId && (!from || dateKeyForCompare(p.date) >= fromKey))
           .sort((a, b) => dateKeyForCompare(a.date) - dateKeyForCompare(b.date));
         for (const entry of advList) {
-          if (remaining <= 0) break;
-          const take = Math.min(remaining, entry.amount);
-          entry.amount -= take;
+          if (remaining <= EPS) break;
+          const available = Number(entry.amount) || 0;
+          const take = Math.min(remaining, available);
+          entry.amount = available - take;
+          if (entry.amount < EPS) entry.amount = 0;
           remaining -= take;
         }
-        payments.adv = (payments.adv || []).filter((p) => p.amount > 0);
-        return remaining <= 0;
+        payments.adv = (payments.adv || []).filter((p) => (Number(p.amount) || 0) > EPS);
+        return remaining <= EPS;
       }
 
       function toggleAbonoLender() {
