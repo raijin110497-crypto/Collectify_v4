@@ -6275,17 +6275,14 @@
           })
           .sort((a,b) => a.clientName.localeCompare(b.clientName));
 
-        // Overpayment per client (exclude Adv from paid sum)
+        // Overpayment per client: ignore ADV created today for future dates (do not treat as overpayment)
         const over = clients.filter(c => c.status !== 'paid').map(c => {
           const expected = isClientAbsentOnDate(c.id, date) ? 0 : expectedAmountForDate(c, date);
           const paidDirect = ['notebook','office','gcash','abono']
             .flatMap(t => payments[t] || [])
             .filter(p => p.clientId === c.id && p.date === date)
             .reduce((s,p) => s + (Number(p.amount)||0), 0);
-          const advExtra = (payments.adv || [])
-            .filter(p => p.clientId === c.id && (p.createdAt || p.date) === date && p.date !== date)
-            .reduce((s,p) => s + (Number(p.amount)||0), 0);
-          const paidSum = paidDirect + advExtra;
+          const paidSum = paidDirect; // exclude ADV created today for future dates
           const diff = paidSum - expected;
           return { clientId: c.id, clientName: c.name, expected, paid: paidSum, overBy: diff };
         }).filter(e => e.overBy > 0.01)
