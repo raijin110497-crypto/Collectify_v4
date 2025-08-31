@@ -6973,7 +6973,9 @@
         list.innerHTML = customSummaries
           .map((entry) => {
             const expected = entry.hasFull ? (entry.fullPaid || 0) : entry.dailyAmount;
-            const diff = entry.totalPaid - expected;
+            // Over/Under should ignore ADV created today for future dates
+            const paidForOver = entry.totalPaid - (entry.advForFuture || 0);
+            const diff = paidForOver - expected;
             let statusBadge = "";
             let extraLine = "";
             if (entry.advForFuture && entry.advForFuture > 0) {
