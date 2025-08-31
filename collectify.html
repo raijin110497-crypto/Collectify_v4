@@ -7998,7 +7998,8 @@
           btn.addEventListener('click', ()=>{
             const day = Number(btn.getAttribute('data-day'));
             dpSelected = new Date(dpYear, dpMonth, day);
-            buildDpGrid();
+            setDateValue(toISODate(dpSelected));
+            closeDatePicker();
           });
         });
       }
