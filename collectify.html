@@ -7890,10 +7890,28 @@
 
           // Dashboard (contents)
           {
-            text: "Dashboard stats show totals and today's expected load.",
-            selector: "#dashboard .stats-grid",
+            text: "Tap this 'Stats' card to expand or collapse dashboard metrics.",
+            selector: "#statsToggleCard",
             padding: 4,
-            onBefore: () => { closeSidebar(); switchTab("dashboard"); },
+            onBefore: () => {
+              closeSidebar();
+              switchTab("dashboard");
+              const g = document.getElementById('dashboardStatsGroup');
+              const grid = document.getElementById('dashboardStats');
+              if (g && grid) { g.classList.add('collapsed'); g.classList.remove('expanded'); grid.style.maxHeight = '0px'; }
+            },
+          },
+          {
+            text: "Expanded metrics appear here with animation.",
+            selector: "#dashboardStats",
+            padding: 4,
+            onBefore: () => {
+              closeSidebar();
+              switchTab("dashboard");
+              const btn = document.getElementById('statsToggleCard');
+              const g = document.getElementById('dashboardStatsGroup');
+              if (btn && g && !g.classList.contains('expanded')) btn.click();
+            },
           },
           {
             text: "Add a new client from here.",
