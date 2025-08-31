@@ -4184,7 +4184,10 @@
           // Clear collateral fields
           document.getElementById("collateralDescription").value = "";
           const cp = document.getElementById("collateralPhotos");
-          if (cp) { cp.value = ""; cp._files = []; try { const dt = new DataTransfer(); cp.files = dt.files; } catch(e) {} }
+          if (cp) {
+            cp.value = "";
+            cp.dataset.selectedFiles = "";
+          }
           const cpList = document.getElementById("collateralPreviewList");
           if (cpList) cpList.innerHTML = "";
           document.getElementById("collateralPreview").style.display = "none";
