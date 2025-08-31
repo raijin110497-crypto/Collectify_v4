@@ -8810,7 +8810,7 @@
           const loanAmount = 5000 + i * 1000;
           const interestRate = defaultSettings.interestRate;
           const term = defaultSettings.loanTerm;
-          const start = formatDateLocal(addDaysLocal(today, -i * 3));
+          let start = formatDateLocal(addDaysLocal(today, -i * 3));
           let dueTmp = addDaysLocal(start, term);
           let dueDate = formatDateLocal(dueTmp);
           const totalAmount = loanAmount * (1 + interestRate / 100);
