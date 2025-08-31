@@ -7010,7 +7010,11 @@
         // Sync new settings UI
         for (let i = 0; i < 7; i++) {
           const el = document.getElementById(`releaseDay-${i}`);
-          if (el) el.checked = !!defaultSettings.releaseDays[i];
+          if (el) {
+            el.checked = !!defaultSettings.releaseDays[i];
+            const lbl = el.closest('label');
+            if (lbl) lbl.classList.toggle('active', !!defaultSettings.releaseDays[i]);
+          }
         }
         renderHolidays();
       }
