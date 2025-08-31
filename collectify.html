@@ -6488,7 +6488,7 @@
                 ${
                   isPaid
                     ? `Paid: ₱${client.paidAmount.toFixed(2)}`
-                    : `Expected: ��${expectedForDate.toFixed(2)}`
+                    : `Expected: ₱${expectedForDate.toFixed(2)}`
                 }
               </p>
               ${statusLine}
@@ -7960,6 +7960,7 @@
       function parseISODate(str){ const [y,m,day]=String(str||"").split("-").map(Number); if(!y||!m||!day) return null; return new Date(y, m-1, day); }
       function openDatePicker(targetId){
         dpTargetId = targetId;
+        try { if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur(); } catch(e) {}
         const input = document.getElementById(targetId);
         const now = new Date();
         const base = input && input.value ? (parseISODate(input.value) || now) : now;
@@ -8032,20 +8033,27 @@
           el.readOnly = true;
           el.classList.add('ios-date-input');
           try { el.type = 'text'; } catch(e) {}
-          el.addEventListener('click', ()=>openDatePicker(id));
-          el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openDatePicker(id);} });
+          const __open = (e)=>{ if(e) e.preventDefault(); openDatePicker(id); };
+          el.addEventListener('click', __open);
+          el.addEventListener('focus', __open);
+          el.addEventListener('touchend', __open, { passive: false });
+          el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); __open(e);} });
           el.dataset.dpBound = '1';
         });
         // Global delegation as safety net (covers cases where specific binding failed)
         if (!window.__dpDelegated) {
           document.addEventListener('click', (e)=>{
             const t = e.target.closest('input#holidayDate, input.ios-date-input');
-            if (t) {
-              const tid = t.id || 'holidayDate';
-              e.preventDefault();
-              openDatePicker(tid);
-            }
+            if (t) { e.preventDefault(); openDatePicker(t.id || 'holidayDate'); }
+          }, true);
+          document.addEventListener('focusin', (e)=>{
+            const t = e.target && (e.target.matches('input#holidayDate, input.ios-date-input') ? e.target : null);
+            if (t) { e.preventDefault?.(); openDatePicker(t.id || 'holidayDate'); }
           });
+          document.addEventListener('touchend', (e)=>{
+            const t = e.target.closest('input#holidayDate, input.ios-date-input');
+            if (t) { e.preventDefault(); openDatePicker(t.id || 'holidayDate'); }
+          }, { passive: false });
           window.__dpDelegated = true;
         }
       }
