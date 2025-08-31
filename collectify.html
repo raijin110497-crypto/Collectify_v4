@@ -3551,7 +3551,7 @@
                 style="width: 100%; padding: 12px; border: 1px solid var(--ios-opaque-separator); border-radius: var(--ios-border-radius);"
               />
               <small style="color: var(--ios-secondary-label); font-size: 12px; margin-top: 4px; display: block;">
-                📷 Choose up to 3 photos from gallery or camera
+                ���� Choose up to 3 photos from gallery or camera
               </small>
               <div id="editCollateralPreview" style="margin-top: 10px; display: none;">
                 <div id="editCollateralPreviewList" class="collateral-preview-list"></div>
@@ -4752,7 +4752,6 @@
           return;
         }
 
-        // Try to open phone dialer (mobile) or show contact info
         if (navigator.userAgent.match(/mobile/i)) {
           window.location.href = `tel:${client.coMaker.contactNumber}`;
         } else {
@@ -4760,6 +4759,20 @@
         }
 
         dismissCollateralNotification(clientId);
+      }
+
+      // Contact client helper
+      function contactClient(clientId) {
+        const client = clients.find(c => c.id == clientId);
+        if (!client || !client.contactNumber) {
+          showNotification('No client contact information available', 'error');
+          return;
+        }
+        if (navigator.userAgent.match(/mobile/i)) {
+          window.location.href = `tel:${client.contactNumber}`;
+        } else {
+          showNotification(`Client: ${client.name} - ${client.contactNumber}`, 'success');
+        }
       }
 
       // Dismiss collateral notification
