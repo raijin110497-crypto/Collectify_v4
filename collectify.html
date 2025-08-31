@@ -5325,7 +5325,8 @@
         const client = clients.find(c => c.id === clientId);
         if (!client || !client.repaymentPlan) { showNotification("No plan set", "error"); return; }
         const today = new Date().toISOString().split("T")[0];
-        if (findDuplicatePayment(clientId, today, ["notebook","office","gcash"])) {
+        const isOver = isClientOverdue(client);
+        if (!isOver && findDuplicatePayment(clientId, today, ["notebook","office","gcash"])) {
           showNotification("Duplicate entry: already has a record today", "error");
           return;
         }
