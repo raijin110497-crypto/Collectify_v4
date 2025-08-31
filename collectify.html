@@ -3747,7 +3747,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h2>Set Repayment Plan</h2>
-          <button class="close-btn" onclick="closeModal('repaymentPlanModal')">✕</button>
+          <button class="close-btn" onclick="closeModal('repaymentPlanModal')">��</button>
         </div>
         <div class="modal-body">
           <div class="form-row">
@@ -5280,6 +5280,7 @@
           ${overdue.length ? `<h3 style="margin:8px 4px">Overdue</h3>${overdueHtml}` : ''}
           ${dueSoon.length ? `<h3 style=\"margin:12px 4px 8px\">Due Soon (≤ ${OVERDUE_SOON_DAYS} days)</h3>${soonHtml}` : ''}
         `;
+        bindClientCardClicks('overdueList');
       }
 
       function openPlanModal(clientId) {
