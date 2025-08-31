@@ -3380,7 +3380,8 @@
                 style="width: 100%; padding: 12px; border: 1px solid var(--ios-opaque-separator); border-radius: var(--ios-border-radius);"
               />
               <small style="color: var(--ios-secondary-label); font-size: 12px; margin-top: 4px; display: block;">
-                📷 Choose up to 3 photos from gallery or camera
+                <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="2" fill="none"></path><circle cx="12" cy="13" r="3" stroke="currentColor" stroke-width="2" fill="none"></circle></svg>
+                Choose up to 3 photos from gallery or camera
               </small>
               <button type="button" onclick="testFileUpload()" style="margin-top: 8px; padding: 6px 12px; font-size: 12px; background: var(--ios-orange); color: white; border: none; border-radius: var(--ios-border-radius);">
                 🔧 Test File Upload (Debug for Android)
@@ -3551,7 +3552,8 @@
                 style="width: 100%; padding: 12px; border: 1px solid var(--ios-opaque-separator); border-radius: var(--ios-border-radius);"
               />
               <small style="color: var(--ios-secondary-label); font-size: 12px; margin-top: 4px; display: block;">
-                📷 Choose up to 3 photos from gallery or camera
+                <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="2" fill="none"></path><circle cx="12" cy="13" r="3" stroke="currentColor" stroke-width="2" fill="none"></circle></svg>
+                Choose up to 3 photos from gallery or camera
               </small>
               <div id="editCollateralPreview" style="margin-top: 10px; display: none;">
                 <div id="editCollateralPreviewList" class="collateral-preview-list"></div>
@@ -3712,7 +3714,7 @@
         <div class="modal-body">
           <p>Borrower: <strong id="repayAbonoBorrower">-</strong></p>
           <p>Lender: <strong id="repayAbonoLender">-</strong></p>
-          <p>Outstanding: <strong id="repayAbonoOutstanding">���0.00</strong></p>
+          <p>Outstanding: <strong id="repayAbonoOutstanding">₱0.00</strong></p>
           <div class="form-row">
             <div class="form-group">
               <label>Repay Amount:</label>
@@ -6429,7 +6431,7 @@
                   <h4>${payment.clientName}</h4>
                   <p>₱${payment.amount.toFixed(2)} • ${new Date(payment.date).toLocaleDateString()}</p>
                   ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}${(payment.repaid||0)>0 ? ` • Repaid: ₱${(payment.repaid||0).toFixed(2)} • Outstanding: ₱${Math.max(0, payment.amount - (payment.repaid||0)).toFixed(2)}` : ''}</p>` : ''}
-                  ${payment.paymentType === 'adv' && payment.initialAmount && payment.initialAmount > payment.amount ? `<p>Borrowed via Abono: ₱${(payment.initialAmount - payment.amount).toFixed(2)}${formatAdvBorrowers(payment)} • Remaining: ���${payment.amount.toFixed(2)} of ₱${payment.initialAmount.toFixed(2)}</p>` : ''}
+                  ${payment.paymentType === 'adv' && payment.initialAmount && payment.initialAmount > payment.amount ? `<p>Borrowed via Abono: ₱${(payment.initialAmount - payment.amount).toFixed(2)}${formatAdvBorrowers(payment)} • Remaining: ₱${payment.amount.toFixed(2)} of ₱${payment.initialAmount.toFixed(2)}</p>` : ''}
                   <p><span class="status-badge status-active">${payment.type}</span></p>
                 </div>
                 <div style="display:flex; gap:8px;">
@@ -8335,7 +8337,7 @@
               nbAmt>0 ? `<span class=\"cal-amt cal-notebook\">₱${nbAmt.toFixed(0)}</span>` : '',
               ofAmt>0 ? `<span class=\"cal-amt cal-office\">₱${ofAmt.toFixed(0)}</span>` : '',
               gcAmt>0 ? `<span class=\"cal-amt cal-gcash\">₱${gcAmt.toFixed(0)}</span>` : '',
-              adAmt>0 ? `<span class=\"cal-amt cal-adv\" title=\"Advance\">��${adAmt.toFixed(0)}</span>` : '',
+              adAmt>0 ? `<span class=\"cal-amt cal-adv\" title=\"Advance\">₱${adAmt.toFixed(0)}</span>` : '',
               fullAmt>0 ? `<span class=\"cal-amt cal-full\" title=\"Full Pay\">₱${fullAmt.toFixed(0)}</span>` : ''
             ].filter(Boolean).join('');
 
@@ -8522,7 +8524,7 @@
           sheet.innerHTML = `
             <div class="sheet-header">
               <div class="month-nav">
-                <button type="button" class="month-btn" id="dpPrev" aria-label="Previous month">���</button>
+                <button type="button" class="month-btn" id="dpPrev" aria-label="Previous month">‹</button>
               </div>
               <div class="sheet-title" id="dpTitle">Select date</div>
               <div class="month-nav">
