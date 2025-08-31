@@ -8824,7 +8824,9 @@
           if (i === 1) {
             // Overdue client: start earlier and due date in the past with remaining balance
             const startPast = formatDateLocal(addDaysLocal(today, -20));
-            cStartOverride = startPast; // temporary var to apply after object creation
+            // override start date earlier so client has history before due
+            // eslint-disable-next-line no-unused-vars
+            dueTmp = addDaysLocal(startPast, term);
             dueDate = formatDateLocal(addDaysLocal(today, -5));
             status = 'active';
             if (remainingBalance <= 0) remainingBalance = Math.max(dailyAmount * 3, 500); // ensure not fully paid
