@@ -649,6 +649,19 @@
         transform: translateY(-4px) scale(1.02);
         box-shadow: 0 8px 25px rgba(0, 122, 255, 0.3);
       }
+      /* Emulated hover (for touch/keyboard) */
+      .stat-card.hovered {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(0, 122, 255, 0.3);
+      }
+      .stat-card:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0,122,255,0.35), var(--ios-shadow-elevated);
+      }
+      .stat-card.active {
+        transform: translateY(0) scale(0.98);
+        transition-duration: 0.12s;
+      }
 
       .stat-card:nth-child(even) {
         animation-delay: 0.1s;
@@ -3364,8 +3377,6 @@
                 type="date"
                 id="startDate"
                 onchange="calculateLoanDetails()"
-                onclick="openDatePicker('startDate')"
-                onfocus="openDatePicker('startDate')"
               />
             </div>
           </div>
@@ -3927,6 +3938,8 @@
             }
           });
         }
+        // Enable hover/touch/focus feedback on stat cards
+        enableStatCardHover();
 
         // Recompute default amounts when date changes (Saturday/Monday adjustments)
         const bind = (id, type) => {
@@ -4060,6 +4073,27 @@
           // Ensure Adv list reflects the latest deductions
           updatePaymentHistory("adv");
         }
+      }
+
+      // Hover feedback for stat cards (works on touch + keyboard)
+      function enableStatCardHover(){
+        try {
+          const cards = document.querySelectorAll('#dashboardStats .stat-card, #statsToggleCard.stat-card');
+          cards.forEach((card)=>{
+            card.tabIndex = card.tabIndex || 0;
+            card.addEventListener('mouseenter', ()=>card.classList.add('hovered'));
+            card.addEventListener('mouseleave', ()=>card.classList.remove('hovered'));
+            card.addEventListener('focus', ()=>card.classList.add('hovered'));
+            card.addEventListener('blur', ()=>card.classList.remove('hovered'));
+            card.addEventListener('pointerdown', ()=>card.classList.add('active'));
+            card.addEventListener('pointerup', ()=>card.classList.remove('active'));
+            card.addEventListener('touchstart', ()=>{
+              card.classList.add('hovered');
+              clearTimeout(card.__ht);
+              card.__ht = setTimeout(()=>card.classList.remove('hovered'), 220);
+            }, { passive: true });
+          });
+        } catch (e) {}
       }
 
       // Sidebar functions
@@ -7996,6 +8030,7 @@
         "abonoPaymentDate","absentDate","trackerDate","summaryDate",
         "startDate","fullPaymentDate","planStartDate","holidayDate"
       ];
+      const PREFER_NATIVE_DATE = true;
       let dpTargetId = null;
       let dpYear = null, dpMonth = null, dpSelected = null;
       function pad2(n){ return String(n).padStart(2,"0"); }
@@ -8112,7 +8147,23 @@
           });
         });
       }
+      function revertDateInputs(){
+        const ids = DATE_INPUT_IDS;
+        ids.forEach(id=>{
+          const el = document.getElementById(id);
+          if (!el) return;
+          try { el.type = 'date'; } catch(e) {}
+          el.readOnly = false;
+          el.removeAttribute('inputmode');
+          el.classList.remove('ios-date-input');
+          el.removeAttribute('data-dp-bound');
+        });
+      }
       function attachDatePickers(){
+        if (PREFER_NATIVE_DATE) {
+          revertDateInputs();
+          return;
+        }
         const ids = DATE_INPUT_IDS;
         ids.forEach(id=>{
           const el = document.getElementById(id);
@@ -8121,27 +8172,25 @@
           el.readOnly = true;
           el.classList.add('ios-date-input');
           try { el.type = 'text'; } catch(e) {}
-          const __open = (e)=>{ if(e) e.preventDefault(); openDatePicker(id); };
+          const __open = (e)=>{ if(e){ e.preventDefault(); e.stopPropagation(); } openDatePicker(id); };
           el.addEventListener('click', __open);
           el.addEventListener('focus', __open);
+          el.addEventListener('touchstart', __open, { passive: false });
           el.addEventListener('touchend', __open, { passive: false });
+          el.addEventListener('pointerdown', __open);
           el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); __open(e);} });
           el.dataset.dpBound = '1';
         });
-        // Global delegation as safety net (covers cases where specific binding failed)
         if (!window.__dpDelegated) {
-          document.addEventListener('click', (e)=>{
-            const t = e.target.closest('input#holidayDate, input.ios-date-input');
-            if (t) { e.preventDefault(); openDatePicker(t.id || 'holidayDate'); }
-          }, true);
-          document.addEventListener('focusin', (e)=>{
-            const t = e.target && (e.target.matches('input#holidayDate, input.ios-date-input') ? e.target : null);
-            if (t) { e.preventDefault?.(); openDatePicker(t.id || 'holidayDate'); }
-          });
-          document.addEventListener('touchend', (e)=>{
-            const t = e.target.closest('input#holidayDate, input.ios-date-input');
-            if (t) { e.preventDefault(); openDatePicker(t.id || 'holidayDate'); }
-          }, { passive: false });
+          const delegate = (e)=>{
+            const t = e.target && (e.target.closest ? e.target.closest('input#holidayDate, input.ios-date-input') : null);
+            if (t) { e.preventDefault?.(); e.stopPropagation?.(); openDatePicker(t.id || 'holidayDate'); }
+          };
+          document.addEventListener('click', delegate, true);
+          document.addEventListener('focusin', delegate);
+          document.addEventListener('touchstart', delegate, { passive: false });
+          document.addEventListener('touchend', delegate, { passive: false });
+          document.addEventListener('pointerdown', delegate, true);
           window.__dpDelegated = true;
         }
       }
@@ -8820,11 +8869,12 @@
           step.needsSidebar ? 450 : 0,
         );
         setTimeout(() => {
-          const el = document.querySelector(step.selector);
-          if (!el) {
+          const raw = document.querySelector(step.selector);
+          if (!raw) {
             onTutorialClick();
             return;
           }
+          const el = resolveSpotlightTarget(raw);
           el.scrollIntoView({
             block: "center",
             inline: "center",
@@ -8841,8 +8891,9 @@
       function refreshSpotlightPosition() {
         if (!tutorial.active) return;
         const step = tutorial.steps[tutorial.index];
-        const el = document.querySelector(step.selector);
-        if (!el) return;
+        const raw = document.querySelector(step.selector);
+        if (!raw) return;
+        const el = resolveSpotlightTarget(raw);
         positionSpotlight(el, step.padding || 4);
         placeInstruction(step.text, el);
       }
@@ -8872,17 +8923,12 @@
         box.style.maxWidth = bw + "px";
         const belowY = r.bottom + 12;
         const aboveY = r.top - 12;
-        // Decide placement
-        let top = belowY;
         let left = r.left;
         if (belowY + 80 > window.innerHeight && aboveY - 60 > 0) {
-          // place above
           box.style.top = r.top - box.offsetHeight - 12 + "px";
         } else {
-          box.style.top =
-            Math.min(window.innerHeight - 16 - box.offsetHeight, belowY) + "px";
+          box.style.top = Math.min(window.innerHeight - 16 - box.offsetHeight, belowY) + "px";
         }
-        // Clamp X within viewport
         const desiredLeft = Math.min(
           Math.max(12, left),
           window.innerWidth - 12 - bw,
@@ -8893,6 +8939,43 @@
       function updateStepCounter() {
         const el = document.getElementById("tutorialStepCounter");
         el.textContent = tutorial.index + 1 + " / " + tutorial.steps.length;
+      }
+
+      // Resolve the best visible element to spotlight (handles hidden inputs like checkboxes/date inputs)
+      function resolveSpotlightTarget(el) {
+        try {
+          const isTiny = (node) => {
+            const cs = window.getComputedStyle(node);
+            return (
+              (node.offsetWidth <= 8 && node.offsetHeight <= 8) ||
+              cs.display === "none" ||
+              cs.visibility === "hidden"
+            );
+          };
+
+          // Special case: hidden holiday date input should spotlight the inline calendar
+          if (el.id === "holidayDate") {
+            const cal = document.getElementById("holidayInlineCalendar");
+            if (cal) return cal;
+          }
+
+          if (isTiny(el)) {
+            if (el.id) {
+              const forLabel = document.querySelector(`label[for="${el.id}"]`);
+              if (forLabel) return forLabel;
+            }
+            const closestLabel = el.closest("label");
+            if (closestLabel) return closestLabel;
+            const container = el.closest(
+              ".release-day, .ios-select-button, button, .form-group, .client-calendar, .calendar-grid, .calendar-header, .tab, .stat-card, .client-list, .header"
+            );
+            if (container) return container;
+            if (el.parentElement) return resolveSpotlightTarget(el.parentElement);
+          }
+          return el;
+        } catch (e) {
+          return el;
+        }
       }
 
       // Escape to exit
