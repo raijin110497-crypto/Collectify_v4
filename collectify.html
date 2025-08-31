@@ -3215,7 +3215,19 @@
               <div class="form-row">
                 <div class="form-group">
                   <label>Add Holiday Date:</label>
-                  <input type="text" id="holidayDate" class="ios-date-input" inputmode="none" readonly onclick="openDatePicker('holidayDate')" />
+                  <input type="text" id="holidayDate" readonly placeholder="Select a date below" />
+                  <div id="holidayInlineCalendar" class="client-calendar" style="margin-top:10px;">
+                    <div class="calendar-header">
+                      <button type="button" class="cal-nav" id="hcalPrev" aria-label="Previous month">‹</button>
+                      <div class="calendar-title" id="hcalTitle">Month YYYY</div>
+                      <button type="button" class="cal-nav" id="hcalNext" aria-label="Next month">›</button>
+                    </div>
+                    <div class="calendar-grid" id="hcalGrid"></div>
+                    <div class="calendar-legend" style="margin-top:10px;">
+                      <div class="legend-item"><span class="legend-dot cal-full"></span>Today</div>
+                      <div class="legend-item"><span class="legend-dot cal-absent"></span>Sunday/Holiday</div>
+                    </div>
+                  </div>
                 </div>
                 <div class="form-group" style="display:flex; align-items:flex-end;">
                   <button class="btn btn-secondary" onclick="addHoliday()">Add Holiday</button>
@@ -8111,6 +8123,49 @@
       // Observe DOM changes to rebind if elements are added later
       const __dpObserver = new MutationObserver(()=>attachDatePickers());
       __dpObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+      // Inline Holiday Calendar
+      let hcalYear = null, hcalMonth = null;
+      function initHolidayInlineCalendar(){
+        const now = new Date();
+        hcalYear = now.getFullYear();
+        hcalMonth = now.getMonth();
+        const prev = document.getElementById('hcalPrev');
+        const next = document.getElementById('hcalNext');
+        if (prev && next){
+          prev.onclick = ()=>{ hcalMonth--; if(hcalMonth<0){hcalMonth=11; hcalYear--; } renderHolidayInlineCalendar(); };
+          next.onclick = ()=>{ hcalMonth++; if(hcalMonth>11){hcalMonth=0; hcalYear++; } renderHolidayInlineCalendar(); };
+        }
+        renderHolidayInlineCalendar();
+      }
+      function renderHolidayInlineCalendar(){
+        const title = document.getElementById('hcalTitle');
+        const grid = document.getElementById('hcalGrid');
+        if (!title || !grid) return;
+        title.textContent = new Date(hcalYear, hcalMonth, 1).toLocaleString(undefined,{month:'long', year:'numeric'});
+        const dayNames = ['S','M','T','W','T','F','S'];
+        let html = dayNames.map(n=>`<div class="calendar-dayname">${n}</div>`).join('');
+        const firstDay = new Date(hcalYear, hcalMonth, 1).getDay();
+        const daysInMonth = new Date(hcalYear, hcalMonth+1, 0).getDate();
+        for(let i=0;i<firstDay;i++){ html += '<div></div>'; }
+        const todayKey = (new Date()).toISOString().split('T')[0];
+        for(let d=1; d<=daysInMonth; d++){
+          const current = new Date(hcalYear, hcalMonth, d);
+          const key = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}-${String(current.getDate()).padStart(2,'0')}`;
+          const isToday = key === todayKey;
+          const nonCol = (typeof isNonCollectionDay === 'function') ? isNonCollectionDay(key) : (current.getDay()===0);
+          html += `<button type="button" class="calendar-cell${isToday?' today':''}${nonCol?' absent':''}" data-date="${key}"><span class="day-num">${d}</span></button>`;
+        }
+        grid.innerHTML = html;
+        Array.from(grid.querySelectorAll('.calendar-cell')).forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const ds = btn.getAttribute('data-date');
+            const input = document.getElementById('holidayDate');
+            if (input) input.value = ds;
+          });
+        });
+      }
+      document.addEventListener('DOMContentLoaded', initHolidayInlineCalendar);
 
       // Tutorial mode implementation (no dialogs, text + spotlight)
       let tutorial = {
