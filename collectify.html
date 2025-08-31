@@ -3350,7 +3350,18 @@
             </div>
             <div class="form-group">
               <label>Collateral Photos (up to 3):</label>
-              <input type="file" id="collateralPhotos" accept="image/*" multiple onchange="previewCollateralImages()" />
+              <input
+                type="file"
+                id="collateralPhotos"
+                accept="image/*"
+                multiple
+                capture="environment"
+                onchange="previewCollateralImages()"
+                style="width: 100%; padding: 12px; border: 1px solid var(--ios-opaque-separator); border-radius: var(--ios-border-radius);"
+              />
+              <small style="color: var(--ios-secondary-label); font-size: 12px; margin-top: 4px; display: block;">
+                📷 Tap to select up to 3 photos from gallery or take new photos
+              </small>
               <div id="collateralPreview" style="margin-top: 10px; display: none;">
                 <div id="collateralPreviewList" class="collateral-preview-list"></div>
                 <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeCollateralImages()">Remove Photos</button>
