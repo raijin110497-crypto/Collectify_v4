@@ -6752,11 +6752,13 @@
             const directPaid = clientPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
             const totalPaidForClient = directPaid + advTodayAmt;
 
-            // Expected reflects overpayment: max(expected, paid today)
+            // Expected collection should NOT include advances created today for future dates.
+            // It should include actual same-day payments (including any ADV applied for today) and overpayments.
             const expectedForDate = isClientAbsentOnDate(client.id, selectedDate)
               ? 0
               : expectedAmountForDate(client, selectedDate);
-            totalExpected += Math.max(expectedForDate, totalPaidForClient);
+            const paidForExpected = directPaid; // exclude future-dated ADV created today
+            totalExpected += Math.max(expectedForDate, paidForExpected);
 
             if (totalPaidForClient > 0) {
               // Merge payments with ADV created today as synthetic entries for display badges
