@@ -4558,6 +4558,68 @@
         }
       }
 
+      // Debug function for testing Android file upload
+      function testFileUpload() {
+        console.log('=== Android File Upload Debug Test ===');
+
+        try {
+          // Test File API support
+          console.log('File API Support:');
+          console.log('- window.File:', !!window.File);
+          console.log('- window.FileReader:', !!window.FileReader);
+          console.log('- window.FileList:', !!window.FileList);
+
+          // Test file input
+          const input = document.getElementById('collateralPhotos');
+          console.log('- File input element:', !!input);
+          console.log('- Input.files property:', !!input?.files);
+          console.log('- Files selected:', input?.files?.length || 0);
+
+          if (input && input.files && input.files.length > 0) {
+            console.log('Selected files:');
+            for (let i = 0; i < input.files.length; i++) {
+              const file = input.files[i];
+              console.log(`  File ${i + 1}:`, {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                lastModified: file.lastModified
+              });
+            }
+
+            // Test FileReader on first file
+            if (window.FileReader) {
+              console.log('Testing FileReader on first file...');
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                console.log('✅ FileReader success! Result length:', e.target.result.length);
+                showNotification('✅ File upload test passed!', 'success');
+              };
+              reader.onerror = function(e) {
+                console.error('❌ FileReader failed:', e);
+                showNotification('❌ FileReader test failed', 'error');
+              };
+              reader.readAsDataURL(input.files[0]);
+            }
+          } else {
+            console.log('⚠️ No files selected. Please select files first.');
+            showNotification('Please select files first, then run the test', 'error');
+          }
+
+          // Test browser info
+          console.log('Browser info:');
+          console.log('- User Agent:', navigator.userAgent);
+          console.log('- Platform:', navigator.platform);
+          console.log('- App Version:', navigator.appVersion);
+
+        } catch (error) {
+          console.error('❌ Debug test failed:', error);
+          showNotification('Debug test failed: ' + error.message, 'error');
+        }
+
+        console.log('=== End Debug Test ===');
+      }
+
       // Check for 3 consecutive missed payments and send notifications
       function checkMissedPayments() {
         const today = new Date();
@@ -6307,7 +6369,7 @@
               <div style="display:flex; justify-content: space-between; align-items:center;">
                 <div>
                   <h4>${it.clientName}</h4>
-                  <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
+                  <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ���${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
                   <p>Over by ₱${it.overBy.toFixed(2)}</p>
                 </div>
               </div>
