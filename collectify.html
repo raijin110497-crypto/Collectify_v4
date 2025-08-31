@@ -5212,9 +5212,12 @@
           currentPhotoDiv.innerHTML = '<small style="color: var(--ios-secondary-label);">No photo uploaded</small>';
         }
 
-        // Clear edit preview
+        // Clear edit preview (Android compatible)
         const ecp = document.getElementById("editCollateralPhotos");
-        if (ecp) ecp.value = "";
+        if (ecp) {
+          ecp.value = "";
+          ecp.dataset.selectedFiles = "";
+        }
         document.getElementById("editCollateralPreview").style.display = "none";
         const ecpList = document.getElementById("editCollateralPreviewList");
         if (ecpList) ecpList.innerHTML = "";
