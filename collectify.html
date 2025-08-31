@@ -4246,15 +4246,23 @@
         }
       }
 
-      // Collateral image preview functions (multi-photo) - Android compatible
+      // Collateral image preview functions (multi-photo) - Enhanced Android compatible
       function previewCollateralImages() {
+        console.log('previewCollateralImages called');
         const input = document.getElementById('collateralPhotos');
         const preview = document.getElementById('collateralPreview');
         const list = document.getElementById('collateralPreviewList');
-        if (!input || !preview || !list) return;
 
-        // Validate files first
+        if (!input || !preview || !list) {
+          console.log('Missing required elements:', { input: !!input, preview: !!preview, list: !!list });
+          return;
+        }
+
+        console.log('Input files:', input.files, 'Length:', input.files ? input.files.length : 'null');
+
+        // Validate files first (more permissive for Android)
         if (!validateFileInput(input)) {
+          console.log('File validation failed');
           input.value = ''; // Clear invalid selection
           preview.style.display = 'none';
           return;
@@ -4262,54 +4270,107 @@
 
         // Get files from input, limited to 3
         const files = input.files ? Array.from(input.files).slice(0, 3) : [];
+        console.log('Files to process:', files.length);
 
         // Store files reference for later use (Android compatible)
-        input.dataset.selectedFiles = JSON.stringify(files.map((f, i) => ({
-          name: f.name,
-          size: f.size,
-          type: f.type,
-          index: i
-        })));
+        try {
+          input.dataset.selectedFiles = JSON.stringify(files.map((f, i) => ({
+            name: f.name,
+            size: f.size,
+            type: f.type,
+            index: i
+          })));
+        } catch (e) {
+          console.log('Could not store file metadata:', e);
+        }
 
         list.innerHTML = '';
         if (files.length > 0) {
           // Show file count info
           const fileInfo = document.createElement('div');
           fileInfo.style.cssText = 'font-size: 12px; color: var(--ios-secondary-label); margin-bottom: 8px;';
-          fileInfo.textContent = `${files.length} of 3 photos selected`;
+          fileInfo.textContent = `${files.length} of 3 photos selected ✓`;
           list.appendChild(fileInfo);
 
+          let loadedCount = 0;
+          const totalFiles = files.length;
+
           files.forEach((file, index) => {
+            console.log(`Processing file ${index + 1}/${totalFiles}: ${file.name}`);
+
             // Create file reader for preview
-            const reader = new FileReader();
-            reader.onload = function(e) {
-              try {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.style.cssText = `
-                  max-width: 120px;
-                  max-height: 120px;
-                  border-radius: var(--ios-border-radius);
-                  border: 1px solid var(--ios-opaque-separator);
-                  cursor: pointer;
-                  margin: 4px;
-                  object-fit: cover;
-                `;
-                img.onclick = () => enlargeCollateralImage(img.src);
-                img.title = `Photo ${index + 1}: ${file.name}`;
-                list.appendChild(img);
-              } catch (error) {
-                console.error('Error creating image preview:', error);
-                showNotification('Error loading image preview', 'error');
-              }
-            };
-            reader.onerror = function() {
-              console.error('Error reading file:', file.name);
-              showNotification(`Error reading file: ${file.name}`, 'error');
-            };
-            reader.readAsDataURL(file);
+            try {
+              const reader = new FileReader();
+
+              reader.onload = function(e) {
+                try {
+                  console.log(`File ${index + 1} loaded successfully`);
+                  const img = document.createElement('img');
+                  img.src = e.target.result;
+                  img.style.cssText = `
+                    max-width: 120px;
+                    max-height: 120px;
+                    border-radius: var(--ios-border-radius);
+                    border: 1px solid var(--ios-opaque-separator);
+                    cursor: pointer;
+                    margin: 4px;
+                    object-fit: cover;
+                  `;
+                  img.onclick = () => enlargeCollateralImage(img.src);
+                  img.title = `Photo ${index + 1}: ${file.name}`;
+
+                  // Add loading indicator initially
+                  img.onload = () => {
+                    loadedCount++;
+                    console.log(`Image ${index + 1} rendered (${loadedCount}/${totalFiles})`);
+                    if (loadedCount === totalFiles) {
+                      console.log('All images loaded successfully');
+                    }
+                  };
+
+                  img.onerror = () => {
+                    console.error(`Failed to render image ${index + 1}`);
+                    img.style.border = '2px solid var(--ios-red)';
+                    img.title = `Failed to load: ${file.name}`;
+                  };
+
+                  list.appendChild(img);
+                } catch (error) {
+                  console.error('Error creating image preview:', error);
+                  // Create a text indicator instead
+                  const textDiv = document.createElement('div');
+                  textDiv.textContent = `📷 ${file.name}`;
+                  textDiv.style.cssText = 'padding: 8px; border: 1px solid var(--ios-opaque-separator); margin: 4px; border-radius: var(--ios-border-radius);';
+                  list.appendChild(textDiv);
+                }
+              };
+
+              reader.onerror = function(e) {
+                console.error('Error reading file:', file.name, e);
+                // Create a text indicator for failed files
+                const textDiv = document.createElement('div');
+                textDiv.textContent = `❌ ${file.name} (read error)`;
+                textDiv.style.cssText = 'padding: 8px; border: 1px solid var(--ios-red); margin: 4px; border-radius: var(--ios-border-radius); color: var(--ios-red);';
+                list.appendChild(textDiv);
+              };
+
+              reader.onloadstart = function() {
+                console.log(`Started reading file ${index + 1}: ${file.name}`);
+              };
+
+              reader.readAsDataURL(file);
+            } catch (error) {
+              console.error('Error setting up FileReader:', error);
+              // Fallback: just show file name
+              const textDiv = document.createElement('div');
+              textDiv.textContent = `📷 ${file.name}`;
+              textDiv.style.cssText = 'padding: 8px; border: 1px solid var(--ios-opaque-separator); margin: 4px; border-radius: var(--ios-border-radius);';
+              list.appendChild(textDiv);
+            }
           });
+
           preview.style.display = 'block';
+          showNotification(`${files.length} photo(s) selected successfully`, 'success');
         } else {
           preview.style.display = 'none';
         }
