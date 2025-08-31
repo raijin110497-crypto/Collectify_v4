@@ -7829,7 +7829,7 @@
               .reduce((s,p)=>s + (Number(p.amount)||0), 0);
             const amountsHtml = [
               nbAmt>0 ? `<span class=\"cal-amt cal-notebook\">₱${nbAmt.toFixed(0)}</span>` : '',
-              ofAmt>0 ? `<span class=\"cal-amt cal-office\">��${ofAmt.toFixed(0)}</span>` : '',
+              ofAmt>0 ? `<span class=\"cal-amt cal-office\">₱${ofAmt.toFixed(0)}</span>` : '',
               gcAmt>0 ? `<span class=\"cal-amt cal-gcash\">₱${gcAmt.toFixed(0)}</span>` : '',
               adAmt>0 ? `<span class=\"cal-amt cal-adv\" title=\"Advance\">₱${adAmt.toFixed(0)}</span>` : '',
               fullAmt>0 ? `<span class=\"cal-amt cal-full\" title=\"Full Pay\">₱${fullAmt.toFixed(0)}</span>` : ''
@@ -7994,6 +7994,7 @@
         "abonoPaymentDate","absentDate","trackerDate","summaryDate",
         "startDate","fullPaymentDate","planStartDate","holidayDate"
       ];
+      const PREFER_NATIVE_DATE = true;
       let dpTargetId = null;
       let dpYear = null, dpMonth = null, dpSelected = null;
       function pad2(n){ return String(n).padStart(2,"0"); }
@@ -8110,7 +8111,23 @@
           });
         });
       }
+      function revertDateInputs(){
+        const ids = DATE_INPUT_IDS;
+        ids.forEach(id=>{
+          const el = document.getElementById(id);
+          if (!el) return;
+          try { el.type = 'date'; } catch(e) {}
+          el.readOnly = false;
+          el.removeAttribute('inputmode');
+          el.classList.remove('ios-date-input');
+          el.removeAttribute('data-dp-bound');
+        });
+      }
       function attachDatePickers(){
+        if (PREFER_NATIVE_DATE) {
+          revertDateInputs();
+          return;
+        }
         const ids = DATE_INPUT_IDS;
         ids.forEach(id=>{
           const el = document.getElementById(id);
@@ -8128,7 +8145,6 @@
           el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); __open(e);} });
           el.dataset.dpBound = '1';
         });
-        // Global delegation as safety net (covers cases where specific binding failed)
         if (!window.__dpDelegated) {
           const delegate = (e)=>{
             const t = e.target && (e.target.closest ? e.target.closest('input#holidayDate, input.ios-date-input') : null);
