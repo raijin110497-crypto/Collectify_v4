@@ -4383,48 +4383,67 @@
         }
       }
 
-      // Android file input validation helper
+      // Android file input validation helper - simplified for better compatibility
       function validateFileInput(input) {
         try {
-          // Check if File API is supported
-          if (!window.File || !window.FileReader || !window.FileList) {
-            showNotification('File upload not supported on this device', 'error');
+          console.log('Validating file input for Android...', input);
+
+          // Basic check if input exists
+          if (!input) {
+            console.log('No input element found');
             return false;
           }
 
-          // Check if input has files
-          if (!input.files || input.files.length === 0) {
+          // Check if input has files property (should exist in Android WebView)
+          if (!input.files) {
+            console.log('input.files is null or undefined');
+            showNotification('File selection not supported on this device', 'error');
+            return false;
+          }
+
+          // Check if files were selected
+          if (input.files.length === 0) {
+            console.log('No files selected');
             return true; // No files selected is valid
           }
 
-          // Validate file count
+          console.log(`${input.files.length} files selected`);
+
+          // Validate file count (more lenient)
           if (input.files.length > 3) {
-            showNotification('Maximum 3 photos allowed', 'error');
+            showNotification('Please select maximum 3 photos', 'error');
             return false;
           }
 
-          // Validate each file
+          // Validate each file with more lenient checks
           for (let i = 0; i < input.files.length; i++) {
             const file = input.files[i];
+            console.log(`Validating file ${i + 1}:`, file.name, file.type, file.size);
 
-            // Check file type
-            if (!file.type.startsWith('image/')) {
-              showNotification(`File "${file.name}" is not an image`, 'error');
-              return false;
+            // Skip type check if file.type is empty (some Android versions don't set this)
+            if (file.type && !file.type.startsWith('image/')) {
+              // Also check file extension as fallback
+              const ext = file.name.toLowerCase().split('.').pop();
+              if (!['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) {
+                showNotification(`"${file.name}" doesn't appear to be an image`, 'error');
+                return false;
+              }
             }
 
-            // Check file size (10MB limit)
-            if (file.size > 10 * 1024 * 1024) {
-              showNotification(`File "${file.name}" is too large (max 10MB)`, 'error');
+            // More generous file size limit (20MB for Android)
+            if (file.size > 20 * 1024 * 1024) {
+              showNotification(`"${file.name}" is too large (max 20MB)`, 'error');
               return false;
             }
           }
 
+          console.log('File validation passed');
           return true;
         } catch (error) {
           console.error('File validation error:', error);
-          showNotification('Error validating files', 'error');
-          return false;
+          // Don't show error notification for validation issues, just log
+          console.log('Validation failed, but continuing anyway for Android compatibility');
+          return true; // Be permissive on Android
         }
       }
 
