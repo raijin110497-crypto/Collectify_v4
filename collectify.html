@@ -4336,6 +4336,52 @@
         });
       }
 
+      // Android-compatible image enlargement function
+      function enlargeCollateralImage(imageSrc) {
+        try {
+          // Create modal overlay
+          const overlay = document.createElement('div');
+          overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+          `;
+
+          // Create enlarged image
+          const img = document.createElement('img');
+          img.src = imageSrc;
+          img.style.cssText = `
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: var(--ios-border-radius-large);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            object-fit: contain;
+          `;
+
+          // Close on click
+          overlay.onclick = () => {
+            document.body.removeChild(overlay);
+          };
+
+          overlay.appendChild(img);
+          document.body.appendChild(overlay);
+
+        } catch (error) {
+          console.error('Error enlarging image:', error);
+          showNotification('Unable to enlarge image', 'error');
+        }
+      }
+
       // Check for 3 consecutive missed payments and send notifications
       function checkMissedPayments() {
         const today = new Date();
