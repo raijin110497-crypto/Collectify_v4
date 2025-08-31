@@ -3370,7 +3370,7 @@
                 📷 Choose up to 3 photos from gallery or camera
               </small>
               <button type="button" onclick="testFileUpload()" style="margin-top: 8px; padding: 6px 12px; font-size: 12px; background: var(--ios-orange); color: white; border: none; border-radius: var(--ios-border-radius);">
-                ���� Test File Upload (Debug for Android)
+                🔧 Test File Upload (Debug for Android)
               </button>
               <div id="collateralPreview" style="margin-top: 10px; display: none;">
                 <div id="collateralPreviewList" class="collateral-preview-list"></div>
@@ -5367,8 +5367,9 @@
           return;
         }
 
-        // Prevent duplicate across non-Adv tabs for the same date
-        const dup = findDuplicatePayment(clientId, today, [
+        // Prevent duplicate across non-Adv tabs for the same date (except when overdue)
+        const isOver = isClientOverdue(client);
+        const dup = isOver ? null : findDuplicatePayment(clientId, today, [
           "notebook",
           "office",
           "gcash",
