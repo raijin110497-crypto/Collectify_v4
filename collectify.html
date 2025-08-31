@@ -3587,12 +3587,9 @@
           <div id="viewClientContent"></div>
         </div>
         <div class="modal-footer">
-          <button
-            class="btn btn-secondary"
-            onclick="closeModal('viewClientModal')"
-          >
-            Close
-          </button>
+          <button class="btn btn-primary" onclick="contactClient(calendarViewState.clientId || 0)">Contact Client</button>
+          <button class="btn btn-secondary" onclick="contactCoMaker(calendarViewState.clientId || 0)">Contact Co-maker</button>
+          <button class="btn btn-secondary" onclick="closeModal('viewClientModal')">Close</button>
         </div>
       </div>
     </div>
