@@ -6472,9 +6472,14 @@
         if (!paymentList) return;
 
         // Ensure only payments belonging to this tab are rendered
-        const typePayments = (payments[type] || []).filter(
+        let typePayments = (payments[type] || []).filter(
           (p) => (p.paymentType || type) === type,
         );
+        // For collection tabs, show only today's records
+        if (type === 'notebook' || type === 'office' || type === 'gcash') {
+          const tdy = todayLocalDateStr();
+          typePayments = typePayments.filter(p => p.date === tdy);
+        }
 
         if (typePayments.length === 0) {
           paymentList.innerHTML =
@@ -7028,11 +7033,9 @@
         document.getElementById("paidToday").textContent = paidClients.length;
         document.getElementById("notPaidToday").textContent =
           notPaidClients.length;
-        document.getElementById("totalExpectedToday").textContent =
-          `₱${totalExpected.toFixed(2)}`;
-        document.getElementById("actualCollectedToday").textContent =
-          `₱${actualCollected.toFixed(2)}`;
-        const op = document.getElementById("overduePaidToday"); if (op) op.textContent = `��${overduePaidTotal.toFixed(2)}`;
+        const expEl = document.getElementById("totalExpectedToday"); if (expEl) expEl.innerHTML = "&#8369;" + totalExpected.toFixed(2);
+        const actEl = document.getElementById("actualCollectedToday"); if (actEl) actEl.innerHTML = "&#8369;" + actualCollected.toFixed(2);
+        const op = document.getElementById("overduePaidToday"); if (op) op.innerHTML = "&#8369;" + overduePaidTotal.toFixed(2);
 
         // Update lists
         updateTrackerList("paidClientsList", paidClients, true);
