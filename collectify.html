@@ -8866,6 +8866,10 @@
         // Build demo payments
         const p = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
         arr.forEach((client, idx) => {
+          // Keep first demo client as overdue with no recent payments
+          if (idx === 0) {
+            return; // do not seed payments for Demo Client 1
+          }
           // Seed payments on recent working days so they show in the calendar
           const recentDays = [];
           let step = 1;
@@ -8895,9 +8899,9 @@
               p.office.push({ id: Date.now() + 1000 + idx, clientId: client.id, clientName: client.name, amount: amt2, date: recentDays[1], type: 'daily', paymentType: 'office' });
             }
           }
-          // Ensure one client is fully paid today for testing full-pay badge
+          // Ensure one client is fully paid today for testing full-pay badge (not the overdue one)
           const dateToday = today;
-          if (idx % 7 === 0) {
+          if (idx % 7 === 0 && idx !== 0) {
             const rb = client.remainingBalance;
             if (rb > 0) {
               p.notebook.push({ id: Date.now() + 500 + idx, clientId: client.id, clientName: client.name, amount: rb, date: dateToday, type: 'full', paymentType: 'notebook' });
