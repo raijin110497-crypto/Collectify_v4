@@ -5103,7 +5103,7 @@
                   : "var(--ios-blue)";
 
             return `
-            <div class="client-item">
+            <div class="client-item" data-client-id="${client.id}">
               <div class="client-header">
                 <div class="client-info">
                   <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
@@ -8447,7 +8447,7 @@
           sheet.innerHTML = `
             <div class="sheet-header">
               <div class="month-nav">
-                <button type="button" class="month-btn" id="dpPrev" aria-label="Previous month">‹</button>
+                <button type="button" class="month-btn" id="dpPrev" aria-label="Previous month">���</button>
               </div>
               <div class="sheet-title" id="dpTitle">Select date</div>
               <div class="month-nav">
