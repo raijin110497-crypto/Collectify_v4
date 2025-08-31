@@ -2101,6 +2101,8 @@
       .calendar-cell.disabled { opacity: 0.45; filter: grayscale(0.2); }
       .calendar-cell.today { box-shadow: 0 0 0 2px rgba(0,122,255,0.25) inset; }
       .calendar-cell.absent { background: rgba(255,59,48,0.08); }
+      /* Selected day highlight (inline and sheet) */
+      .calendar-cell.selected { box-shadow: 0 0 0 2px rgba(0,122,255,0.45) inset; background: rgba(0,122,255,0.08); }
       .day-num { font-size: 12px; color: var(--ios-secondary-label); font-weight: 600; }
       .cal-dots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
       .cal-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
@@ -3215,7 +3217,19 @@
               <div class="form-row">
                 <div class="form-group">
                   <label>Add Holiday Date:</label>
-                  <input type="date" id="holidayDate" />
+                  <input type="hidden" id="holidayDate" />
+                  <div id="holidayInlineCalendar" class="client-calendar" style="margin-top:10px;">
+                    <div class="calendar-header">
+                      <button type="button" class="cal-nav" id="hcalPrev" aria-label="Previous month">‹</button>
+                      <div class="calendar-title" id="hcalTitle">Month YYYY</div>
+                      <button type="button" class="cal-nav" id="hcalNext" aria-label="Next month">›</button>
+                    </div>
+                    <div class="calendar-grid" id="hcalGrid"></div>
+                    <div class="calendar-legend" style="margin-top:10px;">
+                      <div class="legend-item"><span class="legend-dot cal-full"></span>Today</div>
+                      <div class="legend-item"><span class="legend-dot cal-absent"></span>Sunday/Holiday</div>
+                    </div>
+                  </div>
                 </div>
                 <div class="form-group" style="display:flex; align-items:flex-end;">
                   <button class="btn btn-secondary" onclick="addHoliday()">Add Holiday</button>
@@ -6488,7 +6502,7 @@
                 ${
                   isPaid
                     ? `Paid: ₱${client.paidAmount.toFixed(2)}`
-                    : `Expected: ��${expectedForDate.toFixed(2)}`
+                    : `Expected: ₱${expectedForDate.toFixed(2)}`
                 }
               </p>
               ${statusLine}
@@ -7937,6 +7951,11 @@
       <div class="sheet-list" style="padding:12px">
         <div class="client-calendar" style="border:none; box-shadow:none; padding:0; background:transparent;">
           <div class="calendar-grid" id="dpGrid"></div>
+          <div class="calendar-legend" id="dpLegend" style="margin-top:10px;">
+            <div class="legend-item"><span class="legend-dot" style="background: var(--ios-blue);"></span>Selected</div>
+            <div class="legend-item"><span class="legend-dot cal-full"></span>Today</div>
+            <div class="legend-item"><span class="legend-dot cal-absent"></span>Sunday/Holiday</div>
+          </div>
         </div>
       </div>
       <div class="actions">
@@ -7958,8 +7977,53 @@
       function pad2(n){ return String(n).padStart(2,"0"); }
       function toISODate(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
       function parseISODate(str){ const [y,m,day]=String(str||"").split("-").map(Number); if(!y||!m||!day) return null; return new Date(y, m-1, day); }
+      function ensureDatePickerDOM(){
+        let overlay = document.getElementById('datePickerOverlay');
+        let sheet = document.getElementById('datePickerSheet');
+        if (!overlay || !sheet) {
+          // Build overlay
+          overlay = document.createElement('div');
+          overlay.id = 'datePickerOverlay';
+          overlay.className = 'ios-sheet-overlay';
+          overlay.style.display = 'none';
+          document.body.appendChild(overlay);
+          // Build sheet
+          sheet = document.createElement('div');
+          sheet.id = 'datePickerSheet';
+          sheet.className = 'ios-sheet';
+          sheet.style.bottom = '-60vh';
+          sheet.innerHTML = `
+            <div class="sheet-header">
+              <div class="month-nav">
+                <button type="button" class="month-btn" id="dpPrev" aria-label="Previous month">‹</button>
+              </div>
+              <div class="sheet-title" id="dpTitle">Select date</div>
+              <div class="month-nav">
+                <button type="button" class="month-btn" id="dpNext" aria-label="Next month">›</button>
+              </div>
+            </div>
+            <div class="sheet-list" style="padding:12px">
+              <div class="client-calendar" style="border:none; box-shadow:none; padding:0; background:transparent;">
+                <div class="calendar-grid" id="dpGrid"></div>
+                <div class="calendar-legend" id="dpLegend" style="margin-top:10px;">
+                  <div class="legend-item"><span class="legend-dot" style="background: var(--ios-blue);"></span>Selected</div>
+                  <div class="legend-item"><span class="legend-dot cal-full"></span>Today</div>
+                  <div class="legend-item"><span class="legend-dot cal-absent"></span>Sunday/Holiday</div>
+                </div>
+              </div>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn btn-secondary" id="dpClear">Clear</button>
+              <button type="button" class="btn btn-secondary" id="dpCancel">Cancel</button>
+              <button type="button" class="btn btn-primary" id="dpSet">Set</button>
+            </div>`;
+          document.body.appendChild(sheet);
+        }
+      }
       function openDatePicker(targetId){
+        ensureDatePickerDOM();
         dpTargetId = targetId;
+        try { if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur(); } catch(e) {}
         const input = document.getElementById(targetId);
         const now = new Date();
         const base = input && input.value ? (parseISODate(input.value) || now) : now;
@@ -8011,7 +8075,8 @@
           const key = toISODate(current);
           const isToday = key === todayKey;
           const isSel = dpSelected && key === toISODate(dpSelected);
-          html += `<button type=\"button\" class=\"calendar-cell${isToday?' today':''}${isSel?' selected':''}\" data-day=\"${d}\">\n                    <span class=\"day-num\">${d}</span>\n                  </button>`;
+          const nonCol = (typeof isNonCollectionDay === 'function') ? isNonCollectionDay(key) : (current.getDay() === 0);
+          html += `<button type=\"button\" class=\"calendar-cell${isToday?' today':''}${isSel?' selected':''}${nonCol?' absent':''}\" data-day=\"${d}\">\n                    <span class=\"day-num\">${d}</span>\n                  </button>`;
         }
         grid.innerHTML = html;
         Array.from(grid.querySelectorAll('.calendar-cell')).forEach(btn=>{
@@ -8032,20 +8097,27 @@
           el.readOnly = true;
           el.classList.add('ios-date-input');
           try { el.type = 'text'; } catch(e) {}
-          el.addEventListener('click', ()=>openDatePicker(id));
-          el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openDatePicker(id);} });
+          const __open = (e)=>{ if(e) e.preventDefault(); openDatePicker(id); };
+          el.addEventListener('click', __open);
+          el.addEventListener('focus', __open);
+          el.addEventListener('touchend', __open, { passive: false });
+          el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); __open(e);} });
           el.dataset.dpBound = '1';
         });
         // Global delegation as safety net (covers cases where specific binding failed)
         if (!window.__dpDelegated) {
           document.addEventListener('click', (e)=>{
             const t = e.target.closest('input#holidayDate, input.ios-date-input');
-            if (t) {
-              const tid = t.id || 'holidayDate';
-              e.preventDefault();
-              openDatePicker(tid);
-            }
+            if (t) { e.preventDefault(); openDatePicker(t.id || 'holidayDate'); }
+          }, true);
+          document.addEventListener('focusin', (e)=>{
+            const t = e.target && (e.target.matches('input#holidayDate, input.ios-date-input') ? e.target : null);
+            if (t) { e.preventDefault?.(); openDatePicker(t.id || 'holidayDate'); }
           });
+          document.addEventListener('touchend', (e)=>{
+            const t = e.target.closest('input#holidayDate, input.ios-date-input');
+            if (t) { e.preventDefault(); openDatePicker(t.id || 'holidayDate'); }
+          }, { passive: false });
           window.__dpDelegated = true;
         }
       }
@@ -8053,6 +8125,52 @@
       // Observe DOM changes to rebind if elements are added later
       const __dpObserver = new MutationObserver(()=>attachDatePickers());
       __dpObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+      // Inline Holiday Calendar
+      let hcalYear = null, hcalMonth = null;
+      function initHolidayInlineCalendar(){
+        const now = new Date();
+        hcalYear = now.getFullYear();
+        hcalMonth = now.getMonth();
+        const prev = document.getElementById('hcalPrev');
+        const next = document.getElementById('hcalNext');
+        if (prev && next){
+          prev.onclick = ()=>{ hcalMonth--; if(hcalMonth<0){hcalMonth=11; hcalYear--; } renderHolidayInlineCalendar(); };
+          next.onclick = ()=>{ hcalMonth++; if(hcalMonth>11){hcalMonth=0; hcalYear++; } renderHolidayInlineCalendar(); };
+        }
+        renderHolidayInlineCalendar();
+      }
+      function renderHolidayInlineCalendar(){
+        const title = document.getElementById('hcalTitle');
+        const grid = document.getElementById('hcalGrid');
+        if (!title || !grid) return;
+        title.textContent = new Date(hcalYear, hcalMonth, 1).toLocaleString(undefined,{month:'long', year:'numeric'});
+        const dayNames = ['S','M','T','W','T','F','S'];
+        let html = dayNames.map(n=>`<div class="calendar-dayname">${n}</div>`).join('');
+        const firstDay = new Date(hcalYear, hcalMonth, 1).getDay();
+        const daysInMonth = new Date(hcalYear, hcalMonth+1, 0).getDate();
+        for(let i=0;i<firstDay;i++){ html += '<div></div>'; }
+        const todayKey = (new Date()).toISOString().split('T')[0];
+        const selected = (document.getElementById('holidayDate')?.value) || '';
+        for(let d=1; d<=daysInMonth; d++){
+          const current = new Date(hcalYear, hcalMonth, d);
+          const key = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}-${String(current.getDate()).padStart(2,'0')}`;
+          const isToday = key === todayKey;
+          const nonCol = (typeof isNonCollectionDay === 'function') ? isNonCollectionDay(key) : (current.getDay()===0);
+          const isSel = selected === key;
+          html += `<button type="button" class="calendar-cell${isToday?' today':''}${nonCol?' absent':''}${isSel?' selected':''}" data-date="${key}"><span class="day-num">${d}</span></button>`;
+        }
+        grid.innerHTML = html;
+        Array.from(grid.querySelectorAll('.calendar-cell')).forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const ds = btn.getAttribute('data-date');
+            const input = document.getElementById('holidayDate');
+            if (input) input.value = ds;
+            renderHolidayInlineCalendar();
+          });
+        });
+      }
+      document.addEventListener('DOMContentLoaded', initHolidayInlineCalendar);
 
       // Tutorial mode implementation (no dialogs, text + spotlight)
       let tutorial = {
