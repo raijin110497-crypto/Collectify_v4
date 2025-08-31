@@ -5192,7 +5192,7 @@
                       <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
                       <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
                     </svg>
-                    Loan: ₱${client.loanAmount.toLocaleString()} • Due: ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})
+                    Loan: ₱${client.loanAmount.toLocaleString()} • Due: ${parseLocalDate(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})
                   </div>
                 </div>
               </div>
@@ -5303,7 +5303,7 @@
                       <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
                       <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
                     </svg>
-                    Due: ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})
+                    Due: ${parseLocalDate(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})
                   </p>
                   <p><strong>Remaining:</strong> ₱${rb.toFixed(2)}</p>
                 </div>
@@ -6124,6 +6124,12 @@
           return;
         }
 
+        // Block non-collection days (Sundays/holidays) for manual payments
+        if (type !== "adv" && isNonCollectionDay(date)) {
+          showNotification("Selected date is a non-collection day (Sunday/holiday). Please choose a working day.", "error");
+          return;
+        }
+
         const overdueNow = isClientOverdue(client);
 
         // Prevent duplicate entries inside the same tab for the same date (skip for overdue)
@@ -6459,7 +6465,7 @@
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                   <h4>${payment.clientName}</h4>
-                  <p>₱${payment.amount.toFixed(2)} • ${new Date(payment.date).toLocaleDateString()}</p>
+                  <p>₱${payment.amount.toFixed(2)} • ${parseLocalDate(payment.date).toLocaleDateString()}</p>
                   ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}${(payment.repaid||0)>0 ? ` • Repaid: ₱${(payment.repaid||0).toFixed(2)} • Outstanding: ₱${Math.max(0, payment.amount - (payment.repaid||0)).toFixed(2)}` : ''}</p>` : ''}
                   ${payment.paymentType === 'adv' && payment.initialAmount && payment.initialAmount > payment.amount ? `<p>Borrowed via Abono: ₱${(payment.initialAmount - payment.amount).toFixed(2)}${formatAdvBorrowers(payment)} • Remaining: ₱${payment.amount.toFixed(2)} of ₱${payment.initialAmount.toFixed(2)}</p>` : ''}
                   <p><span class="status-badge status-active">${payment.type}</span></p>
@@ -6509,6 +6515,11 @@
 
         if (isNaN(newAmount) || !newDate) {
           showNotification("Please fill in all fields correctly", "error");
+          return;
+        }
+        // Disallow moving payments to non-collection days for collection tabs
+        if ((type === "notebook" || type === "office" || type === "gcash" || type === "abono") && isNonCollectionDay(newDate)) {
+          showNotification("Selected date is a non-collection day (Sunday/holiday). Please choose a working day.", "error");
           return;
         }
 
@@ -6597,7 +6608,7 @@
         if (dateEl) dateEl.value = today;
         if (borrowerEl) borrowerEl.textContent = borrowerName;
         if (lenderEl) lenderEl.textContent = lenderName;
-        if (outEl) outEl.textContent = `��${outstanding.toFixed(2)}`;
+        if (outEl) outEl.textContent = `₱${outstanding.toFixed(2)}`;
         document.getElementById("repayAbonoModal")?.classList.add("active");
       }
 
@@ -6775,7 +6786,7 @@
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                   <h4>${absence.clientName}</h4>
-                  <p>${new Date(absence.date).toLocaleDateString()} • ${absence.reason}</p>
+                  <p>${parseLocalDate(absence.date).toLocaleDateString()} • ${absence.reason}</p>
                 </div>
                 <button class="btn btn-danger" onclick="deleteAbsence(${absence.id})" style="margin: 0; padding: 6px 12px; font-size: 12px;">
                   Delete
@@ -7091,7 +7102,7 @@
             let extraLine = "";
             if (entry.advForFuture && entry.advForFuture > 0) {
               const lines = entry.advDetails
-                .map((d) => `Advance for ${new Date(d.forDate).toLocaleDateString()}: ₱${(d.amount).toFixed(2)} (included in Actual Collection — remember to separate)`)
+                .map((d) => `Advance for ${parseLocalDate(d.forDate).toLocaleDateString()}: ₱${(d.amount).toFixed(2)} (included in Actual Collection — remember to separate)`)
                 .join("<br>");
               extraLine += `<p>${lines}</p>`;
             }
@@ -7637,7 +7648,7 @@
           return;
         }
         list.innerHTML = arr.map(d => {
-          const friendly = new Date(d).toLocaleDateString();
+          const friendly = parseLocalDate(d).toLocaleDateString();
           return `
             <div class="payment-entry" style="border-left-color: var(--ios-orange);">
               <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -8179,7 +8190,7 @@
             <div class="detail-row"><strong>Loan Amount:</strong> ₱${client.loanAmount.toLocaleString()}</div>
             <div class="detail-row"><strong>Total Amount:</strong> ₱${client.totalAmount.toFixed(2)}</div>
             <div class="detail-row"><strong>Daily Amount:</strong> ₱${client.dailyAmount.toFixed(2)}</div>
-            <div class="detail-row"><strong>Due Date:</strong> ${new Date(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})</div>
+            <div class="detail-row"><strong>Due Date:</strong> ${parseLocalDate(client.dueDate).toLocaleDateString()} (${formatDaysLeft(client)})</div>
             <div class="detail-row"><strong>Status:</strong> ${client.remainingBalance <= 0 ? "Paid" : "Active"}</div>
 
             <div class="detail-section">
