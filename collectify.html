@@ -8354,6 +8354,24 @@
             onBefore: () => { closeSidebar(); switchTab("settings"); },
           },
           {
+            text: "Set Loan Release Days by checking the weekdays you release funds.",
+            selector: '#releaseDay-2',
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("settings"); },
+          },
+          {
+            text: "Add holidays so collections are skipped on those dates.",
+            selector: '#holidayDate',
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("settings"); },
+          },
+          {
+            text: "Tap Add Holiday to save the selected date; manage them below.",
+            selector: 'button.btn.btn-secondary[onclick="addHoliday()"]',
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("settings"); },
+          },
+          {
             text: "Export your data. When prompted, save the file with a .json extension (e.g., collectify-backup.json).",
             selector: 'button.btn.btn-secondary[onclick="exportData()"]',
             padding: 4,
