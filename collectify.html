@@ -3198,14 +3198,14 @@
 
             <div class="form-group">
               <label>Loan Release Days</label>
-              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 10px;">
-                <label><input type="checkbox" id="releaseDay-0" onchange="toggleReleaseDay(0)" /> Sun</label>
-                <label><input type="checkbox" id="releaseDay-1" onchange="toggleReleaseDay(1)" /> Mon</label>
-                <label><input type="checkbox" id="releaseDay-2" onchange="toggleReleaseDay(2)" /> Tue</label>
-                <label><input type="checkbox" id="releaseDay-3" onchange="toggleReleaseDay(3)" /> Wed</label>
-                <label><input type="checkbox" id="releaseDay-4" onchange="toggleReleaseDay(4)" /> Thu</label>
-                <label><input type="checkbox" id="releaseDay-5" onchange="toggleReleaseDay(5)" /> Fri</label>
-                <label><input type="checkbox" id="releaseDay-6" onchange="toggleReleaseDay(6)" /> Sat</label>
+              <div class="release-days" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 10px;">
+                <label class="release-day"><input type="checkbox" id="releaseDay-0" onchange="toggleReleaseDay(0)" /><span>Sun</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-1" onchange="toggleReleaseDay(1)" /><span>Mon</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-2" onchange="toggleReleaseDay(2)" /><span>Tue</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-3" onchange="toggleReleaseDay(3)" /><span>Wed</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-4" onchange="toggleReleaseDay(4)" /><span>Thu</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-5" onchange="toggleReleaseDay(5)" /><span>Fri</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-6" onchange="toggleReleaseDay(6)" /><span>Sat</span></label>
               </div>
               <small style="color: var(--ios-secondary-label); display:block; margin-top:6px;">Used to schedule loan releases; collections still follow non-collection days and absences.</small>
             </div>
