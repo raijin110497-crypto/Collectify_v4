@@ -2078,6 +2078,17 @@
       .credits-separator { opacity: 0.45; }
     </style>
     <style>
+      /* Release day pill toggles */
+      .release-days .release-day { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--ios-opaque-separator); border-radius: 18px; padding: 8px 12px; background: var(--ios-tertiary-system-background); color: var(--ios-label); font-weight: 600; transition: all 0.2s var(--ios-easing); cursor: pointer; }
+      .release-days .release-day input { position: absolute; opacity: 0; width: 0; height: 0; }
+      .release-days .release-day span { pointer-events: none; }
+      .release-days .release-day:hover { transform: translateY(-1px); }
+      .release-days .release-day:has(input:checked),
+      .release-days .release-day.active { background: var(--ios-blue); color: var(--ios-secondary-grouped-background); border-color: var(--ios-blue); }
+      body.dark .release-days .release-day { background: var(--ios-secondary-system-background); }
+      body.dark .release-days .release-day:has(input:checked),
+      body.dark .release-days .release-day.active { background: var(--ios-blue); color: var(--ios-system-background); border-color: var(--ios-blue); }
+
       /* Client payment calendar */
       .client-calendar { background: var(--ios-secondary-grouped-background); border-radius: var(--ios-border-radius-large); border: 0.5px solid var(--ios-opaque-separator); box-shadow: var(--ios-shadow); padding: 12px; }
       .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
