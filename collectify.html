@@ -6919,6 +6919,24 @@
           actualCollected - advTotalForDate,
         );
 
+        // Overdue payments (clients with due date before selected date)
+        const selectedKey = selectedDate;
+        const overduePaidDirect = datePayments
+          .filter((p) => {
+            const cl = clients.find((c) => c.id === p.clientId);
+            if (!cl) return false;
+            return new Date(cl.dueDate) < new Date(selectedKey);
+          })
+          .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const overdueAdvCreatedToday = advCreatedToday
+          .filter((p) => {
+            const cl = clients.find((c) => c.id === p.clientId);
+            if (!cl) return false;
+            return new Date(cl.dueDate) < new Date(selectedKey);
+          })
+          .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const overduePaidTotal = overduePaidDirect + overdueAdvCreatedToday;
+
         // Update stats
         document.getElementById("paidToday").textContent = paidClients.length;
         document.getElementById("notPaidToday").textContent =
@@ -6927,6 +6945,7 @@
           `₱${totalExpected.toFixed(2)}`;
         document.getElementById("actualCollectedToday").textContent =
           `₱${actualCollected.toFixed(2)}`;
+        const op = document.getElementById("overduePaidToday"); if (op) op.textContent = `₱${overduePaidTotal.toFixed(2)}`;
 
         // Update lists
         updateTrackerList("paidClientsList", paidClients, true);
