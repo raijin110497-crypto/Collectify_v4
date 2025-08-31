@@ -6282,10 +6282,7 @@
             .flatMap(t => payments[t] || [])
             .filter(p => p.clientId === c.id && p.date === date)
             .reduce((s,p) => s + (Number(p.amount)||0), 0);
-          const advExtra = (payments.adv || [])
-            .filter(p => p.clientId === c.id && (p.createdAt || p.date) === date && p.date !== date)
-            .reduce((s,p) => s + (Number(p.amount)||0), 0);
-          const paidSum = paidDirect + advExtra;
+          const paidSum = paidDirect; // exclude ADV
           const diff = paidSum - expected;
           return { clientId: c.id, clientName: c.name, expected, paid: paidSum, overBy: diff };
         }).filter(e => e.overBy > 0.01)
@@ -6736,7 +6733,7 @@
 
         // Get all payments for the selected date from all payment types
         const allPayments = Object.values(payments).flat();
-        const datePayments = allPayments.filter((p) => p.date === selectedDate);
+        const datePayments = allPayments.filter((p) => p.date === selectedDate && (p.paymentType || 'notebook') !== 'adv');
         const advCreatedToday = (payments.adv || []).filter(
           (p) => (p.createdAt || p.date) === selectedDate && p.date !== selectedDate,
         );
@@ -6746,11 +6743,8 @@
           .filter((c) => c.status === "active")
           .forEach((client) => {
             const clientPayments = datePayments.filter((p) => p.clientId === client.id);
-            const advTodayAmt = advCreatedToday
-              .filter((p) => p.clientId === client.id)
-              .reduce((s, p) => s + (Number(p.amount) || 0), 0);
             const directPaid = clientPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-            const totalPaidForClient = directPaid + advTodayAmt;
+            const totalPaidForClient = directPaid;
 
             // Expected reflects overpayment: max(expected, paid today)
             const expectedForDate = isClientAbsentOnDate(client.id, selectedDate)
@@ -6759,20 +6753,12 @@
             totalExpected += Math.max(expectedForDate, totalPaidForClient);
 
             if (totalPaidForClient > 0) {
-              // Merge payments with ADV created today as synthetic entries for display badges
-              const advSynthetic = advTodayAmt > 0
-                ? [{ id: `adv-${client.id}-${selectedDate}`, clientId: client.id, clientName: client.name, amount: advTodayAmt, date: selectedDate, type: "manual", paymentType: "adv" }]
-                : [];
-              const combined = clientPayments.concat(advSynthetic);
-              paidClients.push({ ...client, paidAmount: totalPaidForClient, payments: combined });
-              // Only add direct (same-date) amounts to actualCollected here; adv created today is added once below
+              paidClients.push({ ...client, paidAmount: totalPaidForClient, payments: clientPayments });
               actualCollected += directPaid;
             } else {
               notPaidClients.push(client);
             }
           });
-        // Add ADV created today (for future dates) to Actual
-        actualCollected += advCreatedToday.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
         // Ensure fully paid amounts are included in Expected Collection and Paid Today
         (function includeFullPays() {
@@ -6844,7 +6830,7 @@
           prev.types.add("adv");
           const advAmt = p.amount || 0;
           prev.advForFuture = (prev.advForFuture || 0) + advAmt;
-          prev.totalPaid += advAmt; // include advances created today in total paid today
+          // ADV not counted in totals
           prev.advDetails = prev.advDetails || [];
           prev.advDetails.push({ amount: advAmt, forDate: p.date });
           byClient.set(client.id, prev);
@@ -6855,13 +6841,6 @@
         );
 
         // Compute Adv separation for actual collection
-        const advTotalForDate = (payments.adv || [])
-          .filter((p) => p.date === selectedDate)
-          .reduce((sum, p) => sum + p.amount, 0);
-        const netCollectedExAdv = Math.max(
-          0,
-          actualCollected - advTotalForDate,
-        );
 
         // Update stats
         document.getElementById("paidToday").textContent = paidClients.length;
@@ -6976,7 +6955,7 @@
             let extraLine = "";
             if (entry.advForFuture && entry.advForFuture > 0) {
               const lines = entry.advDetails
-                .map((d) => `Advance for ${new Date(d.forDate).toLocaleDateString()}: ₱${(d.amount).toFixed(2)} (included in Actual Collection — remember to separate)`)
+                .map((d) => `Advance for ${new Date(d.forDate).toLocaleDateString()}: ₱${(d.amount).toFixed(2)} (not counted in totals)`)
                 .join("<br>");
               extraLine += `<p>${lines}</p>`;
             }
