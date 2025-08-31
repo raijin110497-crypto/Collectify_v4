@@ -7033,11 +7033,9 @@
         document.getElementById("paidToday").textContent = paidClients.length;
         document.getElementById("notPaidToday").textContent =
           notPaidClients.length;
-        document.getElementById("totalExpectedToday").textContent =
-          `₱${totalExpected.toFixed(2)}`;
-        document.getElementById("actualCollectedToday").textContent =
-          `₱${actualCollected.toFixed(2)}`;
-        const op = document.getElementById("overduePaidToday"); if (op) op.textContent = `��${overduePaidTotal.toFixed(2)}`;
+        const expEl = document.getElementById("totalExpectedToday"); if (expEl) expEl.innerHTML = "&#8369;" + totalExpected.toFixed(2);
+        const actEl = document.getElementById("actualCollectedToday"); if (actEl) actEl.innerHTML = "&#8369;" + actualCollected.toFixed(2);
+        const op = document.getElementById("overduePaidToday"); if (op) op.innerHTML = "&#8369;" + overduePaidTotal.toFixed(2);
 
         // Update lists
         updateTrackerList("paidClientsList", paidClients, true);
