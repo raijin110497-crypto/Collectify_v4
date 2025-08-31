@@ -6124,6 +6124,12 @@
 
         // Auto-schedule Adv starting ON the selected date when valid; otherwise from the next collection day
         if (type === "adv") {
+          // Overdue clients are not allowed to take advances
+          if (isClientOverdue(client)) {
+            showNotification("Overdue clients cannot take advance. Record payment(s) or full payment instead.", "error");
+            return;
+          }
+
           let remaining = amount;
           const createdAt = todayLocalDateStr ? todayLocalDateStr() : date;
           const clientIdNum = parseInt(clientId);
