@@ -3712,7 +3712,7 @@
         <div class="modal-body">
           <p>Borrower: <strong id="repayAbonoBorrower">-</strong></p>
           <p>Lender: <strong id="repayAbonoLender">-</strong></p>
-          <p>Outstanding: <strong id="repayAbonoOutstanding">₱0.00</strong></p>
+          <p>Outstanding: <strong id="repayAbonoOutstanding">���0.00</strong></p>
           <div class="form-row">
             <div class="form-group">
               <label>Repay Amount:</label>
@@ -8335,7 +8335,7 @@
               nbAmt>0 ? `<span class=\"cal-amt cal-notebook\">₱${nbAmt.toFixed(0)}</span>` : '',
               ofAmt>0 ? `<span class=\"cal-amt cal-office\">₱${ofAmt.toFixed(0)}</span>` : '',
               gcAmt>0 ? `<span class=\"cal-amt cal-gcash\">₱${gcAmt.toFixed(0)}</span>` : '',
-              adAmt>0 ? `<span class=\"cal-amt cal-adv\" title=\"Advance\">₱${adAmt.toFixed(0)}</span>` : '',
+              adAmt>0 ? `<span class=\"cal-amt cal-adv\" title=\"Advance\">��${adAmt.toFixed(0)}</span>` : '',
               fullAmt>0 ? `<span class=\"cal-amt cal-full\" title=\"Full Pay\">₱${fullAmt.toFixed(0)}</span>` : ''
             ].filter(Boolean).join('');
 
@@ -8986,8 +8986,8 @@
               client.remainingBalance = 0; client.status = 'paid';
             }
           }
-          // Add one future ADV (shows as dot on its scheduled date)
-          if (idx % 4 === 0) {
+          // Add one future ADV (shows as dot on its scheduled date) — skip for overdue clients
+          if (idx % 4 === 0 && !isClientOverdue(client)) {
             let next = getNextCollectionDate(dateToday, client.id);
             const expf = expectedAmountForDate(client, next);
             if (expf > 0) {
