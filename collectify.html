@@ -8866,18 +8866,50 @@
         // Build demo payments
         const p = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
         arr.forEach((client, idx) => {
-          const date = today;
-          const expected = expectedAmountForDate(client, date);
-          if (idx % 2 === 0 && expected > 0 && client.remainingBalance > 0) {
-            const amt = Math.min(expected, client.remainingBalance);
-            client.remainingBalance = Math.max(0, client.remainingBalance - amt);
-            p.notebook.push({ id: Date.now() + idx, clientId: client.id, clientName: client.name, amount: amt, date, type: 'daily', paymentType: 'notebook' });
+          // Seed payments on recent working days so they show in the calendar
+          const recentDays = [];
+          let step = 1;
+          while (recentDays.length < 3 && step < 10) {
+            const d = formatDateLocal(addDaysLocal(today, -step));
+            step++;
+            // within client range and collection day
+            if (parseLocalDate(d) < parseLocalDate(client.startDate)) continue;
+            if (isNonCollectionDay(d)) continue;
+            recentDays.push(d);
           }
+          // Add a notebook payment on the most recent working day
+          if (recentDays[0]) {
+            const exp = expectedAmountForDate(client, recentDays[0]);
+            if (exp > 0 && client.remainingBalance > 0) {
+              const amt = Math.min(exp, client.remainingBalance);
+              client.remainingBalance = Math.max(0, client.remainingBalance - amt);
+              p.notebook.push({ id: Date.now() + idx, clientId: client.id, clientName: client.name, amount: amt, date: recentDays[0], type: 'daily', paymentType: 'notebook' });
+            }
+          }
+          // Optionally add an Office payment a day earlier for variety
+          if (idx % 3 === 0 && recentDays[1]) {
+            const exp2 = expectedAmountForDate(client, recentDays[1]);
+            if (exp2 > 0 && client.remainingBalance > 0) {
+              const amt2 = Math.min(Math.round(exp2 * 0.6), client.remainingBalance);
+              client.remainingBalance = Math.max(0, client.remainingBalance - amt2);
+              p.office.push({ id: Date.now() + 1000 + idx, clientId: client.id, clientName: client.name, amount: amt2, date: recentDays[1], type: 'daily', paymentType: 'office' });
+            }
+          }
+          // Ensure one client is fully paid today for testing full-pay badge
+          const dateToday = today;
           if (idx % 7 === 0) {
             const rb = client.remainingBalance;
             if (rb > 0) {
-              p.notebook.push({ id: Date.now() + 500 + idx, clientId: client.id, clientName: client.name, amount: rb, date, type: 'full', paymentType: 'notebook' });
+              p.notebook.push({ id: Date.now() + 500 + idx, clientId: client.id, clientName: client.name, amount: rb, date: dateToday, type: 'full', paymentType: 'notebook' });
               client.remainingBalance = 0; client.status = 'paid';
+            }
+          }
+          // Add one future ADV (shows as dot on its scheduled date)
+          if (idx % 4 === 0) {
+            let next = getNextCollectionDate(dateToday, client.id);
+            const expf = expectedAmountForDate(client, next);
+            if (expf > 0) {
+              p.adv.push({ id: Date.now() + 2000 + idx, clientId: client.id, clientName: client.name, amount: expf, date: next, createdAt: dateToday, type: 'manual', paymentType: 'adv' });
             }
           }
         });
@@ -8898,6 +8930,8 @@
         checkMissedPayments();
         const td = document.getElementById('trackerDate'); if (td && !td.value) td.value = todayLocalDateStr();
         loadDailyTracker();
+        // Refresh Overdue list immediately (in case user navigates there next)
+        try { loadOverdueTab(); } catch(e) {}
         const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
         showNotification('Demo mode enabled: 10 sample clients loaded', 'success');
       }
