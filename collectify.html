@@ -7040,6 +7040,9 @@
           defaultSettings.holidays.sort();
           saveData();
           renderHolidays();
+          updateStats();
+          if (document.getElementById('trackerDate')) loadDailyTracker();
+          if (document.getElementById('summaryDate')) loadSummaryTab();
           showNotification('Holiday added', 'success');
         } else {
           showNotification('Holiday already exists', 'error');
