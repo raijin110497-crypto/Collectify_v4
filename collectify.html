@@ -8149,6 +8149,27 @@
             padding: 4,
           },
 
+          // Overdue
+          {
+            text: "Overdue: view clients who are overdue or due soon.",
+            selector: '.sidebar .tab[data-tab="overdue"]',
+            padding: 4,
+            needsSidebar: true,
+            wait: 450,
+            openTab: "overdue",
+          },
+          {
+            text: "Filter overdue and due soon clients by typing a name here.",
+            selector: "#overdueSearch",
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("overdue"); },
+          },
+          {
+            text: "The list shows overdue and due soon clients with quick actions.",
+            selector: "#overdueList",
+            padding: 4,
+          },
+
           // Notebook
           {
             text: "Notebook: record daily payments.",
