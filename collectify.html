@@ -3958,18 +3958,23 @@
         setupTabListeners();
         updateSettingsInfo();
 
-        // Set today's date as default for all date inputs
-        const today = new Date().toISOString().split("T")[0];
-        document.getElementById("paymentDate").value = today;
-        document.getElementById("officePaymentDate").value = today;
-        document.getElementById("gcashPaymentDate").value = today;
-        document.getElementById("advPaymentDate").value = today;
-        document.getElementById("abonoPaymentDate").value = today;
-        document.getElementById("absentDate").value = today;
-        document.getElementById("trackerDate").value = today;
+        // Set today's date as default for all date inputs and enforce rules
+        const today = todayLocalDateStr();
+        const setVal = (id) => { const el = document.getElementById(id); if (el) el.value = today; };
+        ["paymentDate","officePaymentDate","gcashPaymentDate","advPaymentDate","abonoPaymentDate","absentDate","trackerDate","startDate","fullPaymentDate"].forEach(setVal);
         const sd = document.getElementById("summaryDate"); if (sd) sd.value = today;
-        document.getElementById("startDate").value = today;
-        document.getElementById("fullPaymentDate").value = today;
+        // Restrict to today for payment tabs (Notebook, Office, GCash, Full Pay)
+        const restrictToToday = (id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.min = today; el.max = today;
+          el.addEventListener("change", () => {
+            if (el.value !== today) { el.value = today; showNotification("Only today's date is allowed in this tab", "error"); }
+          });
+        };
+        ["paymentDate","officePaymentDate","gcashPaymentDate","fullPaymentDate"].forEach(restrictToToday);
+        // Allow other tabs to pick any date (Adv, Abono, Absent)
+        ["advPaymentDate","abonoPaymentDate","absentDate"].forEach((id)=>{ const el=document.getElementById(id); if(el){ el.removeAttribute("min"); el.removeAttribute("max"); }});
         // Initialize collapsible dashboard stats
         const g = document.getElementById('dashboardStatsGroup');
         const gridEl = document.getElementById('dashboardStats');
@@ -5681,6 +5686,11 @@
         if (!client) return;
 
         const paymentDate = document.getElementById("fullPaymentDate").value;
+        // Enforce current-day only for full payments
+        if (paymentDate !== todayLocalDateStr()) {
+          showNotification("Full payment can only be recorded for today's date", "error");
+          return;
+        }
 
         // Absent check
         if (isClientAbsentOnDate(client.id, paymentDate)) {
@@ -6108,6 +6118,11 @@
           showNotification("Please fill in all fields", "error");
           return;
         }
+        // Enforce current-day only for Notebook, Office, and GCash tabs
+        if ((type === "notebook" || type === "office" || type === "gcash") && date !== todayLocalDateStr()) {
+          showNotification("Only today's date is allowed in this tab", "error");
+          return;
+        }
 
         const client = clients.find((c) => c.id == clientId);
         if (!client) {
@@ -6495,7 +6510,15 @@
 
         document.getElementById("editPaymentClient").value = payment.clientName;
         document.getElementById("editPaymentAmount").value = payment.amount;
-        document.getElementById("editPaymentDate").value = payment.date;
+        const editDateEl = document.getElementById("editPaymentDate");
+        editDateEl.value = payment.date;
+        if (type === "notebook" || type === "office" || type === "gcash") {
+          const t = todayLocalDateStr();
+          editDateEl.min = t; editDateEl.max = t;
+        } else {
+          editDateEl.removeAttribute("min");
+          editDateEl.removeAttribute("max");
+        }
 
         document.getElementById("editPaymentModal").classList.add("active");
       }
@@ -6515,6 +6538,11 @@
 
         if (isNaN(newAmount) || !newDate) {
           showNotification("Please fill in all fields correctly", "error");
+          return;
+        }
+        // Enforce current-day only when editing payments in Notebook/Office/GCash
+        if ((type === "notebook" || type === "office" || type === "gcash") && newDate !== todayLocalDateStr()) {
+          showNotification("Only today's date is allowed in this tab", "error");
           return;
         }
         // Disallow moving payments to non-collection days for collection tabs
