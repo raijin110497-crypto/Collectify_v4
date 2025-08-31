@@ -649,6 +649,19 @@
         transform: translateY(-4px) scale(1.02);
         box-shadow: 0 8px 25px rgba(0, 122, 255, 0.3);
       }
+      /* Emulated hover (for touch/keyboard) */
+      .stat-card.hovered {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(0, 122, 255, 0.3);
+      }
+      .stat-card:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0,122,255,0.35), var(--ios-shadow-elevated);
+      }
+      .stat-card.active {
+        transform: translateY(0) scale(0.98);
+        transition-duration: 0.12s;
+      }
 
       .stat-card:nth-child(even) {
         animation-delay: 0.1s;
@@ -3925,6 +3938,8 @@
             }
           });
         }
+        // Enable hover/touch/focus feedback on stat cards
+        enableStatCardHover();
 
         // Recompute default amounts when date changes (Saturday/Monday adjustments)
         const bind = (id, type) => {
@@ -4058,6 +4073,27 @@
           // Ensure Adv list reflects the latest deductions
           updatePaymentHistory("adv");
         }
+      }
+
+      // Hover feedback for stat cards (works on touch + keyboard)
+      function enableStatCardHover(){
+        try {
+          const cards = document.querySelectorAll('#dashboardStats .stat-card, #statsToggleCard.stat-card');
+          cards.forEach((card)=>{
+            card.tabIndex = card.tabIndex || 0;
+            card.addEventListener('mouseenter', ()=>card.classList.add('hovered'));
+            card.addEventListener('mouseleave', ()=>card.classList.remove('hovered'));
+            card.addEventListener('focus', ()=>card.classList.add('hovered'));
+            card.addEventListener('blur', ()=>card.classList.remove('hovered'));
+            card.addEventListener('pointerdown', ()=>card.classList.add('active'));
+            card.addEventListener('pointerup', ()=>card.classList.remove('active'));
+            card.addEventListener('touchstart', ()=>{
+              card.classList.add('hovered');
+              clearTimeout(card.__ht);
+              card.__ht = setTimeout(()=>card.classList.remove('hovered'), 220);
+            }, { passive: true });
+          });
+        } catch (e) {}
       }
 
       // Sidebar functions
