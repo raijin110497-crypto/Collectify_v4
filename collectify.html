@@ -6472,9 +6472,14 @@
         if (!paymentList) return;
 
         // Ensure only payments belonging to this tab are rendered
-        const typePayments = (payments[type] || []).filter(
+        let typePayments = (payments[type] || []).filter(
           (p) => (p.paymentType || type) === type,
         );
+        // For collection tabs, show only today's records
+        if (type === 'notebook' || type === 'office' || type === 'gcash') {
+          const tdy = todayLocalDateStr();
+          typePayments = typePayments.filter(p => p.date === tdy);
+        }
 
         if (typePayments.length === 0) {
           paymentList.innerHTML =
