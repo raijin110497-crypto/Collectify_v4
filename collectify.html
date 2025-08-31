@@ -4618,34 +4618,39 @@
           // Do not evaluate clients whose start date is in the future
           if (today < clientStartOnly) return;
 
-          // 1) Recent 3 working days without payment
-          const last3Days = [];
-          for (let i = 0; i < 3; i++) {
+          // 1) Missed payment on the most recent working day (single day)
+          let lastEligibleDay = null;
+          for (let i = 1; i <= 14; i++) { // look back up to two weeks to find the most recent eligible working day
             const date = new Date(today);
-            date.setDate(date.getDate() - (i + 1));
+            date.setDate(date.getDate() - i);
             const dateStr = date.toISOString().split("T")[0];
-            if (date < clientStartOnly) continue;
+            if (date < clientStartOnly) break;
             if (isNonCollectionDay(dateStr)) continue;
             if (isClientAbsentOnDate(client.id, dateStr)) continue;
-            const hasPayment = allPayments.some(p => p.date === dateStr);
-            if (!hasPayment) last3Days.push(dateStr);
+            lastEligibleDay = dateStr;
+            break;
           }
 
-          if (last3Days.length >= 3) {
-            const coMakerInfo = client.coMaker && client.coMaker.name
-              ? `Co-maker: ${client.coMaker.name} (${client.coMaker.contactNumber || 'No contact'})`
-              : 'No co-maker information';
-            const collateralInfo = client.collateral && client.collateral.description
-              ? `Collateral: ${client.collateral.description}`
-              : 'No collateral information';
-            const lastKey = `missed_payment_${client.id}`;
-            const lastAt = localStorage.getItem(lastKey);
-            const daysSince = lastAt ? Math.floor((today - new Date(lastAt)) / (1000 * 60 * 60 * 24)) : 999;
-            if (daysSince >= 1) {
-              showCollateralNotification(client, coMakerInfo, collateralInfo, null);
-              localStorage.setItem(lastKey, todayStr);
+          if (lastEligibleDay) {
+            const hasPayment = allPayments.some(p => p.date === lastEligibleDay);
+            if (!hasPayment) {
+              const coMakerInfo = client.coMaker && client.coMaker.name
+                ? `Co-maker: ${client.coMaker.name} (${client.coMaker.contactNumber || 'No contact'})`
+                : 'No co-maker information';
+              const collateralInfo = client.collateral && client.collateral.description
+                ? `Collateral: ${client.collateral.description}`
+                : 'No collateral information';
+              const lastKey = `missed_payment_${client.id}`;
+              const lastAt = localStorage.getItem(lastKey);
+              const daysSince = lastAt ? Math.floor((today - new Date(lastAt)) / (1000 * 60 * 60 * 24)) : 999;
+              if (daysSince >= 1) {
+                showCollateralNotification(client, coMakerInfo, collateralInfo, null);
+                localStorage.setItem(lastKey, todayStr);
+              }
+              client.consecutiveMissedDays = 1;
+            } else {
+              client.consecutiveMissedDays = 0;
             }
-            client.consecutiveMissedDays = last3Days.length;
           } else {
             client.consecutiveMissedDays = 0;
           }
@@ -4687,7 +4692,7 @@
         notification.className = 'collateral-notification';
         const titleText = missedSinceStartCount && missedSinceStartCount > 0
           ? `Missed ${missedSinceStartCount} working day(s) since start`
-          : 'Missed payments in the last 3 working days';
+          : 'Missed payment on the last working day';
         notification.innerHTML = `
           <div class="collateral-notification-content">
             <h3>${titleText}</h3>
@@ -4758,7 +4763,10 @@
         document.body.appendChild(notification);
 
         // Also show a regular notification
-        showNotification(`Client ${client.name} has missed 3+ payments. Check collateral info!`, 'error');
+        const summaryMsg = missedSinceStartCount && missedSinceStartCount > 0
+          ? `Client ${client.name} has missed ${missedSinceStartCount} working day(s) since start.`
+          : `Client ${client.name} missed a payment on the last working day.`;
+        showNotification(summaryMsg, 'error');
       }
 
       // Contact co-maker helper
