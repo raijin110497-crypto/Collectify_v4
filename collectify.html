@@ -1431,6 +1431,19 @@
         transform: translateY(0) scale(0.98);
       }
 
+      /* Tracker section titles */
+      .tracker-section-title {
+        margin-bottom: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tracker-title-paid { color: var(--ios-green); }
+      .tracker-title-unpaid { color: var(--ios-red); }
+
       /* Responsive Design for All Screen Sizes and Orientations */
       @media (max-width: 768px) {
         .container {
@@ -2438,7 +2451,7 @@
                 "
               >
                 <h3 id="notPaidToday">0</h3>
-                <p>Not Paid Today</p>
+                <p>Not Paid</p>
               </div>
               <div
                 class="stat-card"
@@ -2477,7 +2490,7 @@
               "
             >
               <div>
-                <h3 style="color: var(--ios-green); margin-bottom: 15px">
+                <h3 class="tracker-section-title tracker-title-paid">
                   <svg
                     class="icon-inline"
                     viewBox="0 0 24 24"
@@ -2513,7 +2526,7 @@
               </div>
 
               <div>
-                <h3 style="color: var(--ios-red); margin-bottom: 15px">
+                <h3 class="tracker-section-title tracker-title-unpaid">
                   <svg
                     class="icon-inline"
                     viewBox="0 0 24 24"
@@ -2531,7 +2544,7 @@
                       stroke-linecap="round"
                     ></path>
                   </svg>
-                  Not Paid Today
+                  Not Paid
                 </h3>
                 <div
                   id="notPaidClientsList"
