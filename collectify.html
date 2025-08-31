@@ -8810,7 +8810,7 @@
           const loanAmount = 5000 + i * 1000;
           const interestRate = defaultSettings.interestRate;
           const term = defaultSettings.loanTerm;
-          const start = formatDateLocal(addDaysLocal(today, -i * 3));
+          let start = formatDateLocal(addDaysLocal(today, -i * 3));
           let dueTmp = addDaysLocal(start, term);
           let dueDate = formatDateLocal(dueTmp);
           const totalAmount = loanAmount * (1 + interestRate / 100);
@@ -8822,10 +8822,13 @@
           if (i % 7 === 0) { remainingBalance = 0; status = 'paid'; }
           // Force at least one overdue client in demo (client #1)
           if (i === 1) {
-            // Due date in the past with remaining balance to appear as Overdue
+            // Overdue client: start earlier and due date in the past with remaining balance
+            const startPast = formatDateLocal(addDaysLocal(today, -20));
+            start = startPast; // apply earlier start
+            dueTmp = addDaysLocal(startPast, term);
             dueDate = formatDateLocal(addDaysLocal(today, -5));
             status = 'active';
-            if (remainingBalance <= 0) remainingBalance = dailyAmount * 3; // ensure not fully paid
+            if (remainingBalance <= 0) remainingBalance = Math.max(dailyAmount * 3, 500); // ensure not fully paid
           }
           const c = {
             id: 9000 + i,
@@ -8866,6 +8869,10 @@
         // Build demo payments
         const p = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
         arr.forEach((client, idx) => {
+          // Keep first demo client as overdue with no recent payments
+          if (idx === 0) {
+            return; // do not seed payments for Demo Client 1
+          }
           // Seed payments on recent working days so they show in the calendar
           const recentDays = [];
           let step = 1;
@@ -8895,9 +8902,9 @@
               p.office.push({ id: Date.now() + 1000 + idx, clientId: client.id, clientName: client.name, amount: amt2, date: recentDays[1], type: 'daily', paymentType: 'office' });
             }
           }
-          // Ensure one client is fully paid today for testing full-pay badge
+          // Ensure one client is fully paid today for testing full-pay badge (not the overdue one)
           const dateToday = today;
-          if (idx % 7 === 0) {
+          if (idx % 7 === 0 && idx !== 0) {
             const rb = client.remainingBalance;
             if (rb > 0) {
               p.notebook.push({ id: Date.now() + 500 + idx, clientId: client.id, clientName: client.name, amount: rb, date: dateToday, type: 'full', paymentType: 'notebook' });
