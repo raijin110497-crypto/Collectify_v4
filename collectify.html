@@ -8904,6 +8904,12 @@
             );
           };
 
+          // Special case: hidden holiday date input should spotlight the inline calendar
+          if (el.id === "holidayDate") {
+            const cal = document.getElementById("holidayInlineCalendar");
+            if (cal) return cal;
+          }
+
           if (isTiny(el)) {
             if (el.id) {
               const forLabel = document.querySelector(`label[for="${el.id}"]`);
