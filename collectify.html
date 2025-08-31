@@ -6072,20 +6072,27 @@
           }
         }
 
-        // Auto-schedule Adv across following collection days (Option B)
+        // Auto-schedule Adv starting ON the selected date when valid; otherwise from the next collection day
         if (type === "adv") {
           let remaining = amount;
-          let cursor = date;
           const createdAt = todayLocalDateStr ? todayLocalDateStr() : date;
+          const clientIdNum = parseInt(clientId);
+          const isValidStart = (ds) => {
+            return !isNonCollectionDay(ds) && !isClientAbsentOnDate(clientIdNum, ds) && expectedAmountForDate(client, ds) > 0;
+          };
+
+          // Use the selected date if it's a valid collection day, else jump to the next one
+          let cursor = isValidStart(date) ? date : getNextCollectionDate(date, clientIdNum);
           let createdCount = 0;
           for (let i = 0; i < 400 && remaining > 0; i++) {
-            const nextDate = getNextCollectionDate(cursor, parseInt(clientId));
-            const expected = expectedAmountForDate(client, nextDate);
-            const toApply = Math.min(remaining, expected);
-            addOrMergePaymentForDate(client, nextDate, toApply, "adv", createdAt);
+            const expected = expectedAmountForDate(client, cursor);
+            const toApply = Math.min(remaining, expected || remaining);
+            addOrMergePaymentForDate(client, cursor, toApply, "adv", createdAt);
             remaining -= toApply;
-            cursor = nextDate;
             createdCount++;
+            if (remaining > 0) {
+              cursor = getNextCollectionDate(cursor, clientIdNum);
+            }
           }
 
           document.getElementById(`${type}Client`).value = "";
@@ -6096,7 +6103,7 @@
           updateClientList();
           updatePaymentHistory("adv");
           if (currentActiveTab === 'summary') loadSummaryTab();
-          showNotification(`Advance scheduled into ${createdCount} future day(s)`, "success");
+          showNotification(`Advance scheduled into ${createdCount} day(s) starting ${cursor ? '' : ''}`, "success");
           return;
         }
 
