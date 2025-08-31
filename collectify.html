@@ -4802,27 +4802,57 @@
           return;
         }
 
-        // Process collateral images if provided (Android compatible)
+        // Process collateral images if provided (Enhanced Android compatible)
         if (collateralPhotosInput && collateralPhotosInput.files && collateralPhotosInput.files.length > 0) {
           try {
+            console.log('Processing collateral images for Android...');
             const files = Array.from(collateralPhotosInput.files).slice(0, 3);
+            console.log(`Processing ${files.length} files`);
 
-            // Validate each file
-            for (const file of files) {
-              if (!file.type.startsWith('image/')) {
-                showNotification(`Invalid file type: ${file.name}. Please select only image files.`, "error");
-                return;
+            // More lenient validation for Android
+            for (let i = 0; i < files.length; i++) {
+              const file = files[i];
+              console.log(`Validating file ${i + 1}: ${file.name}, type: ${file.type}, size: ${file.size}`);
+
+              // Skip type check if empty (Android sometimes doesn't set MIME type)
+              if (file.type && !file.type.startsWith('image/')) {
+                // Check file extension as fallback
+                const ext = file.name.toLowerCase().split('.').pop();
+                if (!['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) {
+                  showNotification(`Invalid file: ${file.name}. Please select image files only.`, "error");
+                  return;
+                }
               }
-              if (file.size > 10 * 1024 * 1024) { // 10MB limit
-                showNotification(`File too large: ${file.name}. Maximum size is 10MB.`, "error");
+
+              // Increased size limit for Android (20MB)
+              if (file.size > 20 * 1024 * 1024) {
+                showNotification(`File too large: ${file.name}. Maximum size is 20MB.`, "error");
                 return;
               }
             }
 
-            collateralPhotosBase64 = await Promise.all(files.map(f => convertImageToBase64(f)));
+            console.log('Starting base64 conversion...');
+            showNotification('Processing images...', 'success');
+
+            // Convert files to base64 with better error handling
+            const conversionPromises = files.map(async (file, index) => {
+              try {
+                console.log(`Converting file ${index + 1} to base64...`);
+                const base64 = await convertImageToBase64(file);
+                console.log(`File ${index + 1} converted successfully`);
+                return base64;
+              } catch (error) {
+                console.error(`Error converting file ${index + 1}:`, error);
+                throw new Error(`Failed to process ${file.name}`);
+              }
+            });
+
+            collateralPhotosBase64 = await Promise.all(conversionPromises);
+            console.log(`Successfully converted ${collateralPhotosBase64.length} images to base64`);
+
           } catch (error) {
             console.error('Error processing collateral images:', error);
-            showNotification("Error processing collateral images. Please try again.", "error");
+            showNotification(`Error processing images: ${error.message || 'Please try again.'}`, "error");
             return;
           }
         }
