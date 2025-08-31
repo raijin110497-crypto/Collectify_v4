@@ -8322,22 +8322,6 @@
             padding: 4,
           },
 
-          // Overdue
-          {
-            text: "Overdue: review overdue and due soon clients.",
-            selector: '.sidebar .tab[data-tab="overdue"]',
-            padding: 4,
-            needsSidebar: true,
-            wait: 450,
-            openTab: "overdue",
-          },
-          {
-            text: "Here you can Full Pay, set a Repayment Plan, or record a plan payment.",
-            selector: "#overdueList",
-            padding: 4,
-            onBefore: () => { closeSidebar(); switchTab("overdue"); },
-          },
-
           // Settings
           {
             text: "Settings: configure app preferences and manage data.",
