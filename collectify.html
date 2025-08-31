@@ -3589,12 +3589,9 @@
           <div id="viewClientContent"></div>
         </div>
         <div class="modal-footer">
-          <button
-            class="btn btn-secondary"
-            onclick="closeModal('viewClientModal')"
-          >
-            Close
-          </button>
+          <button class="btn btn-primary" onclick="contactClient(calendarViewState.clientId || 0)">Contact Client</button>
+          <button class="btn btn-secondary" onclick="contactCoMaker(calendarViewState.clientId || 0)">Contact Co-maker</button>
+          <button class="btn btn-secondary" onclick="closeModal('viewClientModal')">Close</button>
         </div>
       </div>
     </div>
@@ -4777,7 +4774,6 @@
           return;
         }
 
-        // Try to open phone dialer (mobile) or show contact info
         if (navigator.userAgent.match(/mobile/i)) {
           window.location.href = `tel:${client.coMaker.contactNumber}`;
         } else {
@@ -4785,6 +4781,20 @@
         }
 
         dismissCollateralNotification(clientId);
+      }
+
+      // Contact client helper
+      function contactClient(clientId) {
+        const client = clients.find(c => c.id == clientId);
+        if (!client || !client.contactNumber) {
+          showNotification('No client contact information available', 'error');
+          return;
+        }
+        if (navigator.userAgent.match(/mobile/i)) {
+          window.location.href = `tel:${client.contactNumber}`;
+        } else {
+          showNotification(`Client: ${client.name} - ${client.contactNumber}`, 'success');
+        }
       }
 
       // Dismiss collateral notification
@@ -6587,7 +6597,7 @@
         if (dateEl) dateEl.value = today;
         if (borrowerEl) borrowerEl.textContent = borrowerName;
         if (lenderEl) lenderEl.textContent = lenderName;
-        if (outEl) outEl.textContent = `₱${outstanding.toFixed(2)}`;
+        if (outEl) outEl.textContent = `��${outstanding.toFixed(2)}`;
         document.getElementById("repayAbonoModal")?.classList.add("active");
       }
 
