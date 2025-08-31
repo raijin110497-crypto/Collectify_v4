@@ -6077,11 +6077,13 @@
           return;
         }
 
-        // Prevent duplicate entries inside the same tab for the same date
+        const overdueNow = isClientOverdue(client);
+
+        // Prevent duplicate entries inside the same tab for the same date (skip for overdue)
         const existsInSameTab = (payments[type] || []).some(
           (p) => p.clientId == clientId && p.date === date,
         );
-        if (existsInSameTab) {
+        if (!overdueNow && existsInSameTab) {
           showNotification(
             "Duplicate entry in this tab for the selected date",
             "error",
@@ -6089,8 +6091,8 @@
           return;
         }
 
-        // Cross-tab duplicate check (Adv is excluded from cross-tab restriction)
-        if (type !== "adv") {
+        // Cross-tab duplicate check (Adv is excluded from cross-tab restriction). Skip for overdue.
+        if (type !== "adv" && !overdueNow) {
           const dup = findDuplicatePayment(
             parseInt(clientId),
             date,
