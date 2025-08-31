@@ -8820,11 +8820,12 @@
           step.needsSidebar ? 450 : 0,
         );
         setTimeout(() => {
-          const el = document.querySelector(step.selector);
-          if (!el) {
+          const raw = document.querySelector(step.selector);
+          if (!raw) {
             onTutorialClick();
             return;
           }
+          const el = resolveSpotlightTarget(raw);
           el.scrollIntoView({
             block: "center",
             inline: "center",
@@ -8841,8 +8842,9 @@
       function refreshSpotlightPosition() {
         if (!tutorial.active) return;
         const step = tutorial.steps[tutorial.index];
-        const el = document.querySelector(step.selector);
-        if (!el) return;
+        const raw = document.querySelector(step.selector);
+        if (!raw) return;
+        const el = resolveSpotlightTarget(raw);
         positionSpotlight(el, step.padding || 4);
         placeInstruction(step.text, el);
       }
@@ -8872,17 +8874,12 @@
         box.style.maxWidth = bw + "px";
         const belowY = r.bottom + 12;
         const aboveY = r.top - 12;
-        // Decide placement
-        let top = belowY;
         let left = r.left;
         if (belowY + 80 > window.innerHeight && aboveY - 60 > 0) {
-          // place above
           box.style.top = r.top - box.offsetHeight - 12 + "px";
         } else {
-          box.style.top =
-            Math.min(window.innerHeight - 16 - box.offsetHeight, belowY) + "px";
+          box.style.top = Math.min(window.innerHeight - 16 - box.offsetHeight, belowY) + "px";
         }
-        // Clamp X within viewport
         const desiredLeft = Math.min(
           Math.max(12, left),
           window.innerWidth - 12 - bw,
@@ -8893,6 +8890,37 @@
       function updateStepCounter() {
         const el = document.getElementById("tutorialStepCounter");
         el.textContent = tutorial.index + 1 + " / " + tutorial.steps.length;
+      }
+
+      // Resolve the best visible element to spotlight (handles hidden inputs like checkboxes/date inputs)
+      function resolveSpotlightTarget(el) {
+        try {
+          const isTiny = (node) => {
+            const cs = window.getComputedStyle(node);
+            return (
+              (node.offsetWidth <= 8 && node.offsetHeight <= 8) ||
+              cs.display === "none" ||
+              cs.visibility === "hidden"
+            );
+          };
+
+          if (isTiny(el)) {
+            if (el.id) {
+              const forLabel = document.querySelector(`label[for="${el.id}"]`);
+              if (forLabel) return forLabel;
+            }
+            const closestLabel = el.closest("label");
+            if (closestLabel) return closestLabel;
+            const container = el.closest(
+              ".release-day, .ios-select-button, button, .form-group, .client-calendar, .calendar-grid, .calendar-header, .tab, .stat-card, .client-list, .header"
+            );
+            if (container) return container;
+            if (el.parentElement) return resolveSpotlightTarget(el.parentElement);
+          }
+          return el;
+        } catch (e) {
+          return el;
+        }
       }
 
       // Escape to exit
