@@ -8824,8 +8824,7 @@
           if (i === 1) {
             // Overdue client: start earlier and due date in the past with remaining balance
             const startPast = formatDateLocal(addDaysLocal(today, -20));
-            // override start date earlier so client has history before due
-            // eslint-disable-next-line no-unused-vars
+            start = startPast; // apply earlier start
             dueTmp = addDaysLocal(startPast, term);
             dueDate = formatDateLocal(addDaysLocal(today, -5));
             status = 'active';
