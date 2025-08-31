@@ -2122,6 +2122,19 @@
       #dashboardStatsGroup.expanded #dashboardStats .stat-card:nth-child(4){ animation-delay: 0.14s; }
       #dashboardStatsGroup.expanded #dashboardStats .stat-card:nth-child(5){ animation-delay: 0.18s; }
     </style>
+    <style>
+      /* iOS-style Date Picker (reuses calendar styles) */
+      .ios-date-input { cursor: pointer; }
+      #datePickerOverlay { z-index: 3600; }
+      #datePickerSheet .sheet-header { display: flex; align-items: center; justify-content: space-between; }
+      #datePickerSheet .month-nav { display: inline-flex; gap: 8px; align-items: center; }
+      #datePickerSheet .month-btn { -webkit-appearance: none; appearance: none; border: 1px solid var(--ios-opaque-separator); background: var(--ios-secondary-grouped-background); color: var(--ios-blue); border-radius: 10px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+      #datePickerSheet .actions { display: flex; gap: 8px; padding: 12px; border-top: 0.5px solid var(--ios-opaque-separator); }
+      #datePickerSheet .actions .btn { flex: 1; margin: 0; min-height: 44px; border-radius: 22px; }
+      #datePickerSheet .calendar-grid { margin-top: 6px; }
+      #datePickerSheet .calendar-cell.selected { box-shadow: 0 0 0 2px rgba(0,122,255,0.35) inset; }
+      #datePickerSheet .calendar-cell.today { box-shadow: 0 0 0 2px rgba(0,122,255,0.25) inset; }
+    </style>
   </head>
   <body>
     <div class="container">
@@ -7889,7 +7902,121 @@
       <div id="tutorialStepCounter"></div>
     </div>
 
+    <!-- iOS Date Picker Sheet -->
+    <div id="datePickerOverlay" class="ios-sheet-overlay" style="display:none"></div>
+    <div id="datePickerSheet" class="ios-sheet" style="bottom:-60vh">
+      <div class="sheet-header">
+        <div class="month-nav">
+          <button type="button" class="month-btn" id="dpPrev" aria-label="Previous month">‹</button>
+        </div>
+        <div class="sheet-title" id="dpTitle">Select date</div>
+        <div class="month-nav">
+          <button type="button" class="month-btn" id="dpNext" aria-label="Next month">›</button>
+        </div>
+      </div>
+      <div class="sheet-list" style="padding:12px">
+        <div class="client-calendar" style="border:none; box-shadow:none; padding:0; background:transparent;">
+          <div class="calendar-grid" id="dpGrid"></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" id="dpClear">Clear</button>
+        <button type="button" class="btn btn-secondary" id="dpCancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="dpSet">Set</button>
+      </div>
+    </div>
+
     <script>
+      // Date picker state and logic
+      const DATE_INPUT_IDS = [
+        "paymentDate","officePaymentDate","gcashPaymentDate","advPaymentDate",
+        "abonoPaymentDate","absentDate","trackerDate","summaryDate",
+        "startDate","fullPaymentDate","planStartDate","holidayDate"
+      ];
+      let dpTargetId = null;
+      let dpYear = null, dpMonth = null, dpSelected = null;
+      function pad2(n){ return String(n).padStart(2,"0"); }
+      function toISODate(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+      function parseISODate(str){ const [y,m,day]=String(str||"").split("-").map(Number); if(!y||!m||!day) return null; return new Date(y, m-1, day); }
+      function openDatePicker(targetId){
+        dpTargetId = targetId;
+        const input = document.getElementById(targetId);
+        const now = new Date();
+        const base = input && input.value ? (parseISODate(input.value) || now) : now;
+        dpYear = base.getFullYear();
+        dpMonth = base.getMonth();
+        dpSelected = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+        buildDpGrid();
+        const overlay = document.getElementById('datePickerOverlay');
+        const sheet = document.getElementById('datePickerSheet');
+        overlay.style.display = 'block';
+        requestAnimationFrame(()=>{
+          overlay.classList.add('show');
+          sheet.classList.add('show');
+        });
+        document.getElementById('dpCancel').onclick = closeDatePicker;
+        document.getElementById('dpClear').onclick = ()=>{ setDateValue(''); closeDatePicker(); };
+        document.getElementById('dpSet').onclick = ()=>{ if (dpSelected) setDateValue(toISODate(dpSelected)); closeDatePicker(); };
+        document.getElementById('dpPrev').onclick = ()=>{ dpMonth--; if(dpMonth<0){dpMonth=11; dpYear--; } buildDpGrid(); };
+        document.getElementById('dpNext').onclick = ()=>{ dpMonth++; if(dpMonth>11){dpMonth=0; dpYear++; } buildDpGrid(); };
+        overlay.onclick = (e)=>{ if(e.target===overlay) closeDatePicker(); };
+      }
+      function closeDatePicker(){
+        const overlay = document.getElementById('datePickerOverlay');
+        const sheet = document.getElementById('datePickerSheet');
+        overlay.classList.remove('show');
+        sheet.classList.remove('show');
+        setTimeout(()=>{ overlay.style.display='none'; },250);
+      }
+      function setDateValue(v){
+        const input = document.getElementById(dpTargetId);
+        if(!input) return;
+        input.value = v;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      function buildDpGrid(){
+        const title = document.getElementById('dpTitle');
+        const grid = document.getElementById('dpGrid');
+        if (!grid) return;
+        const monthName = new Date(dpYear, dpMonth, 1).toLocaleString(undefined,{month:'long', year:'numeric'});
+        title.textContent = monthName;
+        const dayNames = ['S','M','T','W','T','F','S'];
+        let html = dayNames.map(n=>`<div class=\"calendar-dayname\">${n}</div>`).join('');
+        const firstDay = new Date(dpYear, dpMonth, 1).getDay();
+        const daysInMonth = new Date(dpYear, dpMonth+1, 0).getDate();
+        for(let i=0;i<firstDay;i++){ html += '<div></div>'; }
+        const today = new Date(); const todayKey = toISODate(today);
+        for(let d=1; d<=daysInMonth; d++){
+          const current = new Date(dpYear, dpMonth, d);
+          const key = toISODate(current);
+          const isToday = key === todayKey;
+          const isSel = dpSelected && key === toISODate(dpSelected);
+          html += `<button type=\"button\" class=\"calendar-cell${isToday?' today':''}${isSel?' selected':''}\" data-day=\"${d}\">\n                    <span class=\"day-num\">${d}</span>\n                  </button>`;
+        }
+        grid.innerHTML = html;
+        Array.from(grid.querySelectorAll('.calendar-cell')).forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const day = Number(btn.getAttribute('data-day'));
+            dpSelected = new Date(dpYear, dpMonth, day);
+            buildDpGrid();
+          });
+        });
+      }
+      function attachDatePickers(){
+        const ids = DATE_INPUT_IDS;
+        ids.forEach(id=>{
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.setAttribute('inputmode','none');
+          el.readOnly = true;
+          el.classList.add('ios-date-input');
+          el.type = 'text';
+          el.addEventListener('click', ()=>openDatePicker(id));
+          el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openDatePicker(id);} });
+        });
+      }
+      document.addEventListener('DOMContentLoaded', attachDatePickers);
+
       // Tutorial mode implementation (no dialogs, text + spotlight)
       let tutorial = {
         active: false,
