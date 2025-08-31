@@ -359,7 +359,7 @@
       .sidebar .tab {
         width: 100%;
         text-align: left;
-        padding: 14px 16px;
+        padding: 14px 20px;
         border: 0;
         background: transparent;
         font-size: 16px;
@@ -369,6 +369,9 @@
         justify-content: space-between;
         cursor: pointer;
         transition: all 0.2s var(--ios-easing);
+        box-sizing: border-box;
+        margin: 0 4px;
+        border-radius: var(--ios-border-radius);
       }
 
       .sidebar .tab::after {
@@ -2048,7 +2051,7 @@
         to { opacity: 1; transform: scale(1); }
       }
       /* Credits footer */
-      .credits-container { padding: 12px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; text-align: center; color: var(--ios-secondary-label); font-size: 14px; }
+      .credits-container { padding: 12px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; text-align: center; color: var(--ios-secondary-label); font-size: 14px; margin: 0 auto; }
       .credits-row { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
       .credits-text { opacity: 0.9; }
       .credits-name { font-weight: 700; color: var(--ios-label); }
@@ -3152,6 +3155,34 @@
             </div>
 
             <div class="form-group">
+              <label>Loan Release Days</label>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 10px;">
+                <label><input type="checkbox" id="releaseDay-0" onchange="toggleReleaseDay(0)" /> Sun</label>
+                <label><input type="checkbox" id="releaseDay-1" onchange="toggleReleaseDay(1)" /> Mon</label>
+                <label><input type="checkbox" id="releaseDay-2" onchange="toggleReleaseDay(2)" /> Tue</label>
+                <label><input type="checkbox" id="releaseDay-3" onchange="toggleReleaseDay(3)" /> Wed</label>
+                <label><input type="checkbox" id="releaseDay-4" onchange="toggleReleaseDay(4)" /> Thu</label>
+                <label><input type="checkbox" id="releaseDay-5" onchange="toggleReleaseDay(5)" /> Fri</label>
+                <label><input type="checkbox" id="releaseDay-6" onchange="toggleReleaseDay(6)" /> Sat</label>
+              </div>
+              <small style="color: var(--ios-secondary-label); display:block; margin-top:6px;">Used to schedule loan releases; collections still follow non-collection days and absences.</small>
+            </div>
+
+            <div class="form-group">
+              <label>Holiday Calendar</label>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Add Holiday Date:</label>
+                  <input type="date" id="holidayDate" />
+                </div>
+                <div class="form-group" style="display:flex; align-items:flex-end;">
+                  <button class="btn btn-secondary" onclick="addHoliday()">Add Holiday</button>
+                </div>
+              </div>
+              <div id="holidayList" class="client-list"><div class="no-data">No holidays</div></div>
+            </div>
+
+            <div class="form-group">
               <label>Application Info</label>
               <div
                 style="
@@ -3662,9 +3693,12 @@
       let currentRepayingAbono = null;
       let lastAdvFocusClientId = null;
       let isDarkMode = false;
+      let notificationTimer = null;
       let defaultSettings = {
         interestRate: 20,
         loanTerm: 48,
+        holidays: [],
+        releaseDays: [false, false, false, false, false, false, false],
       };
       let currentActiveTab = "dashboard";
       let calendarViewState = { clientId: null, year: 0, month: 0 };
@@ -4157,15 +4191,21 @@
             .filter(p => p.clientId === client.id)
             .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-          // Check if client has any payment in the last 3 days
+          const clientStart = new Date(client.startDate);
+          const clientStartOnly = new Date(clientStart.getFullYear(), clientStart.getMonth(), clientStart.getDate());
+          // Do not evaluate clients whose start date is in the future
+          if (today < clientStartOnly) return;
+
+          // Check if client has any payment in the last 3 working days
           const last3Days = [];
           for (let i = 0; i < 3; i++) {
             const date = new Date(today);
             date.setDate(date.getDate() - (i + 1));
             const dateStr = date.toISOString().split("T")[0];
 
-            // Skip Sundays (no collection day)
-            if (date.getDay() === 0) continue;
+            // Skip non-collection days (Sunday/holidays) and dates before client's start date
+            if (date < clientStartOnly) continue;
+            if (isNonCollectionDay(dateStr)) continue;
 
             // Check if client was absent on this date
             if (isClientAbsentOnDate(client.id, dateStr)) continue;
@@ -5330,6 +5370,15 @@
       function isSunday(str) {
         return getLocalWeekday(str) === 0;
       }
+      function isHoliday(str) {
+        try {
+          const hs = (defaultSettings && Array.isArray(defaultSettings.holidays)) ? defaultSettings.holidays : [];
+          return hs.includes(str);
+        } catch (e) { return false; }
+      }
+      function isNonCollectionDay(str) {
+        return isSunday(str) || isHoliday(str);
+      }
       function addDaysLocal(str, days) {
         const d = parseLocalDate(str);
         d.setDate(d.getDate() + days);
@@ -5398,19 +5447,27 @@
       }
       function expectedAmountForDate(client, dateStr) {
         if (!dateStr) return client.dailyAmount;
-        const day = getLocalWeekday(dateStr);
-        if (day === 0) return 0; // Sunday is not a collection day
+        // Respect client's start and due dates
+        const d = parseLocalDate(dateStr);
+        const sd = parseLocalDate(client.startDate);
+        const dd = parseLocalDate(client.dueDate);
+        const inRange = d >= new Date(sd.getFullYear(), sd.getMonth(), sd.getDate()) &&
+                        d <= new Date(dd.getFullYear(), dd.getMonth(), dd.getDate());
+        if (!inRange) return 0;
+        // Non-collection days: Sundays and holidays
+        if (isHoliday(dateStr) || isSunday(dateStr)) return 0;
         const [satSplit, monSplit] = splitSundayAmount(Math.round(client.dailyAmount));
+        const day = d.getDay();
         if (day === 6) return client.dailyAmount + satSplit; // Saturday gets Saturday split
         if (day === 1) return client.dailyAmount + monSplit; // Monday gets Monday split
         return client.dailyAmount; // Regular day
       }
       function getNextCollectionDate(dateStr, clientId) {
-        // Start from the next day and skip Sundays and client's absences
+        // Start from the next day and skip non-collection days (Sundays/holidays) and client's absences
         let d = addDaysLocal(dateStr, 1);
         for (let i = 0; i < 370; i++) {
           const ds = formatDateLocal(d);
-          if (getLocalWeekday(ds) !== 0 && !isClientAbsentOnDate(clientId, ds)) {
+          if (!isNonCollectionDay(ds) && !isClientAbsentOnDate(clientId, ds)) {
             return ds;
           }
           d = addDaysLocal(ds, 1);
@@ -5812,7 +5869,7 @@
                 <div>
                   <h4>${payment.clientName}</h4>
                   <p>₱${payment.amount.toFixed(2)} • ${new Date(payment.date).toLocaleDateString()}</p>
-                  ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}${(payment.repaid||0)>0 ? ` • Repaid: ₱${(payment.repaid||0).toFixed(2)} • Outstanding: ₱${Math.max(0, payment.amount - (payment.repaid||0)).toFixed(2)}` : ''}</p>` : ''}
+                  ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}${(payment.repaid||0)>0 ? ` • Repaid: ₱${(payment.repaid||0).toFixed(2)} • Outstanding: ���${Math.max(0, payment.amount - (payment.repaid||0)).toFixed(2)}` : ''}</p>` : ''}
                   ${payment.paymentType === 'adv' && payment.initialAmount && payment.initialAmount > payment.amount ? `<p>Borrowed via Abono: ₱${(payment.initialAmount - payment.amount).toFixed(2)}${formatAdvBorrowers(payment)} • Remaining: ₱${payment.amount.toFixed(2)} of ₱${payment.initialAmount.toFixed(2)}</p>` : ''}
                   <p><span class="status-badge status-active">${payment.type}</span></p>
                 </div>
@@ -5949,7 +6006,7 @@
         if (dateEl) dateEl.value = today;
         if (borrowerEl) borrowerEl.textContent = borrowerName;
         if (lenderEl) lenderEl.textContent = lenderName;
-        if (outEl) outEl.textContent = `���${outstanding.toFixed(2)}`;
+        if (outEl) outEl.textContent = `₱${outstanding.toFixed(2)}`;
         document.getElementById("repayAbonoModal")?.classList.add("active");
       }
 
@@ -6872,6 +6929,11 @@
         const totalPayments = Object.values(payments).flat().length;
         const lastUpdated = new Date().toLocaleDateString();
 
+        if (!Array.isArray(defaultSettings.holidays)) defaultSettings.holidays = [];
+        if (!Array.isArray(defaultSettings.releaseDays) || defaultSettings.releaseDays.length !== 7) {
+          defaultSettings.releaseDays = [false, false, false, false, false, false, false];
+        }
+
         document.getElementById("settingsTotalClients").textContent =
           clients.length;
         document.getElementById("settingsTotalPayments").textContent =
@@ -6902,6 +6964,66 @@
         } else {
           document.getElementById("storageUsed").textContent = "N/A";
         }
+
+        // Sync new settings UI
+        for (let i = 0; i < 7; i++) {
+          const el = document.getElementById(`releaseDay-${i}`);
+          if (el) el.checked = !!defaultSettings.releaseDays[i];
+        }
+        renderHolidays();
+      }
+
+      // Loan release day toggles
+      function toggleReleaseDay(idx) {
+        if (!Array.isArray(defaultSettings.releaseDays)) {
+          defaultSettings.releaseDays = [false, false, false, false, false, false, false];
+        }
+        defaultSettings.releaseDays[idx] = !defaultSettings.releaseDays[idx];
+        saveData();
+      }
+      // Holiday management
+      function addHoliday() {
+        const el = document.getElementById('holidayDate');
+        if (!el || !el.value) { showNotification('Select a date', 'error'); return; }
+        const d = el.value;
+        if (!Array.isArray(defaultSettings.holidays)) defaultSettings.holidays = [];
+        if (!defaultSettings.holidays.includes(d)) {
+          defaultSettings.holidays.push(d);
+          defaultSettings.holidays.sort();
+          saveData();
+          renderHolidays();
+          showNotification('Holiday added', 'success');
+        } else {
+          showNotification('Holiday already exists', 'error');
+        }
+        el.value = '';
+      }
+      function deleteHoliday(dateStr) {
+        if (!Array.isArray(defaultSettings.holidays)) return;
+        defaultSettings.holidays = defaultSettings.holidays.filter(h => h !== dateStr);
+        saveData();
+        renderHolidays();
+        showNotification('Holiday removed', 'success');
+      }
+      function renderHolidays() {
+        const list = document.getElementById('holidayList');
+        if (!list) return;
+        const arr = Array.isArray(defaultSettings.holidays) ? defaultSettings.holidays : [];
+        if (arr.length === 0) {
+          list.innerHTML = '<div class="no-data">No holidays</div>';
+          return;
+        }
+        list.innerHTML = arr.map(d => {
+          const friendly = new Date(d).toLocaleDateString();
+          return `
+            <div class="payment-entry" style="border-left-color: var(--ios-orange);">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><h4>${friendly}</h4><p>${d}</p></div>
+                <button class="btn btn-danger" onclick="deleteHoliday('${d}')" style="margin:0; padding:6px 12px; font-size:12px;">Remove</button>
+              </div>
+            </div>
+          `;
+        }).join('');
       }
 
       function confirmClearAllData() {
@@ -7141,13 +7263,31 @@
 
         notificationText.textContent = message;
         notification.className = `notification ${type}`;
+        // Reset styles in case previous swipe left them altered
+        notification.style.transform = 'translate(-50%, 0) scale(1)';
+        notification.style.opacity = '1';
         notification.classList.add("show");
+
+        // Click/tap to dismiss
+        notification.onclick = hideNotification;
 
         // Add swipe to close functionality
         setupNotificationSwipe(notification);
 
-        // Auto hide after 3 seconds
-        setTimeout(() => {
+        // Close with Escape (bind once)
+        if (!window.__notifEscBound) {
+          document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") hideNotification();
+          });
+          window.__notifEscBound = true;
+        }
+
+        // Debounce auto hide
+        if (notificationTimer) {
+          clearTimeout(notificationTimer);
+          notificationTimer = null;
+        }
+        notificationTimer = setTimeout(() => {
           hideNotification();
         }, 3000);
       }
@@ -7155,8 +7295,15 @@
       function hideNotification() {
         const notification = document.getElementById("notification");
         notification.classList.remove("show");
+        // Reset styles so it doesn't get visually stuck
+        notification.style.transform = 'translate(-50%, -20px) scale(0.98)';
+        notification.style.opacity = '0';
         // Remove touch listeners when hiding
         removeNotificationSwipe(notification);
+        if (notificationTimer) {
+          clearTimeout(notificationTimer);
+          notificationTimer = null;
+        }
       }
 
       // Swipe functionality for notifications
@@ -8207,7 +8354,7 @@
             onBefore: () => { closeSidebar(); switchTab("settings"); },
           },
           {
-            text: "Export your data.",
+            text: "Export your data. When prompted, save the file with a .json extension (e.g., collectify-backup.json).",
             selector: 'button.btn.btn-secondary[onclick="exportData()"]',
             padding: 4,
           },
