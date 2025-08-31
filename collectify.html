@@ -6275,17 +6275,14 @@
           })
           .sort((a,b) => a.clientName.localeCompare(b.clientName));
 
-        // Overpayment per client (exclude Adv from paid sum)
+        // Overpayment per client: ignore ADV created today for future dates (do not treat as overpayment)
         const over = clients.filter(c => c.status !== 'paid').map(c => {
           const expected = isClientAbsentOnDate(c.id, date) ? 0 : expectedAmountForDate(c, date);
           const paidDirect = ['notebook','office','gcash','abono']
             .flatMap(t => payments[t] || [])
             .filter(p => p.clientId === c.id && p.date === date)
             .reduce((s,p) => s + (Number(p.amount)||0), 0);
-          const advExtra = (payments.adv || [])
-            .filter(p => p.clientId === c.id && (p.createdAt || p.date) === date && p.date !== date)
-            .reduce((s,p) => s + (Number(p.amount)||0), 0);
-          const paidSum = paidDirect + advExtra;
+          const paidSum = paidDirect; // exclude ADV created today for future dates
           const diff = paidSum - expected;
           return { clientId: c.id, clientName: c.name, expected, paid: paidSum, overBy: diff };
         }).filter(e => e.overBy > 0.01)
@@ -6752,11 +6749,13 @@
             const directPaid = clientPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
             const totalPaidForClient = directPaid + advTodayAmt;
 
-            // Expected reflects overpayment: max(expected, paid today)
+            // Expected collection should NOT include advances created today for future dates.
+            // It should include actual same-day payments (including any ADV applied for today) and overpayments.
             const expectedForDate = isClientAbsentOnDate(client.id, selectedDate)
               ? 0
               : expectedAmountForDate(client, selectedDate);
-            totalExpected += Math.max(expectedForDate, totalPaidForClient);
+            const paidForExpected = directPaid; // exclude future-dated ADV created today
+            totalExpected += Math.max(expectedForDate, paidForExpected);
 
             if (totalPaidForClient > 0) {
               // Merge payments with ADV created today as synthetic entries for display badges
@@ -6971,7 +6970,9 @@
         list.innerHTML = customSummaries
           .map((entry) => {
             const expected = entry.hasFull ? (entry.fullPaid || 0) : entry.dailyAmount;
-            const diff = entry.totalPaid - expected;
+            // Over/Under should ignore ADV created today for future dates
+            const paidForOver = entry.totalPaid - (entry.advForFuture || 0);
+            const diff = paidForOver - expected;
             let statusBadge = "";
             let extraLine = "";
             if (entry.advForFuture && entry.advForFuture > 0) {
