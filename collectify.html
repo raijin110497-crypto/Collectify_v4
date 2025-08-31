@@ -3350,7 +3350,18 @@
             </div>
             <div class="form-group">
               <label>Collateral Photos (up to 3):</label>
-              <input type="file" id="collateralPhotos" accept="image/*" multiple onchange="previewCollateralImages()" />
+              <input
+                type="file"
+                id="collateralPhotos"
+                accept="image/*"
+                multiple
+                capture="environment"
+                onchange="previewCollateralImages()"
+                style="width: 100%; padding: 12px; border: 1px solid var(--ios-opaque-separator); border-radius: var(--ios-border-radius);"
+              />
+              <small style="color: var(--ios-secondary-label); font-size: 12px; margin-top: 4px; display: block;">
+                📷 Tap to select up to 3 photos from gallery or take new photos
+              </small>
               <div id="collateralPreview" style="margin-top: 10px; display: none;">
                 <div id="collateralPreviewList" class="collateral-preview-list"></div>
                 <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeCollateralImages()">Remove Photos</button>
@@ -3507,7 +3518,18 @@
               <label>Current Collateral Photos:</label>
               <div id="editCollateralCurrentPhoto" class="collateral-preview-list" style="margin-bottom: 10px;"></div>
               <label>Update Collateral Photos (up to 3):</label>
-              <input type="file" id="editCollateralPhotos" accept="image/*" multiple onchange="previewEditCollateralImages()" />
+              <input
+                type="file"
+                id="editCollateralPhotos"
+                accept="image/*"
+                multiple
+                capture="environment"
+                onchange="previewEditCollateralImages()"
+                style="width: 100%; padding: 12px; border: 1px solid var(--ios-opaque-separator); border-radius: var(--ios-border-radius);"
+              />
+              <small style="color: var(--ios-secondary-label); font-size: 12px; margin-top: 4px; display: block;">
+                📷 Tap to select up to 3 photos from gallery or take new photos
+              </small>
               <div id="editCollateralPreview" style="margin-top: 10px; display: none;">
                 <div id="editCollateralPreviewList" class="collateral-preview-list"></div>
                 <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeEditCollateralImages()">Remove New Photos</button>
@@ -4184,7 +4206,10 @@
           // Clear collateral fields
           document.getElementById("collateralDescription").value = "";
           const cp = document.getElementById("collateralPhotos");
-          if (cp) { cp.value = ""; cp._files = []; try { const dt = new DataTransfer(); cp.files = dt.files; } catch(e) {} }
+          if (cp) {
+            cp.value = "";
+            cp.dataset.selectedFiles = "";
+          }
           const cpList = document.getElementById("collateralPreviewList");
           if (cpList) cpList.innerHTML = "";
           document.getElementById("collateralPreview").style.display = "none";
@@ -4223,35 +4248,66 @@
         }
       }
 
-      // Collateral image preview functions (multi-photo)
+      // Collateral image preview functions (multi-photo) - Android compatible
       function previewCollateralImages() {
         const input = document.getElementById('collateralPhotos');
         const preview = document.getElementById('collateralPreview');
         const list = document.getElementById('collateralPreviewList');
         if (!input || !preview || !list) return;
-        const newly = input.files ? Array.from(input.files) : [];
-        const existing = Array.isArray(input._files) ? input._files : [];
-        const combined = existing.concat(newly).slice(0, 3);
-        try {
-          const dt = new DataTransfer();
-          combined.forEach(f => dt.items.add(f));
-          input.files = dt.files;
-        } catch (e) {}
-        input._files = combined;
+
+        // Validate files first
+        if (!validateFileInput(input)) {
+          input.value = ''; // Clear invalid selection
+          preview.style.display = 'none';
+          return;
+        }
+
+        // Get files from input, limited to 3
+        const files = input.files ? Array.from(input.files).slice(0, 3) : [];
+
+        // Store files reference for later use (Android compatible)
+        input.dataset.selectedFiles = JSON.stringify(files.map((f, i) => ({
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          index: i
+        })));
+
         list.innerHTML = '';
-        if (combined.length) {
-          combined.forEach((file) => {
+        if (files.length > 0) {
+          // Show file count info
+          const fileInfo = document.createElement('div');
+          fileInfo.style.cssText = 'font-size: 12px; color: var(--ios-secondary-label); margin-bottom: 8px;';
+          fileInfo.textContent = `${files.length} of 3 photos selected`;
+          list.appendChild(fileInfo);
+
+          files.forEach((file, index) => {
+            // Create file reader for preview
             const reader = new FileReader();
             reader.onload = function(e) {
-              const img = document.createElement('img');
-              img.src = e.target.result;
-              img.style.maxWidth = '120px';
-              img.style.maxHeight = '120px';
-              img.style.borderRadius = 'var(--ios-border-radius)';
-              img.style.border = '1px solid var(--ios-opaque-separator)';
-              img.style.cursor = 'pointer';
-              img.onclick = () => enlargeCollateralImage(img.src);
-              list.appendChild(img);
+              try {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = `
+                  max-width: 120px;
+                  max-height: 120px;
+                  border-radius: var(--ios-border-radius);
+                  border: 1px solid var(--ios-opaque-separator);
+                  cursor: pointer;
+                  margin: 4px;
+                  object-fit: cover;
+                `;
+                img.onclick = () => enlargeCollateralImage(img.src);
+                img.title = `Photo ${index + 1}: ${file.name}`;
+                list.appendChild(img);
+              } catch (error) {
+                console.error('Error creating image preview:', error);
+                showNotification('Error loading image preview', 'error');
+              }
+            };
+            reader.onerror = function() {
+              console.error('Error reading file:', file.name);
+              showNotification(`Error reading file: ${file.name}`, 'error');
             };
             reader.readAsDataURL(file);
           });
@@ -4265,8 +4321,7 @@
         const input = document.getElementById('collateralPhotos');
         if (input) {
           input.value = '';
-          input._files = [];
-          try { const dt = new DataTransfer(); input.files = dt.files; } catch(e) {}
+          input.dataset.selectedFiles = '';
         }
         const list = document.getElementById('collateralPreviewList');
         if (list) list.innerHTML = '';
@@ -4282,6 +4337,97 @@
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
+      }
+
+      // Android-compatible image enlargement function
+      function enlargeCollateralImage(imageSrc) {
+        try {
+          // Create modal overlay
+          const overlay = document.createElement('div');
+          overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+          `;
+
+          // Create enlarged image
+          const img = document.createElement('img');
+          img.src = imageSrc;
+          img.style.cssText = `
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: var(--ios-border-radius-large);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            object-fit: contain;
+          `;
+
+          // Close on click
+          overlay.onclick = () => {
+            document.body.removeChild(overlay);
+          };
+
+          overlay.appendChild(img);
+          document.body.appendChild(overlay);
+
+        } catch (error) {
+          console.error('Error enlarging image:', error);
+          showNotification('Unable to enlarge image', 'error');
+        }
+      }
+
+      // Android file input validation helper
+      function validateFileInput(input) {
+        try {
+          // Check if File API is supported
+          if (!window.File || !window.FileReader || !window.FileList) {
+            showNotification('File upload not supported on this device', 'error');
+            return false;
+          }
+
+          // Check if input has files
+          if (!input.files || input.files.length === 0) {
+            return true; // No files selected is valid
+          }
+
+          // Validate file count
+          if (input.files.length > 3) {
+            showNotification('Maximum 3 photos allowed', 'error');
+            return false;
+          }
+
+          // Validate each file
+          for (let i = 0; i < input.files.length; i++) {
+            const file = input.files[i];
+
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+              showNotification(`File "${file.name}" is not an image`, 'error');
+              return false;
+            }
+
+            // Check file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+              showNotification(`File "${file.name}" is too large (max 10MB)`, 'error');
+              return false;
+            }
+          }
+
+          return true;
+        } catch (error) {
+          console.error('File validation error:', error);
+          showNotification('Error validating files', 'error');
+          return false;
+        }
       }
 
       // Check for 3 consecutive missed payments and send notifications
@@ -4467,35 +4613,66 @@
         }
       }
 
-      // Edit collateral image preview functions (multi-photo)
+      // Edit collateral image preview functions (multi-photo) - Android compatible
       function previewEditCollateralImages() {
         const input = document.getElementById('editCollateralPhotos');
         const preview = document.getElementById('editCollateralPreview');
         const list = document.getElementById('editCollateralPreviewList');
         if (!input || !preview || !list) return;
-        const newly = input.files ? Array.from(input.files) : [];
-        const existing = Array.isArray(input._files) ? input._files : [];
-        const combined = existing.concat(newly).slice(0, 3);
-        try {
-          const dt = new DataTransfer();
-          combined.forEach(f => dt.items.add(f));
-          input.files = dt.files;
-        } catch (e) {}
-        input._files = combined;
+
+        // Validate files first
+        if (!validateFileInput(input)) {
+          input.value = ''; // Clear invalid selection
+          preview.style.display = 'none';
+          return;
+        }
+
+        // Get files from input, limited to 3
+        const files = input.files ? Array.from(input.files).slice(0, 3) : [];
+
+        // Store files reference for later use (Android compatible)
+        input.dataset.selectedFiles = JSON.stringify(files.map((f, i) => ({
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          index: i
+        })));
+
         list.innerHTML = '';
-        if (combined.length) {
-          combined.forEach((file) => {
+        if (files.length > 0) {
+          // Show file count info
+          const fileInfo = document.createElement('div');
+          fileInfo.style.cssText = 'font-size: 12px; color: var(--ios-secondary-label); margin-bottom: 8px;';
+          fileInfo.textContent = `${files.length} of 3 photos selected`;
+          list.appendChild(fileInfo);
+
+          files.forEach((file, index) => {
+            // Create file reader for preview
             const reader = new FileReader();
             reader.onload = function(e) {
-              const img = document.createElement('img');
-              img.src = e.target.result;
-              img.style.maxWidth = '120px';
-              img.style.maxHeight = '120px';
-              img.style.borderRadius = 'var(--ios-border-radius)';
-              img.style.border = '1px solid var(--ios-opaque-separator)';
-              img.style.cursor = 'pointer';
-              img.onclick = () => enlargeCollateralImage(img.src);
-              list.appendChild(img);
+              try {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = `
+                  max-width: 120px;
+                  max-height: 120px;
+                  border-radius: var(--ios-border-radius);
+                  border: 1px solid var(--ios-opaque-separator);
+                  cursor: pointer;
+                  margin: 4px;
+                  object-fit: cover;
+                `;
+                img.onclick = () => enlargeCollateralImage(img.src);
+                img.title = `Photo ${index + 1}: ${file.name}`;
+                list.appendChild(img);
+              } catch (error) {
+                console.error('Error creating image preview:', error);
+                showNotification('Error loading image preview', 'error');
+              }
+            };
+            reader.onerror = function() {
+              console.error('Error reading file:', file.name);
+              showNotification(`Error reading file: ${file.name}`, 'error');
             };
             reader.readAsDataURL(file);
           });
@@ -4507,7 +4684,10 @@
 
       function removeEditCollateralImages() {
         const input = document.getElementById('editCollateralPhotos');
-        if (input) { input.value = ''; input._files = []; try { const dt = new DataTransfer(); input.files = dt.files; } catch(e) {} }
+        if (input) {
+          input.value = '';
+          input.dataset.selectedFiles = '';
+        }
         const list = document.getElementById('editCollateralPreviewList');
         if (list) list.innerHTML = '';
         const preview = document.getElementById('editCollateralPreview');
@@ -4544,14 +4724,27 @@
           return;
         }
 
-        // Process collateral images if provided
-        if (collateralPhotosInput && ((collateralPhotosInput._files && collateralPhotosInput._files.length) || (collateralPhotosInput.files && collateralPhotosInput.files.length))) {
+        // Process collateral images if provided (Android compatible)
+        if (collateralPhotosInput && collateralPhotosInput.files && collateralPhotosInput.files.length > 0) {
           try {
-            const source = collateralPhotosInput._files || Array.from(collateralPhotosInput.files);
-            const files = Array.from(source).slice(0, 3);
+            const files = Array.from(collateralPhotosInput.files).slice(0, 3);
+
+            // Validate each file
+            for (const file of files) {
+              if (!file.type.startsWith('image/')) {
+                showNotification(`Invalid file type: ${file.name}. Please select only image files.`, "error");
+                return;
+              }
+              if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                showNotification(`File too large: ${file.name}. Maximum size is 10MB.`, "error");
+                return;
+              }
+            }
+
             collateralPhotosBase64 = await Promise.all(files.map(f => convertImageToBase64(f)));
           } catch (error) {
-            showNotification("Error processing collateral images", "error");
+            console.error('Error processing collateral images:', error);
+            showNotification("Error processing collateral images. Please try again.", "error");
             return;
           }
         }
@@ -5070,9 +5263,12 @@
           currentPhotoDiv.innerHTML = '<small style="color: var(--ios-secondary-label);">No photo uploaded</small>';
         }
 
-        // Clear edit preview
+        // Clear edit preview (Android compatible)
         const ecp = document.getElementById("editCollateralPhotos");
-        if (ecp) ecp.value = "";
+        if (ecp) {
+          ecp.value = "";
+          ecp.dataset.selectedFiles = "";
+        }
         document.getElementById("editCollateralPreview").style.display = "none";
         const ecpList = document.getElementById("editCollateralPreviewList");
         if (ecpList) ecpList.innerHTML = "";
@@ -5142,14 +5338,27 @@
         const editCollateralPhotosInput = document.getElementById("editCollateralPhotos");
         let newCollateralPhotosBase64 = [];
 
-        // Process new collateral images if provided
-        if (editCollateralPhotosInput && ((editCollateralPhotosInput._files && editCollateralPhotosInput._files.length) || (editCollateralPhotosInput.files && editCollateralPhotosInput.files.length))) {
+        // Process new collateral images if provided (Android compatible)
+        if (editCollateralPhotosInput && editCollateralPhotosInput.files && editCollateralPhotosInput.files.length > 0) {
           try {
-            const source = editCollateralPhotosInput._files || Array.from(editCollateralPhotosInput.files);
-            const files = Array.from(source).slice(0, 3);
+            const files = Array.from(editCollateralPhotosInput.files).slice(0, 3);
+
+            // Validate each file
+            for (const file of files) {
+              if (!file.type.startsWith('image/')) {
+                showNotification(`Invalid file type: ${file.name}. Please select only image files.`, "error");
+                return;
+              }
+              if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                showNotification(`File too large: ${file.name}. Maximum size is 10MB.`, "error");
+                return;
+              }
+            }
+
             newCollateralPhotosBase64 = await Promise.all(files.map(f => convertImageToBase64(f)));
           } catch (error) {
-            showNotification("Error processing collateral images", "error");
+            console.error('Error processing collateral images:', error);
+            showNotification("Error processing collateral images. Please try again.", "error");
             return;
           }
         }
