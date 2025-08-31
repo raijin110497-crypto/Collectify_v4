@@ -6488,7 +6488,7 @@
                 ${
                   isPaid
                     ? `Paid: ₱${client.paidAmount.toFixed(2)}`
-                    : `Expected: ₱${expectedForDate.toFixed(2)}`
+                    : `Expected: ��${expectedForDate.toFixed(2)}`
                 }
               </p>
               ${statusLine}
@@ -8027,16 +8027,32 @@
         const ids = DATE_INPUT_IDS;
         ids.forEach(id=>{
           const el = document.getElementById(id);
-          if (!el) return;
+          if (!el || el.dataset.dpBound === '1') return;
           el.setAttribute('inputmode','none');
           el.readOnly = true;
           el.classList.add('ios-date-input');
-          el.type = 'text';
+          try { el.type = 'text'; } catch(e) {}
           el.addEventListener('click', ()=>openDatePicker(id));
           el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openDatePicker(id);} });
+          el.dataset.dpBound = '1';
         });
+        // Global delegation as safety net (covers cases where specific binding failed)
+        if (!window.__dpDelegated) {
+          document.addEventListener('click', (e)=>{
+            const t = e.target.closest('input#holidayDate, input.ios-date-input');
+            if (t) {
+              const tid = t.id || 'holidayDate';
+              e.preventDefault();
+              openDatePicker(tid);
+            }
+          });
+          window.__dpDelegated = true;
+        }
       }
       document.addEventListener('DOMContentLoaded', attachDatePickers);
+      // Observe DOM changes to rebind if elements are added later
+      const __dpObserver = new MutationObserver(()=>attachDatePickers());
+      __dpObserver.observe(document.documentElement, { childList: true, subtree: true });
 
       // Tutorial mode implementation (no dialogs, text + spotlight)
       let tutorial = {
