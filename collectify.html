@@ -5213,14 +5213,27 @@
         const editCollateralPhotosInput = document.getElementById("editCollateralPhotos");
         let newCollateralPhotosBase64 = [];
 
-        // Process new collateral images if provided
-        if (editCollateralPhotosInput && ((editCollateralPhotosInput._files && editCollateralPhotosInput._files.length) || (editCollateralPhotosInput.files && editCollateralPhotosInput.files.length))) {
+        // Process new collateral images if provided (Android compatible)
+        if (editCollateralPhotosInput && editCollateralPhotosInput.files && editCollateralPhotosInput.files.length > 0) {
           try {
-            const source = editCollateralPhotosInput._files || Array.from(editCollateralPhotosInput.files);
-            const files = Array.from(source).slice(0, 3);
+            const files = Array.from(editCollateralPhotosInput.files).slice(0, 3);
+
+            // Validate each file
+            for (const file of files) {
+              if (!file.type.startsWith('image/')) {
+                showNotification(`Invalid file type: ${file.name}. Please select only image files.`, "error");
+                return;
+              }
+              if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                showNotification(`File too large: ${file.name}. Maximum size is 10MB.`, "error");
+                return;
+              }
+            }
+
             newCollateralPhotosBase64 = await Promise.all(files.map(f => convertImageToBase64(f)));
           } catch (error) {
-            showNotification("Error processing collateral images", "error");
+            console.error('Error processing collateral images:', error);
+            showNotification("Error processing collateral images. Please try again.", "error");
             return;
           }
         }
