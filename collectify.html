@@ -5169,6 +5169,28 @@
           .join("");
       }
 
+      // Make client cards open the details modal when tapped (excluding action buttons)
+      function bindClientCardClicks(containerId) {
+        try {
+          const container = document.getElementById(containerId);
+          if (!container) return;
+          container.querySelectorAll('.client-item').forEach((card) => {
+            if (card.dataset.bound === '1') return;
+            card.dataset.bound = '1';
+            card.addEventListener('click', (e) => {
+              const target = e.target;
+              if (!card || !card.dataset.clientId) return;
+              // Ignore clicks on interactive controls inside the card
+              if (target.closest('.client-actions') || target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select') || target.closest('textarea')) {
+                return;
+              }
+              const id = parseInt(card.dataset.clientId);
+              if (id) openViewClient(id, card);
+            });
+          });
+        } catch (e) {}
+      }
+
       // Get status badge
       function getStatusBadge(client) {
         const now = new Date();
