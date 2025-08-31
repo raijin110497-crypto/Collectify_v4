@@ -2547,6 +2547,19 @@
                 <h3 id="actualCollectedToday">₱0</h3>
                 <p>Actual Collection</p>
               </div>
+              <div
+                class="stat-card"
+                style="
+                  background: linear-gradient(
+                    135deg,
+                    var(--ios-pink),
+                    var(--ios-orange)
+                  );
+                "
+              >
+                <h3 id="overduePaidToday">₱0</h3>
+                <p>Overdue Payments</p>
+              </div>
             </div>
 
             <div
@@ -3699,7 +3712,7 @@
         <div class="modal-body">
           <p>Borrower: <strong id="repayAbonoBorrower">-</strong></p>
           <p>Lender: <strong id="repayAbonoLender">-</strong></p>
-          <p>Outstanding: <strong id="repayAbonoOutstanding">₱0.00</strong></p>
+          <p>Outstanding: <strong id="repayAbonoOutstanding">���0.00</strong></p>
           <div class="form-row">
             <div class="form-group">
               <label>Repay Amount:</label>
@@ -5103,7 +5116,7 @@
                   : "var(--ios-blue)";
 
             return `
-            <div class="client-item">
+            <div class="client-item" data-client-id="${client.id}">
               <div class="client-header">
                 <div class="client-info">
                   <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
@@ -5167,6 +5180,29 @@
           `;
           })
           .join("");
+        bindClientCardClicks('clientList');
+      }
+
+      // Make client cards open the details modal when tapped (excluding action buttons)
+      function bindClientCardClicks(containerId) {
+        try {
+          const container = document.getElementById(containerId);
+          if (!container) return;
+          container.querySelectorAll('.client-item').forEach((card) => {
+            if (card.dataset.bound === '1') return;
+            card.dataset.bound = '1';
+            card.addEventListener('click', (e) => {
+              const target = e.target;
+              if (!card || !card.dataset.clientId) return;
+              // Ignore clicks on interactive controls inside the card
+              if (target.closest('.client-actions') || target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select') || target.closest('textarea')) {
+                return;
+              }
+              const id = parseInt(card.dataset.clientId);
+              if (id) openViewClient(id, card);
+            });
+          });
+        } catch (e) {}
       }
 
       // Get status badge
@@ -5191,6 +5227,14 @@
       }
 
       // Overdue utilities and actions
+      function isClientOverdue(client) {
+        if (!client) return false;
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const due = new Date(client.dueDate);
+        const dueOnly = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+        return client.remainingBalance > 0 && dueOnly < today;
+      }
       function isDueSoon(client) {
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -5216,7 +5260,7 @@
         const renderCard = (client, badgeHtml) => {
           const rb = Number(client.remainingBalance || 0);
           return `
-            <div class="client-item">
+            <div class="client-item" data-client-id="${client.id}">
               <div class="client-header">
                 <div class="client-info">
                   <h4>${client.name}</h4>
@@ -5257,6 +5301,7 @@
           ${overdue.length ? `<h3 style="margin:8px 4px">Overdue</h3>${overdueHtml}` : ''}
           ${dueSoon.length ? `<h3 style=\"margin:12px 4px 8px\">Due Soon (≤ ${OVERDUE_SOON_DAYS} days)</h3>${soonHtml}` : ''}
         `;
+        bindClientCardClicks('overdueList');
       }
 
       function openPlanModal(clientId) {
@@ -5293,7 +5338,8 @@
         const client = clients.find(c => c.id === clientId);
         if (!client || !client.repaymentPlan) { showNotification("No plan set", "error"); return; }
         const today = new Date().toISOString().split("T")[0];
-        if (findDuplicatePayment(clientId, today, ["notebook","office","gcash"])) {
+        const isOver = isClientOverdue(client);
+        if (!isOver && findDuplicatePayment(clientId, today, ["notebook","office","gcash"])) {
           showNotification("Duplicate entry: already has a record today", "error");
           return;
         }
@@ -5335,8 +5381,9 @@
           return;
         }
 
-        // Prevent duplicate across non-Adv tabs for the same date
-        const dup = findDuplicatePayment(clientId, today, [
+        // Prevent duplicate across non-Adv tabs for the same date (except when overdue)
+        const isOver = isClientOverdue(client);
+        const dup = isOver ? null : findDuplicatePayment(clientId, today, [
           "notebook",
           "office",
           "gcash",
@@ -5612,8 +5659,9 @@
           return;
         }
 
-        // Duplicate across non-Adv tabs check
-        const dup = findDuplicatePayment(client.id, paymentDate, [
+        // Duplicate across non-Adv tabs check (allow multiples if overdue)
+        const allowMulti = isClientOverdue(client);
+        const dup = allowMulti ? null : findDuplicatePayment(client.id, paymentDate, [
           "notebook",
           "office",
           "gcash",
@@ -6044,11 +6092,13 @@
           return;
         }
 
-        // Prevent duplicate entries inside the same tab for the same date
+        const overdueNow = isClientOverdue(client);
+
+        // Prevent duplicate entries inside the same tab for the same date (skip for overdue)
         const existsInSameTab = (payments[type] || []).some(
           (p) => p.clientId == clientId && p.date === date,
         );
-        if (existsInSameTab) {
+        if (!overdueNow && existsInSameTab) {
           showNotification(
             "Duplicate entry in this tab for the selected date",
             "error",
@@ -6056,8 +6106,8 @@
           return;
         }
 
-        // Cross-tab duplicate check (Adv is excluded from cross-tab restriction)
-        if (type !== "adv") {
+        // Cross-tab duplicate check (Adv is excluded from cross-tab restriction). Skip for overdue.
+        if (type !== "adv" && !overdueNow) {
           const dup = findDuplicatePayment(
             parseInt(clientId),
             date,
@@ -6074,6 +6124,12 @@
 
         // Auto-schedule Adv starting ON the selected date when valid; otherwise from the next collection day
         if (type === "adv") {
+          // Overdue clients are not allowed to take advances
+          if (isClientOverdue(client)) {
+            showNotification("Overdue clients cannot take advance. Record payment(s) or full payment instead.", "error");
+            return;
+          }
+
           let remaining = amount;
           const createdAt = todayLocalDateStr ? todayLocalDateStr() : date;
           const clientIdNum = parseInt(clientId);
@@ -6869,6 +6925,24 @@
           actualCollected - advTotalForDate,
         );
 
+        // Overdue payments (clients with due date before selected date)
+        const selectedKey = selectedDate;
+        const overduePaidDirect = datePayments
+          .filter((p) => {
+            const cl = clients.find((c) => c.id === p.clientId);
+            if (!cl) return false;
+            return new Date(cl.dueDate) < new Date(selectedKey);
+          })
+          .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const overdueAdvCreatedToday = advCreatedToday
+          .filter((p) => {
+            const cl = clients.find((c) => c.id === p.clientId);
+            if (!cl) return false;
+            return new Date(cl.dueDate) < new Date(selectedKey);
+          })
+          .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const overduePaidTotal = overduePaidDirect + overdueAdvCreatedToday;
+
         // Update stats
         document.getElementById("paidToday").textContent = paidClients.length;
         document.getElementById("notPaidToday").textContent =
@@ -6877,6 +6951,7 @@
           `₱${totalExpected.toFixed(2)}`;
         document.getElementById("actualCollectedToday").textContent =
           `₱${actualCollected.toFixed(2)}`;
+        const op = document.getElementById("overduePaidToday"); if (op) op.textContent = `₱${overduePaidTotal.toFixed(2)}`;
 
         // Update lists
         updateTrackerList("paidClientsList", paidClients, true);
@@ -8260,7 +8335,7 @@
               nbAmt>0 ? `<span class=\"cal-amt cal-notebook\">₱${nbAmt.toFixed(0)}</span>` : '',
               ofAmt>0 ? `<span class=\"cal-amt cal-office\">₱${ofAmt.toFixed(0)}</span>` : '',
               gcAmt>0 ? `<span class=\"cal-amt cal-gcash\">₱${gcAmt.toFixed(0)}</span>` : '',
-              adAmt>0 ? `<span class=\"cal-amt cal-adv\" title=\"Advance\">₱${adAmt.toFixed(0)}</span>` : '',
+              adAmt>0 ? `<span class=\"cal-amt cal-adv\" title=\"Advance\">��${adAmt.toFixed(0)}</span>` : '',
               fullAmt>0 ? `<span class=\"cal-amt cal-full\" title=\"Full Pay\">₱${fullAmt.toFixed(0)}</span>` : ''
             ].filter(Boolean).join('');
 
@@ -8447,7 +8522,7 @@
           sheet.innerHTML = `
             <div class="sheet-header">
               <div class="month-nav">
-                <button type="button" class="month-btn" id="dpPrev" aria-label="Previous month">‹</button>
+                <button type="button" class="month-btn" id="dpPrev" aria-label="Previous month">���</button>
               </div>
               <div class="sheet-title" id="dpTitle">Select date</div>
               <div class="month-nav">
@@ -8911,8 +8986,8 @@
               client.remainingBalance = 0; client.status = 'paid';
             }
           }
-          // Add one future ADV (shows as dot on its scheduled date)
-          if (idx % 4 === 0) {
+          // Add one future ADV (shows as dot on its scheduled date) — skip for overdue clients
+          if (idx % 4 === 0 && !isClientOverdue(client)) {
             let next = getNextCollectionDate(dateToday, client.id);
             const expf = expectedAmountForDate(client, next);
             if (expf > 0) {
