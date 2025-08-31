@@ -3958,18 +3958,23 @@
         setupTabListeners();
         updateSettingsInfo();
 
-        // Set today's date as default for all date inputs
-        const today = new Date().toISOString().split("T")[0];
-        document.getElementById("paymentDate").value = today;
-        document.getElementById("officePaymentDate").value = today;
-        document.getElementById("gcashPaymentDate").value = today;
-        document.getElementById("advPaymentDate").value = today;
-        document.getElementById("abonoPaymentDate").value = today;
-        document.getElementById("absentDate").value = today;
-        document.getElementById("trackerDate").value = today;
+        // Set today's date as default for all date inputs and enforce rules
+        const today = todayLocalDateStr();
+        const setVal = (id) => { const el = document.getElementById(id); if (el) el.value = today; };
+        ["paymentDate","officePaymentDate","gcashPaymentDate","advPaymentDate","abonoPaymentDate","absentDate","trackerDate","startDate","fullPaymentDate"].forEach(setVal);
         const sd = document.getElementById("summaryDate"); if (sd) sd.value = today;
-        document.getElementById("startDate").value = today;
-        document.getElementById("fullPaymentDate").value = today;
+        // Restrict to today for payment tabs (Notebook, Office, GCash, Full Pay)
+        const restrictToToday = (id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.min = today; el.max = today;
+          el.addEventListener("change", () => {
+            if (el.value !== today) { el.value = today; showNotification("Only today's date is allowed in this tab", "error"); }
+          });
+        };
+        ["paymentDate","officePaymentDate","gcashPaymentDate","fullPaymentDate"].forEach(restrictToToday);
+        // Allow other tabs to pick any date (Adv, Abono, Absent)
+        ["advPaymentDate","abonoPaymentDate","absentDate"].forEach((id)=>{ const el=document.getElementById(id); if(el){ el.removeAttribute("min"); el.removeAttribute("max"); }});
         // Initialize collapsible dashboard stats
         const g = document.getElementById('dashboardStatsGroup');
         const gridEl = document.getElementById('dashboardStats');
@@ -5681,6 +5686,11 @@
         if (!client) return;
 
         const paymentDate = document.getElementById("fullPaymentDate").value;
+        // Enforce current-day only for full payments
+        if (paymentDate !== todayLocalDateStr()) {
+          showNotification("Full payment can only be recorded for today's date", "error");
+          return;
+        }
 
         // Absent check
         if (isClientAbsentOnDate(client.id, paymentDate)) {
@@ -6108,6 +6118,11 @@
           showNotification("Please fill in all fields", "error");
           return;
         }
+        // Enforce current-day only for Notebook, Office, and GCash tabs
+        if ((type === "notebook" || type === "office" || type === "gcash") && date !== todayLocalDateStr()) {
+          showNotification("Only today's date is allowed in this tab", "error");
+          return;
+        }
 
         const client = clients.find((c) => c.id == clientId);
         if (!client) {
@@ -6189,8 +6204,10 @@
             }
           }
 
-          document.getElementById(`${type}Client`).value = "";
-          document.getElementById(amountField).value = "";
+          const selElAdv = document.getElementById(`${type}Client`);
+          if (selElAdv) { selElAdv.value = ""; selElAdv.dispatchEvent(new Event("change", { bubbles: true })); }
+          const amtElAdv = document.getElementById(amountField);
+          if (amtElAdv) amtElAdv.value = "";
 
           await saveData();
           updateStats();
@@ -6317,8 +6334,16 @@
         }
 
         // Clear form
-        document.getElementById(`${type}Client`).value = "";
-        document.getElementById(amountField).value = "";
+        const selEl = document.getElementById(`${type}Client`);
+        if (selEl) { selEl.value = ""; selEl.dispatchEvent(new Event("change", { bubbles: true })); }
+        const amtEl = document.getElementById(amountField);
+        if (amtEl) amtEl.value = "";
+        // Clear Abono lender fields as well
+        if (type === "abono") {
+          const lenderSel = document.getElementById("abonoLenderClient");
+          if (lenderSel) { lenderSel.value = ""; lenderSel.dispatchEvent(new Event("change", { bubbles: true })); }
+          const info = document.getElementById("abonoLenderInfo"); if (info) info.textContent = "Available advance: ₱0.00";
+        }
 
         await saveData();
         updateStats();
@@ -6495,7 +6520,15 @@
 
         document.getElementById("editPaymentClient").value = payment.clientName;
         document.getElementById("editPaymentAmount").value = payment.amount;
-        document.getElementById("editPaymentDate").value = payment.date;
+        const editDateEl = document.getElementById("editPaymentDate");
+        editDateEl.value = payment.date;
+        if (type === "notebook" || type === "office" || type === "gcash") {
+          const t = todayLocalDateStr();
+          editDateEl.min = t; editDateEl.max = t;
+        } else {
+          editDateEl.removeAttribute("min");
+          editDateEl.removeAttribute("max");
+        }
 
         document.getElementById("editPaymentModal").classList.add("active");
       }
@@ -6515,6 +6548,11 @@
 
         if (isNaN(newAmount) || !newDate) {
           showNotification("Please fill in all fields correctly", "error");
+          return;
+        }
+        // Enforce current-day only when editing payments in Notebook/Office/GCash
+        if ((type === "notebook" || type === "office" || type === "gcash") && newDate !== todayLocalDateStr()) {
+          showNotification("Only today's date is allowed in this tab", "error");
           return;
         }
         // Disallow moving payments to non-collection days for collection tabs
@@ -6994,7 +7032,7 @@
           `₱${totalExpected.toFixed(2)}`;
         document.getElementById("actualCollectedToday").textContent =
           `₱${actualCollected.toFixed(2)}`;
-        const op = document.getElementById("overduePaidToday"); if (op) op.textContent = `₱${overduePaidTotal.toFixed(2)}`;
+        const op = document.getElementById("overduePaidToday"); if (op) op.textContent = `��${overduePaidTotal.toFixed(2)}`;
 
         // Update lists
         updateTrackerList("paidClientsList", paidClients, true);
@@ -9104,7 +9142,11 @@
         // Reset missed-payment notification throttle keys and run check immediately for realism
         try { (clients||[]).forEach(c => { localStorage.removeItem(`missed_payment_${c.id}`); localStorage.removeItem(`missed_since_start_${c.id}`); }); } catch(e) {}
         checkMissedPayments();
-        const td = document.getElementById('trackerDate'); if (td && !td.value) td.value = todayLocalDateStr();
+        const todayStr = todayLocalDateStr();
+        ["paymentDate","officePaymentDate","gcashPaymentDate","advPaymentDate","abonoPaymentDate","absentDate","trackerDate","fullPaymentDate"].forEach((id)=>{ const el=document.getElementById(id); if (el) el.value = todayStr; });
+        // Reinforce restrictions for payment tabs while in demo
+        ["paymentDate","officePaymentDate","gcashPaymentDate","fullPaymentDate"].forEach((id)=>{ const el=document.getElementById(id); if (el){ el.min=todayStr; el.max=todayStr; }});
+        const td = document.getElementById('trackerDate'); if (td && !td.value) td.value = todayStr;
         loadDailyTracker();
         // Refresh Overdue list immediately (in case user navigates there next)
         try { loadOverdueTab(); } catch(e) {}
