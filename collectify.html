@@ -6072,20 +6072,27 @@
           }
         }
 
-        // Auto-schedule Adv across following collection days (Option B)
+        // Auto-schedule Adv starting ON the selected date when valid; otherwise from the next collection day
         if (type === "adv") {
           let remaining = amount;
-          let cursor = date;
           const createdAt = todayLocalDateStr ? todayLocalDateStr() : date;
+          const clientIdNum = parseInt(clientId);
+          const isValidStart = (ds) => {
+            return !isNonCollectionDay(ds) && !isClientAbsentOnDate(clientIdNum, ds) && expectedAmountForDate(client, ds) > 0;
+          };
+
+          // Use the selected date if it's a valid collection day, else jump to the next one
+          let cursor = isValidStart(date) ? date : getNextCollectionDate(date, clientIdNum);
           let createdCount = 0;
           for (let i = 0; i < 400 && remaining > 0; i++) {
-            const nextDate = getNextCollectionDate(cursor, parseInt(clientId));
-            const expected = expectedAmountForDate(client, nextDate);
-            const toApply = Math.min(remaining, expected);
-            addOrMergePaymentForDate(client, nextDate, toApply, "adv", createdAt);
+            const expected = expectedAmountForDate(client, cursor);
+            const toApply = Math.min(remaining, expected || remaining);
+            addOrMergePaymentForDate(client, cursor, toApply, "adv", createdAt);
             remaining -= toApply;
-            cursor = nextDate;
             createdCount++;
+            if (remaining > 0) {
+              cursor = getNextCollectionDate(cursor, clientIdNum);
+            }
           }
 
           document.getElementById(`${type}Client`).value = "";
@@ -6096,7 +6103,7 @@
           updateClientList();
           updatePaymentHistory("adv");
           if (currentActiveTab === 'summary') loadSummaryTab();
-          showNotification(`Advance scheduled into ${createdCount} future day(s)`, "success");
+          showNotification(`Advance scheduled into ${createdCount} day(s)`, "success");
           return;
         }
 
@@ -6366,7 +6373,7 @@
                   <h4>${payment.clientName}</h4>
                   <p>₱${payment.amount.toFixed(2)} • ${new Date(payment.date).toLocaleDateString()}</p>
                   ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}${(payment.repaid||0)>0 ? ` • Repaid: ₱${(payment.repaid||0).toFixed(2)} • Outstanding: ₱${Math.max(0, payment.amount - (payment.repaid||0)).toFixed(2)}` : ''}</p>` : ''}
-                  ${payment.paymentType === 'adv' && payment.initialAmount && payment.initialAmount > payment.amount ? `<p>Borrowed via Abono: ₱${(payment.initialAmount - payment.amount).toFixed(2)}${formatAdvBorrowers(payment)} • Remaining: ₱${payment.amount.toFixed(2)} of ₱${payment.initialAmount.toFixed(2)}</p>` : ''}
+                  ${payment.paymentType === 'adv' && payment.initialAmount && payment.initialAmount > payment.amount ? `<p>Borrowed via Abono: ₱${(payment.initialAmount - payment.amount).toFixed(2)}${formatAdvBorrowers(payment)} • Remaining: ���${payment.amount.toFixed(2)} of ₱${payment.initialAmount.toFixed(2)}</p>` : ''}
                   <p><span class="status-badge status-active">${payment.type}</span></p>
                 </div>
                 <div style="display:flex; gap:8px;">
@@ -8804,8 +8811,8 @@
           const interestRate = defaultSettings.interestRate;
           const term = defaultSettings.loanTerm;
           const start = formatDateLocal(addDaysLocal(today, -i * 3));
-          const dueTmp = addDaysLocal(start, term);
-          const dueDate = formatDateLocal(dueTmp);
+          let dueTmp = addDaysLocal(start, term);
+          let dueDate = formatDateLocal(dueTmp);
           const totalAmount = loanAmount * (1 + interestRate / 100);
           const dailyAmount = totalAmount / term;
           const paidDays = i % 6; // 0..5 days paid
@@ -8813,6 +8820,13 @@
           let remainingBalance = Math.max(0, totalAmount - paidSoFar);
           let status = remainingBalance <= 0 ? 'paid' : 'active';
           if (i % 7 === 0) { remainingBalance = 0; status = 'paid'; }
+          // Force at least one overdue client in demo (client #1)
+          if (i === 1) {
+            // Due date in the past with remaining balance to appear as Overdue
+            dueDate = formatDateLocal(addDaysLocal(today, -5));
+            status = 'active';
+            if (remainingBalance <= 0) remainingBalance = dailyAmount * 3; // ensure not fully paid
+          }
           const c = {
             id: 9000 + i,
             name: `Demo Client ${i}`,
@@ -8879,6 +8893,9 @@
         updateStats(); updateClientList(); populateClientSelects();
         ['notebook','office','gcash','adv','abono'].forEach(t=>updatePaymentHistory(t));
         updateAbsenceHistory(); updateSettingsInfo();
+        // Reset missed-payment notification throttle keys and run check immediately for realism
+        try { (clients||[]).forEach(c => localStorage.removeItem(`missed_payment_${c.id}`)); } catch(e) {}
+        checkMissedPayments();
         const td = document.getElementById('trackerDate'); if (td && !td.value) td.value = todayLocalDateStr();
         loadDailyTracker();
         const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
