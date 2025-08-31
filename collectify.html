@@ -7963,7 +7963,51 @@
       function pad2(n){ return String(n).padStart(2,"0"); }
       function toISODate(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
       function parseISODate(str){ const [y,m,day]=String(str||"").split("-").map(Number); if(!y||!m||!day) return null; return new Date(y, m-1, day); }
+      function ensureDatePickerDOM(){
+        let overlay = document.getElementById('datePickerOverlay');
+        let sheet = document.getElementById('datePickerSheet');
+        if (!overlay || !sheet) {
+          // Build overlay
+          overlay = document.createElement('div');
+          overlay.id = 'datePickerOverlay';
+          overlay.className = 'ios-sheet-overlay';
+          overlay.style.display = 'none';
+          document.body.appendChild(overlay);
+          // Build sheet
+          sheet = document.createElement('div');
+          sheet.id = 'datePickerSheet';
+          sheet.className = 'ios-sheet';
+          sheet.style.bottom = '-60vh';
+          sheet.innerHTML = `
+            <div class="sheet-header">
+              <div class="month-nav">
+                <button type="button" class="month-btn" id="dpPrev" aria-label="Previous month">‹</button>
+              </div>
+              <div class="sheet-title" id="dpTitle">Select date</div>
+              <div class="month-nav">
+                <button type="button" class="month-btn" id="dpNext" aria-label="Next month">›</button>
+              </div>
+            </div>
+            <div class="sheet-list" style="padding:12px">
+              <div class="client-calendar" style="border:none; box-shadow:none; padding:0; background:transparent;">
+                <div class="calendar-grid" id="dpGrid"></div>
+                <div class="calendar-legend" id="dpLegend" style="margin-top:10px;">
+                  <div class="legend-item"><span class="legend-dot" style="background: var(--ios-blue);"></span>Selected</div>
+                  <div class="legend-item"><span class="legend-dot cal-full"></span>Today</div>
+                  <div class="legend-item"><span class="legend-dot cal-absent"></span>Sunday/Holiday</div>
+                </div>
+              </div>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn btn-secondary" id="dpClear">Clear</button>
+              <button type="button" class="btn btn-secondary" id="dpCancel">Cancel</button>
+              <button type="button" class="btn btn-primary" id="dpSet">Set</button>
+            </div>`;
+          document.body.appendChild(sheet);
+        }
+      }
       function openDatePicker(targetId){
+        ensureDatePickerDOM();
         dpTargetId = targetId;
         try { if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur(); } catch(e) {}
         const input = document.getElementById(targetId);
