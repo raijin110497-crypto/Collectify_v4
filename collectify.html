@@ -3385,8 +3385,9 @@
               <input
                 type="number"
                 id="loanAmount"
-                placeholder="0.00"
-                step="0.01"
+                placeholder="0"
+                step="1000"
+                min="0"
                 oninput="calculateLoanDetails()"
               />
             </div>
@@ -3476,7 +3477,7 @@
           <div class="form-row">
             <div class="form-group">
               <label>Loan Amount:</label>
-              <input type="number" id="editLoanAmount" step="0.01" />
+              <input type="number" id="editLoanAmount" step="1000" min="0" />
             </div>
             <div class="form-group">
               <label>Interest Rate (%):</label>
@@ -4880,6 +4881,13 @@
           showNotification("Please fill in all required fields", "error");
           return;
         }
+        if (loanAmount % 1000 !== 0) {
+          const loanEl = document.getElementById("loanAmount");
+          if (loanEl) loanEl.classList.add("input-error");
+          showNotification("Loan amount must be a multiple of ₱1,000 (e.g., 1000, 2000, ...)", "error");
+          setTimeout(()=>{ if (loanEl) loanEl.classList.remove("input-error"); }, 2000);
+          return;
+        }
 
         // Prefer accumulated previews (Android WebView may only allow single-pick)
         const accumulated = Array.isArray(window.__collateralSelectedBase64) ? window.__collateralSelectedBase64.slice(0, 3) : [];
@@ -5473,6 +5481,13 @@
           isNaN(remainingBalance)
         ) {
           showNotification("Please fill in all fields correctly", "error");
+          return;
+        }
+        if (loanAmount % 1000 !== 0) {
+          const el = document.getElementById("editLoanAmount");
+          if (el) el.classList.add("input-error");
+          showNotification("Loan amount must be a multiple of ₱1,000 (e.g., 1000, 2000, ...)", "error");
+          setTimeout(()=>{ if (el) el.classList.remove("input-error"); }, 2000);
           return;
         }
 
@@ -6279,7 +6294,7 @@
         // Totals and counts
         const sumAmt = (arr) => arr.reduce((s, x) => s + (Number(x.amount)||0), 0);
         document.getElementById('summaryNotebookTotal').textContent = `₱${sumAmt(nb).toFixed(2)}`;
-        document.getElementById('summaryGcashTotal').textContent = `���${sumAmt(gc).toFixed(2)}`;
+        document.getElementById('summaryGcashTotal').textContent = `₱${sumAmt(gc).toFixed(2)}`;
         const fpEl = document.getElementById('summaryFullPaidTotal'); if (fpEl) fpEl.textContent = `₱${sumAmt(full).toFixed(2)}`;
         document.getElementById('summaryAdvTotal').textContent = `₱${sumAmt(ad).toFixed(2)}`;
         document.getElementById('summaryOverpayCount').textContent = String(over.length);
@@ -6353,7 +6368,7 @@
                 <div>
                   <h4>${payment.clientName}</h4>
                   <p>₱${payment.amount.toFixed(2)} • ${new Date(payment.date).toLocaleDateString()}</p>
-                  ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}${(payment.repaid||0)>0 ? ` • Repaid: ₱${(payment.repaid||0).toFixed(2)} • Outstanding: ���${Math.max(0, payment.amount - (payment.repaid||0)).toFixed(2)}` : ''}</p>` : ''}
+                  ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}${(payment.repaid||0)>0 ? ` • Repaid: ₱${(payment.repaid||0).toFixed(2)} • Outstanding: ₱${Math.max(0, payment.amount - (payment.repaid||0)).toFixed(2)}` : ''}</p>` : ''}
                   ${payment.paymentType === 'adv' && payment.initialAmount && payment.initialAmount > payment.amount ? `<p>Borrowed via Abono: ₱${(payment.initialAmount - payment.amount).toFixed(2)}${formatAdvBorrowers(payment)} • Remaining: ₱${payment.amount.toFixed(2)} of ₱${payment.initialAmount.toFixed(2)}</p>` : ''}
                   <p><span class="status-badge status-active">${payment.type}</span></p>
                 </div>
