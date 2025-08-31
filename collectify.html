@@ -7025,6 +7025,8 @@
           defaultSettings.releaseDays = [false, false, false, false, false, false, false];
         }
         defaultSettings.releaseDays[idx] = !defaultSettings.releaseDays[idx];
+        const lbl = document.getElementById(`releaseDay-${idx}`)?.closest('label');
+        if (lbl) lbl.classList.toggle('active', !!defaultSettings.releaseDays[idx]);
         saveData();
       }
       // Holiday management
