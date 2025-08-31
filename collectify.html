@@ -4601,10 +4601,11 @@
         console.log('=== End Debug Test ===');
       }
 
-      // Check for 3 consecutive missed payments and send notifications
+      // Check for missed payments and send notifications (recent streak + long since-start)
       function checkMissedPayments() {
         const today = new Date();
         const todayStr = today.toISOString().split("T")[0];
+        const SINCE_START_THRESHOLD = 5; // many days without paying since start
 
         clients.filter(c => c.status === 'active').forEach(client => {
           // Get all payments for this client across all payment types
@@ -4617,68 +4618,79 @@
           // Do not evaluate clients whose start date is in the future
           if (today < clientStartOnly) return;
 
-          // Check if client has any payment in the last 3 working days
+          // 1) Recent 3 working days without payment
           const last3Days = [];
           for (let i = 0; i < 3; i++) {
             const date = new Date(today);
             date.setDate(date.getDate() - (i + 1));
             const dateStr = date.toISOString().split("T")[0];
-
-            // Skip non-collection days (Sunday/holidays) and dates before client's start date
             if (date < clientStartOnly) continue;
             if (isNonCollectionDay(dateStr)) continue;
-
-            // Check if client was absent on this date
             if (isClientAbsentOnDate(client.id, dateStr)) continue;
-
-            // Check if there's a payment on this date
             const hasPayment = allPayments.some(p => p.date === dateStr);
-
-            if (!hasPayment) {
-              last3Days.push(dateStr);
-            }
+            if (!hasPayment) last3Days.push(dateStr);
           }
 
-          // If client missed 3 consecutive working days, show notification
           if (last3Days.length >= 3) {
             const coMakerInfo = client.coMaker && client.coMaker.name
               ? `Co-maker: ${client.coMaker.name} (${client.coMaker.contactNumber || 'No contact'})`
               : 'No co-maker information';
-
             const collateralInfo = client.collateral && client.collateral.description
               ? `Collateral: ${client.collateral.description}`
               : 'No collateral information';
-
-            // Check if we haven't shown this notification recently (prevent spam)
-            const lastNotificationKey = `missed_payment_${client.id}`;
-            const lastNotification = localStorage.getItem(lastNotificationKey);
-            const daysSinceLastNotification = lastNotification
-              ? Math.floor((today - new Date(lastNotification)) / (1000 * 60 * 60 * 24))
-              : 999;
-
-            // Only show notification once per day for each client
-            if (daysSinceLastNotification >= 1) {
-              showCollateralNotification(client, coMakerInfo, collateralInfo);
-              localStorage.setItem(lastNotificationKey, todayStr);
+            const lastKey = `missed_payment_${client.id}`;
+            const lastAt = localStorage.getItem(lastKey);
+            const daysSince = lastAt ? Math.floor((today - new Date(lastAt)) / (1000 * 60 * 60 * 24)) : 999;
+            if (daysSince >= 1) {
+              showCollateralNotification(client, coMakerInfo, collateralInfo, null);
+              localStorage.setItem(lastKey, todayStr);
             }
-
-            // Update client's consecutive missed days
             client.consecutiveMissedDays = last3Days.length;
           } else {
-            // Reset consecutive missed days if client has recent payments
             client.consecutiveMissedDays = 0;
+          }
+
+          // 2) Many working days missed since start date
+          let missedSinceStart = 0;
+          const paidDates = new Set(allPayments.map(p => p.date));
+          // iterate from start to yesterday
+          const cursor = new Date(clientStartOnly);
+          while (cursor < today) {
+            const ds = cursor.toISOString().split('T')[0];
+            if (!isNonCollectionDay(ds) && !isClientAbsentOnDate(client.id, ds)) {
+              if (!paidDates.has(ds)) missedSinceStart++;
+            }
+            cursor.setDate(cursor.getDate() + 1);
+          }
+          if (missedSinceStart >= SINCE_START_THRESHOLD) {
+            const coMakerInfo = client.coMaker && client.coMaker.name
+              ? `Co-maker: ${client.coMaker.name} (${client.coMaker.contactNumber || 'No contact'})`
+              : 'No co-maker information';
+            const collateralInfo = client.collateral && client.collateral.description
+              ? `Collateral: ${client.collateral.description}`
+              : 'No collateral information';
+            const key = `missed_since_start_${client.id}`;
+            const last = localStorage.getItem(key);
+            const daysSince = last ? Math.floor((today - new Date(last)) / (1000 * 60 * 60 * 24)) : 999;
+            if (daysSince >= 1) {
+              showCollateralNotification(client, coMakerInfo, collateralInfo, missedSinceStart);
+              localStorage.setItem(key, todayStr);
+            }
           }
         });
       }
 
-      // Show collateral notification for clients who missed 3+ payments
-      function showCollateralNotification(client, coMakerInfo, collateralInfo) {
+      // Show collateral notification for clients who missed payments
+      function showCollateralNotification(client, coMakerInfo, collateralInfo, missedSinceStartCount) {
         // Create notification element
         const notification = document.createElement('div');
         notification.className = 'collateral-notification';
+        const titleText = missedSinceStartCount && missedSinceStartCount > 0
+          ? `Missed ${missedSinceStartCount} working day(s) since start`
+          : 'Missed payments in the last 3 working days';
         notification.innerHTML = `
           <div class="collateral-notification-content">
-            <h3>⚠️ 3+ Days Missed Payment Alert</h3>
+            <h3>${titleText}</h3>
             <p><strong>Client:</strong> ${client.name}</p>
             <p><strong>Contact:</strong> ${client.contactNumber || 'No contact'}</p>
             <p><strong>Remaining Balance:</strong> ₱${client.remainingBalance.toFixed(2)}</p>
@@ -9004,6 +9016,43 @@
           }
         });
 
+        // Extra flavor: one client with daily payments since start and an absence in between
+        (function addConsistentPayer(){
+          const client = arr[arr.length - 1];
+          if (!client) return;
+          // Remove any previously created entries for this client
+          Object.keys(p).forEach(t => { p[t] = (p[t]||[]).filter(x => x.clientId !== client.id); });
+          for (let i = abs.length - 1; i >= 0; i--) { if (abs[i].clientId === client.id) abs.splice(i,1); }
+          let remaining = client.totalAmount;
+          const types = ['notebook','office','gcash'];
+          let ti = 0;
+          // Choose an absence day: 5th working day after start if available
+          let workCount = 0; let chosenAbsent = null;
+          const start = parseLocalDate(client.startDate);
+          const end = new Date(); end.setDate(end.getDate()-1);
+          const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+          for (let d = new Date(start); d <= endOnly && remaining > 0; d.setDate(d.getDate()+1)) {
+            const ds = formatDateLocal(d);
+            if (isNonCollectionDay(ds)) continue;
+            workCount++;
+            if (workCount === 5) { chosenAbsent = ds; break; }
+          }
+          const lastDay = endOnly;
+          for (let d = new Date(start); d <= lastDay && remaining > 0; d.setDate(d.getDate()+1)) {
+            const ds = formatDateLocal(d);
+            if (isNonCollectionDay(ds)) continue;
+            if (ds === chosenAbsent) { abs.push({ id: Date.now()+Math.random()*1000|0, clientId: client.id, clientName: client.name, date: ds, reason: 'personal' }); continue; }
+            const expected = expectedAmountForDate(client, ds);
+            if (expected <= 0) continue;
+            const amt = Math.min(expected, remaining);
+            const type = types[ti++ % types.length];
+            p[type].push({ id: Date.now()+Math.random()*100000|0, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: type });
+            remaining -= amt;
+          }
+          client.remainingBalance = Math.max(0, client.totalAmount - Object.values(p).flat().filter(x=>x.clientId===client.id).reduce((s,x)=>s+(Number(x.amount)||0),0));
+          client.status = client.remainingBalance <= 1e-6 ? 'paid' : 'active';
+        })();
+
         // If today is Sunday, ensure no payments are dated today and no ADV is created today
         if (isSun) {
           Object.keys(p).forEach(k => {
@@ -9024,7 +9073,7 @@
         ['notebook','office','gcash','adv','abono'].forEach(t=>updatePaymentHistory(t));
         updateAbsenceHistory(); updateSettingsInfo();
         // Reset missed-payment notification throttle keys and run check immediately for realism
-        try { (clients||[]).forEach(c => localStorage.removeItem(`missed_payment_${c.id}`)); } catch(e) {}
+        try { (clients||[]).forEach(c => { localStorage.removeItem(`missed_payment_${c.id}`); localStorage.removeItem(`missed_since_start_${c.id}`); }); } catch(e) {}
         checkMissedPayments();
         const td = document.getElementById('trackerDate'); if (td && !td.value) td.value = todayLocalDateStr();
         loadDailyTracker();
