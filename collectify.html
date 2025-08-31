@@ -2132,8 +2132,9 @@
       .cal-amounts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
       .cal-amt { font-size: 10px; padding: 1px 6px; border-radius: 12px; color: #fff; line-height: 1.2; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
       .calendar-cell.disabled .cal-amt { opacity: 0.6; }
-      .collateral-preview-list { display: flex; gap: 8px; flex-wrap: wrap; }
-      .collateral-preview-list img { max-width: 120px; max-height: 120px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator); cursor: pointer; }
+      .collateral-preview-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: start; }
+      .collateral-preview-list img { width: 100% !important; height: auto !important; aspect-ratio: 1 / 1; max-width: none !important; max-height: none !important; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator); cursor: pointer; object-fit: cover; }
+      .collateral-preview-list > .collateral-file-info { grid-column: 1 / -1; }
 
       /* Collapsible dashboard stats */
       #dashboardStatsGroup { display: grid; gap: 16px; }
@@ -4285,6 +4286,7 @@
           const arr = window.__collateralSelectedBase64.slice(0, 3);
           list.innerHTML = '';
           const fileInfo = document.createElement('div');
+          fileInfo.className = 'collateral-file-info';
           fileInfo.style.cssText = 'font-size: 12px; color: var(--ios-secondary-label); margin-bottom: 8px;';
           fileInfo.textContent = `${arr.length} of 3 photos selected ✓`;
           list.appendChild(fileInfo);
@@ -4787,6 +4789,7 @@
           const arr = window.__editCollateralSelectedBase64.slice(0, 3);
           list.innerHTML = '';
           const fileInfo = document.createElement('div');
+          fileInfo.className = 'collateral-file-info';
           fileInfo.style.cssText = 'font-size: 12px; color: var(--ios-secondary-label); margin-bottom: 8px;';
           fileInfo.textContent = `${arr.length} of 3 photos selected`;
           list.appendChild(fileInfo);
