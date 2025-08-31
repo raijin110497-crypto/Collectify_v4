@@ -1571,7 +1571,7 @@
         .sidebar-header { padding: 12px; }
         .settings-group { margin: 10px; }
         .sidebar .tab { padding: 12px 14px; font-size: 15px; }
-        .credits-container { padding: 10px 12px; font-size: 12px; }
+        .credits-container { padding: 10px 12px; font-size: 11px; }
       }
 
       /* Extra small screens (phones in portrait) */
@@ -1640,7 +1640,7 @@
         .sidebar-header { padding: 10px; }
         .settings-group { margin: 8px; }
         .sidebar .tab { padding: 10px 12px; font-size: 14px; }
-        .credits-container { padding: 8px 10px; font-size: 11px; }
+        .credits-container { padding: 8px 10px; font-size: 10px; }
       }
 
       /* Landscape orientation optimizations */
@@ -1714,7 +1714,7 @@
         .sidebar-header { padding: 8px 10px; }
         .settings-group { margin: 8px; }
         .sidebar .tab { padding: 8px 10px; font-size: 13px; }
-        .credits-container { padding: 8px 10px; font-size: 11px; }
+        .credits-container { padding: 8px 10px; font-size: 10px; }
       }
 
       /* Large screens optimization */
@@ -2069,7 +2069,7 @@
         to { opacity: 1; transform: scale(1); }
       }
       /* Credits footer */
-      .credits-container { padding: 12px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; text-align: center; color: var(--ios-secondary-label); font-size: 14px; margin: 0 auto; }
+      .credits-container { padding: 12px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; text-align: center; color: var(--ios-secondary-label); font-size: 12px; margin: 0 auto; }
       .credits-row { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
       .credits-text { opacity: 0.9; }
       .credits-name { font-weight: 700; color: var(--ios-label); }
@@ -2078,6 +2078,17 @@
       .credits-separator { opacity: 0.45; }
     </style>
     <style>
+      /* Release day pill toggles */
+      .release-days .release-day { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--ios-opaque-separator); border-radius: 18px; padding: 8px 12px; background: var(--ios-tertiary-system-background); color: var(--ios-label); font-weight: 600; transition: all 0.2s var(--ios-easing); cursor: pointer; }
+      .release-days .release-day input { position: absolute; opacity: 0; width: 0; height: 0; }
+      .release-days .release-day span { pointer-events: none; }
+      .release-days .release-day:hover { transform: translateY(-1px); }
+      .release-days .release-day:has(input:checked),
+      .release-days .release-day.active { background: var(--ios-blue); color: var(--ios-secondary-grouped-background); border-color: var(--ios-blue); }
+      body.dark .release-days .release-day { background: var(--ios-secondary-system-background); }
+      body.dark .release-days .release-day:has(input:checked),
+      body.dark .release-days .release-day.active { background: var(--ios-blue); color: var(--ios-system-background); border-color: var(--ios-blue); }
+
       /* Client payment calendar */
       .client-calendar { background: var(--ios-secondary-grouped-background); border-radius: var(--ios-border-radius-large); border: 0.5px solid var(--ios-opaque-separator); box-shadow: var(--ios-shadow); padding: 12px; }
       .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -2121,6 +2132,19 @@
       #dashboardStatsGroup.expanded #dashboardStats .stat-card:nth-child(3){ animation-delay: 0.10s; }
       #dashboardStatsGroup.expanded #dashboardStats .stat-card:nth-child(4){ animation-delay: 0.14s; }
       #dashboardStatsGroup.expanded #dashboardStats .stat-card:nth-child(5){ animation-delay: 0.18s; }
+    </style>
+    <style>
+      /* iOS-style Date Picker (reuses calendar styles) */
+      .ios-date-input { cursor: pointer; }
+      #datePickerOverlay { z-index: 3600; }
+      #datePickerSheet .sheet-header { display: flex; align-items: center; justify-content: space-between; }
+      #datePickerSheet .month-nav { display: inline-flex; gap: 8px; align-items: center; }
+      #datePickerSheet .month-btn { -webkit-appearance: none; appearance: none; border: 1px solid var(--ios-opaque-separator); background: var(--ios-secondary-grouped-background); color: var(--ios-blue); border-radius: 10px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+      #datePickerSheet .actions { display: flex; gap: 8px; padding: 12px; border-top: 0.5px solid var(--ios-opaque-separator); }
+      #datePickerSheet .actions .btn { flex: 1; margin: 0; min-height: 44px; border-radius: 22px; }
+      #datePickerSheet .calendar-grid { margin-top: 6px; }
+      #datePickerSheet .calendar-cell.selected { box-shadow: 0 0 0 2px rgba(0,122,255,0.35) inset; }
+      #datePickerSheet .calendar-cell.today { box-shadow: 0 0 0 2px rgba(0,122,255,0.25) inset; }
     </style>
   </head>
   <body>
@@ -3174,14 +3198,14 @@
 
             <div class="form-group">
               <label>Loan Release Days</label>
-              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 10px;">
-                <label><input type="checkbox" id="releaseDay-0" onchange="toggleReleaseDay(0)" /> Sun</label>
-                <label><input type="checkbox" id="releaseDay-1" onchange="toggleReleaseDay(1)" /> Mon</label>
-                <label><input type="checkbox" id="releaseDay-2" onchange="toggleReleaseDay(2)" /> Tue</label>
-                <label><input type="checkbox" id="releaseDay-3" onchange="toggleReleaseDay(3)" /> Wed</label>
-                <label><input type="checkbox" id="releaseDay-4" onchange="toggleReleaseDay(4)" /> Thu</label>
-                <label><input type="checkbox" id="releaseDay-5" onchange="toggleReleaseDay(5)" /> Fri</label>
-                <label><input type="checkbox" id="releaseDay-6" onchange="toggleReleaseDay(6)" /> Sat</label>
+              <div class="release-days" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 10px;">
+                <label class="release-day"><input type="checkbox" id="releaseDay-0" onchange="toggleReleaseDay(0)" /><span>Sun</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-1" onchange="toggleReleaseDay(1)" /><span>Mon</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-2" onchange="toggleReleaseDay(2)" /><span>Tue</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-3" onchange="toggleReleaseDay(3)" /><span>Wed</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-4" onchange="toggleReleaseDay(4)" /><span>Thu</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-5" onchange="toggleReleaseDay(5)" /><span>Fri</span></label>
+                <label class="release-day"><input type="checkbox" id="releaseDay-6" onchange="toggleReleaseDay(6)" /><span>Sat</span></label>
               </div>
               <small style="color: var(--ios-secondary-label); display:block; margin-top:6px;">Used to schedule loan releases; collections still follow non-collection days and absences.</small>
             </div>
@@ -6986,7 +7010,11 @@
         // Sync new settings UI
         for (let i = 0; i < 7; i++) {
           const el = document.getElementById(`releaseDay-${i}`);
-          if (el) el.checked = !!defaultSettings.releaseDays[i];
+          if (el) {
+            el.checked = !!defaultSettings.releaseDays[i];
+            const lbl = el.closest('label');
+            if (lbl) lbl.classList.toggle('active', !!defaultSettings.releaseDays[i]);
+          }
         }
         renderHolidays();
       }
@@ -6997,6 +7025,8 @@
           defaultSettings.releaseDays = [false, false, false, false, false, false, false];
         }
         defaultSettings.releaseDays[idx] = !defaultSettings.releaseDays[idx];
+        const lbl = document.getElementById(`releaseDay-${idx}`)?.closest('label');
+        if (lbl) lbl.classList.toggle('active', !!defaultSettings.releaseDays[idx]);
         saveData();
       }
       // Holiday management
@@ -7010,6 +7040,9 @@
           defaultSettings.holidays.sort();
           saveData();
           renderHolidays();
+          updateStats();
+          if (document.getElementById('trackerDate')) loadDailyTracker();
+          if (document.getElementById('summaryDate')) loadSummaryTab();
           showNotification('Holiday added', 'success');
         } else {
           showNotification('Holiday already exists', 'error');
@@ -7889,7 +7922,122 @@
       <div id="tutorialStepCounter"></div>
     </div>
 
+    <!-- iOS Date Picker Sheet -->
+    <div id="datePickerOverlay" class="ios-sheet-overlay" style="display:none"></div>
+    <div id="datePickerSheet" class="ios-sheet" style="bottom:-60vh">
+      <div class="sheet-header">
+        <div class="month-nav">
+          <button type="button" class="month-btn" id="dpPrev" aria-label="Previous month">‹</button>
+        </div>
+        <div class="sheet-title" id="dpTitle">Select date</div>
+        <div class="month-nav">
+          <button type="button" class="month-btn" id="dpNext" aria-label="Next month">›</button>
+        </div>
+      </div>
+      <div class="sheet-list" style="padding:12px">
+        <div class="client-calendar" style="border:none; box-shadow:none; padding:0; background:transparent;">
+          <div class="calendar-grid" id="dpGrid"></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" id="dpClear">Clear</button>
+        <button type="button" class="btn btn-secondary" id="dpCancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="dpSet">Set</button>
+      </div>
+    </div>
+
     <script>
+      // Date picker state and logic
+      const DATE_INPUT_IDS = [
+        "paymentDate","officePaymentDate","gcashPaymentDate","advPaymentDate",
+        "abonoPaymentDate","absentDate","trackerDate","summaryDate",
+        "startDate","fullPaymentDate","planStartDate","holidayDate"
+      ];
+      let dpTargetId = null;
+      let dpYear = null, dpMonth = null, dpSelected = null;
+      function pad2(n){ return String(n).padStart(2,"0"); }
+      function toISODate(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+      function parseISODate(str){ const [y,m,day]=String(str||"").split("-").map(Number); if(!y||!m||!day) return null; return new Date(y, m-1, day); }
+      function openDatePicker(targetId){
+        dpTargetId = targetId;
+        const input = document.getElementById(targetId);
+        const now = new Date();
+        const base = input && input.value ? (parseISODate(input.value) || now) : now;
+        dpYear = base.getFullYear();
+        dpMonth = base.getMonth();
+        dpSelected = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+        buildDpGrid();
+        const overlay = document.getElementById('datePickerOverlay');
+        const sheet = document.getElementById('datePickerSheet');
+        overlay.style.display = 'block';
+        requestAnimationFrame(()=>{
+          overlay.classList.add('show');
+          sheet.classList.add('show');
+        });
+        document.getElementById('dpCancel').onclick = closeDatePicker;
+        document.getElementById('dpClear').onclick = ()=>{ setDateValue(''); closeDatePicker(); };
+        document.getElementById('dpSet').onclick = ()=>{ if (dpSelected) setDateValue(toISODate(dpSelected)); closeDatePicker(); };
+        document.getElementById('dpPrev').onclick = ()=>{ dpMonth--; if(dpMonth<0){dpMonth=11; dpYear--; } buildDpGrid(); };
+        document.getElementById('dpNext').onclick = ()=>{ dpMonth++; if(dpMonth>11){dpMonth=0; dpYear++; } buildDpGrid(); };
+        overlay.onclick = (e)=>{ if(e.target===overlay) closeDatePicker(); };
+      }
+      function closeDatePicker(){
+        const overlay = document.getElementById('datePickerOverlay');
+        const sheet = document.getElementById('datePickerSheet');
+        overlay.classList.remove('show');
+        sheet.classList.remove('show');
+        setTimeout(()=>{ overlay.style.display='none'; },250);
+      }
+      function setDateValue(v){
+        const input = document.getElementById(dpTargetId);
+        if(!input) return;
+        input.value = v;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      function buildDpGrid(){
+        const title = document.getElementById('dpTitle');
+        const grid = document.getElementById('dpGrid');
+        if (!grid) return;
+        const monthName = new Date(dpYear, dpMonth, 1).toLocaleString(undefined,{month:'long', year:'numeric'});
+        title.textContent = monthName;
+        const dayNames = ['S','M','T','W','T','F','S'];
+        let html = dayNames.map(n=>`<div class=\"calendar-dayname\">${n}</div>`).join('');
+        const firstDay = new Date(dpYear, dpMonth, 1).getDay();
+        const daysInMonth = new Date(dpYear, dpMonth+1, 0).getDate();
+        for(let i=0;i<firstDay;i++){ html += '<div></div>'; }
+        const today = new Date(); const todayKey = toISODate(today);
+        for(let d=1; d<=daysInMonth; d++){
+          const current = new Date(dpYear, dpMonth, d);
+          const key = toISODate(current);
+          const isToday = key === todayKey;
+          const isSel = dpSelected && key === toISODate(dpSelected);
+          html += `<button type=\"button\" class=\"calendar-cell${isToday?' today':''}${isSel?' selected':''}\" data-day=\"${d}\">\n                    <span class=\"day-num\">${d}</span>\n                  </button>`;
+        }
+        grid.innerHTML = html;
+        Array.from(grid.querySelectorAll('.calendar-cell')).forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const day = Number(btn.getAttribute('data-day'));
+            dpSelected = new Date(dpYear, dpMonth, day);
+            setDateValue(toISODate(dpSelected));
+            closeDatePicker();
+          });
+        });
+      }
+      function attachDatePickers(){
+        const ids = DATE_INPUT_IDS;
+        ids.forEach(id=>{
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.setAttribute('inputmode','none');
+          el.readOnly = true;
+          el.classList.add('ios-date-input');
+          el.type = 'text';
+          el.addEventListener('click', ()=>openDatePicker(id));
+          el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openDatePicker(id);} });
+        });
+      }
+      document.addEventListener('DOMContentLoaded', attachDatePickers);
+
       // Tutorial mode implementation (no dialogs, text + spotlight)
       let tutorial = {
         active: false,
@@ -7897,6 +8045,7 @@
         steps: [],
         backup: null,
       };
+      let tutorialScrollEls = [];
 
       function deepClone(obj) {
         return JSON.parse(JSON.stringify(obj));
@@ -8454,9 +8603,16 @@
             endTutorial();
           });
         window.addEventListener("resize", refreshSpotlightPosition);
-        window.addEventListener("scroll", refreshSpotlightPosition, {
-          passive: true,
-        });
+        window.addEventListener("orientationchange", refreshSpotlightPosition);
+        window.addEventListener("scroll", refreshSpotlightPosition, { passive: true });
+        try {
+          tutorialScrollEls = Array.from(
+            document.querySelectorAll(".tab-content, .sidebar, .modal-body, .ios-sheet .sheet-list")
+          );
+          tutorialScrollEls.forEach((el) =>
+            el.addEventListener("scroll", refreshSpotlightPosition, { passive: true })
+          );
+        } catch (e) {}
       }
 
       function closeTutorialLayer() {
@@ -8464,7 +8620,16 @@
         layer.classList.remove("show");
         layer.removeEventListener("click", onTutorialClick);
         window.removeEventListener("resize", refreshSpotlightPosition);
+        window.removeEventListener("orientationchange", refreshSpotlightPosition);
         window.removeEventListener("scroll", refreshSpotlightPosition);
+        try {
+          if (Array.isArray(tutorialScrollEls)) {
+            tutorialScrollEls.forEach((el) =>
+              el.removeEventListener("scroll", refreshSpotlightPosition)
+            );
+            tutorialScrollEls = [];
+          }
+        } catch (e) {}
       }
 
       function onTutorialClick() {
@@ -8510,6 +8675,8 @@
           positionSpotlight(el, step.padding || 4);
           placeInstruction(step.text, el);
           updateStepCounter();
+          requestAnimationFrame(() => refreshSpotlightPosition());
+          setTimeout(refreshSpotlightPosition, 300);
         }, delay);
       }
 
