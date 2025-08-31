@@ -4620,6 +4620,13 @@
         const list = document.getElementById('editCollateralPreviewList');
         if (!input || !preview || !list) return;
 
+        // Validate files first
+        if (!validateFileInput(input)) {
+          input.value = ''; // Clear invalid selection
+          preview.style.display = 'none';
+          return;
+        }
+
         // Get files from input, limited to 3
         const files = input.files ? Array.from(input.files).slice(0, 3) : [];
 
@@ -4640,12 +4647,6 @@
           list.appendChild(fileInfo);
 
           files.forEach((file, index) => {
-            // Validate file type
-            if (!file.type.startsWith('image/')) {
-              console.warn('Skipping non-image file:', file.name);
-              return;
-            }
-
             // Create file reader for preview
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -4666,10 +4667,12 @@
                 list.appendChild(img);
               } catch (error) {
                 console.error('Error creating image preview:', error);
+                showNotification('Error loading image preview', 'error');
               }
             };
             reader.onerror = function() {
               console.error('Error reading file:', file.name);
+              showNotification(`Error reading file: ${file.name}`, 'error');
             };
             reader.readAsDataURL(file);
           });
