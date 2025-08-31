@@ -7828,64 +7828,74 @@
 
       function buildTutorialSteps() {
         tutorial.steps = [
+          // Open menu and show navigation
           {
             text: "Use this menu to open the sidebar for navigation.",
             selector: ".menu-btn",
-            padding: 8,
+            padding: 4,
             onBefore: () => {
               closeSidebar();
               switchTab("dashboard");
             },
           },
           {
-            text: "All sections are here. Let's explore them.",
+            text: "All sections are here, ordered as Dashboard → Daily Tracker → Summary → Notebook → Office → GCash → Adv → Absent → Abono → Overdue → Settings.",
             selector: '.sidebar .tab[data-tab="dashboard"]',
-            padding: 8,
+            padding: 4,
             needsSidebar: true,
             wait: 450,
             openTab: "dashboard",
           },
+
+          // Dashboard (contents)
+          {
+            text: "Dashboard stats show totals and today's expected load.",
+            selector: "#dashboard .stats-grid",
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("dashboard"); },
+          },
           {
             text: "Add a new client from here.",
             selector: 'button.btn.btn-primary[onclick="openAddClientModal()"]',
-            padding: 8,
-            onBefore: () => {
-              closeSidebar();
-              switchTab("dashboard");
-            },
+            padding: 4,
           },
           {
             text: "Search your clients here.",
             selector: "#searchClients",
-            padding: 6,
+            padding: 4,
           },
           {
             text: "Your client list appears here with actions: View, Edit, Full Pay, Delete.",
             selector: "#clientList",
-            padding: 8,
+            padding: 4,
           },
 
+          // Daily Tracker
           {
-            text: "Overdue tab: review overdue and due soon clients.",
-            selector: '.sidebar .tab[data-tab="overdue"]',
-            padding: 6,
+            text: "Daily Tracker: see paid vs not paid and totals for a date.",
+            selector: '.sidebar .tab[data-tab="daily-tracker"]',
+            padding: 4,
             needsSidebar: true,
             wait: 450,
-            openTab: "overdue",
+            openTab: "daily-tracker",
           },
           {
-            text: "Here you can Full Pay, set a Repayment Plan, or record a plan payment.",
-            selector: "#overdueList",
-            padding: 8,
-            onBefore: () => {
-              closeSidebar();
-              switchTab("overdue");
-            },
+            text: "Choose a date to refresh the tracker.",
+            selector: "#trackerDate",
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("daily-tracker"); },
           },
           {
-            text: "Summary tab: view totals across sources for a chosen date.",
+            text: "Tracker stats update here.",
+            selector: "#trackerStatsGrid",
+            padding: 4,
+          },
+
+          // Summary
+          {
+            text: "Summary: totals across sources for a chosen date.",
             selector: '.sidebar .tab[data-tab="summary"]',
-            padding: 6,
+            padding: 4,
             needsSidebar: true,
             wait: 450,
             openTab: "summary",
@@ -7893,21 +7903,20 @@
           {
             text: "Pick a date to update the Summary.",
             selector: "#summaryDate",
-            padding: 6,
-            onBefore: () => {
-              closeSidebar();
-              switchTab("summary");
-            },
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("summary"); },
           },
           {
-            text: "These tiles show Notebook, GCash, Adv, Overpay, and Absent totals.",
+            text: "These tiles show Notebook, GCash, Adv, Overpay, Absent totals.",
             selector: "#summary .stats-grid",
-            padding: 8,
+            padding: 4,
           },
+
+          // Notebook
           {
             text: "Notebook: record daily payments.",
             selector: '.sidebar .tab[data-tab="notebook"]',
-            padding: 6,
+            padding: 4,
             needsSidebar: true,
             wait: 450,
             openTab: "notebook",
@@ -7915,7 +7924,7 @@
           {
             text: "Pick a client to record a payment.",
             selector: "#notebookClientPickerBtn",
-            padding: 6,
+            padding: 4,
             onBefore: () => {
               closeSidebar();
               switchTab("notebook");
@@ -7926,50 +7935,27 @@
           {
             text: "Enter the amount (defaults to daily amount).",
             selector: "#paymentAmount",
-            padding: 6,
+            padding: 4,
           },
           {
             text: "Save the notebook payment here.",
-            selector:
-              "button.btn.btn-success[onclick=\"addPayment('notebook')\"]",
-            padding: 8,
+            selector: "button.btn.btn-success[onclick=\"addPayment('notebook')\"]",
+            padding: 4,
           },
 
+          // Office
           {
-            text: "Daily Tracker: see paid vs not paid and totals for a date.",
-            selector: '.sidebar .tab[data-tab="daily-tracker"]',
-            padding: 6,
-            needsSidebar: true,
-            wait: 450,
-            openTab: "daily-tracker",
-          },
-          {
-            text: "Choose a date to refresh the tracker.",
-            selector: "#trackerDate",
-            padding: 6,
-            onBefore: () => {
-              closeSidebar();
-              switchTab("daily-tracker");
-            },
-          },
-          {
-            text: "Tracker stats update here.",
-            selector: "#trackerStatsGrid",
-            padding: 10,
-          },
-
-          {
-            text: "Office tab: record office payments.",
+            text: "Office: record office payments.",
             selector: '.sidebar .tab[data-tab="office"]',
-            padding: 6,
+            padding: 4,
             needsSidebar: true,
             wait: 450,
             openTab: "office",
           },
           {
-            text: "Pick a client for office payment here.",
+            text: "Pick a client for office payment.",
             selector: "#officeClientPickerBtn",
-            padding: 6,
+            padding: 4,
             onBefore: () => {
               closeSidebar();
               switchTab("office");
@@ -7980,27 +7966,27 @@
           {
             text: "Enter the office payment amount.",
             selector: "#officePaymentAmount",
-            padding: 6,
+            padding: 4,
           },
           {
             text: "Save the office payment here.",
-            selector:
-              "button.btn.btn-success[onclick=\"addPayment('office')\"]",
-            padding: 8,
+            selector: "button.btn.btn-success[onclick=\"addPayment('office')\"]",
+            padding: 4,
           },
 
+          // GCash
           {
-            text: "GCash tab: record GCash payments.",
+            text: "GCash: record GCash payments.",
             selector: '.sidebar .tab[data-tab="gcash"]',
-            padding: 6,
+            padding: 4,
             needsSidebar: true,
             wait: 450,
             openTab: "gcash",
           },
           {
-            text: "Pick a client for GCash payment here.",
+            text: "Pick a client for GCash payment.",
             selector: "#gcashClientPickerBtn",
-            padding: 6,
+            padding: 4,
             onBefore: () => {
               closeSidebar();
               switchTab("gcash");
@@ -8011,26 +7997,27 @@
           {
             text: "Enter the GCash payment amount.",
             selector: "#gcashPaymentAmount",
-            padding: 6,
+            padding: 4,
           },
           {
             text: "Save the GCash payment here.",
             selector: "button.btn.btn-success[onclick=\"addPayment('gcash')\"]",
-            padding: 8,
+            padding: 4,
           },
 
+          // Adv
           {
-            text: "Adv tab: track advance/partial or custom amounts.",
+            text: "Adv: track advance/partial or custom amounts.",
             selector: '.sidebar .tab[data-tab="adv"]',
-            padding: 6,
+            padding: 4,
             needsSidebar: true,
             wait: 450,
             openTab: "adv",
           },
           {
-            text: "Pick a client for Adv entry here.",
+            text: "Pick a client for Adv entry.",
             selector: "#advClientPickerBtn",
-            padding: 6,
+            padding: 4,
             onBefore: () => {
               closeSidebar();
               switchTab("adv");
@@ -8041,52 +8028,19 @@
           {
             text: "Enter the Adv amount.",
             selector: "#advPaymentAmount",
-            padding: 6,
+            padding: 4,
           },
           {
             text: "Save the Adv entry here.",
             selector: "button.btn.btn-success[onclick=\"addPayment('adv')\"]",
-            padding: 8,
+            padding: 4,
           },
 
+          // Absent
           {
-            text: "Abono tab: borrow from a client's advance into another client.",
-            selector: '.sidebar .tab[data-tab="abono"]',
-            padding: 6,
-            needsSidebar: true,
-            wait: 450,
-            openTab: "abono",
-          },
-          {
-            text: "Pick the borrower here.",
-            selector: "#abonoClientPickerBtn",
-            padding: 6,
-            onBefore: () => {
-              closeSidebar();
-              switchTab("abono");
-              const btn = document.getElementById("abonoClientPickerBtn");
-              if (btn) btn.click();
-            },
-          },
-          {
-            text: "Optionally choose a lender with available advance.",
-            selector: "#abonoLenderClientPickerBtn",
-            padding: 6,
-          },
-          {
-            text: "Enter the Abono amount and date.",
-            selector: "#abonoPaymentAmount",
-            padding: 6,
-          },
-          {
-            text: "Save the Abono transfer here.",
-            selector: "button.btn.btn-success[onclick=\"addPayment('abono')\"]",
-            padding: 8,
-          },
-          {
-            text: "Absent tab: mark a client absent for a date.",
+            text: "Absent: mark a client absent for a date.",
             selector: '.sidebar .tab[data-tab="absent"]',
-            padding: 6,
+            padding: 4,
             needsSidebar: true,
             wait: 450,
             openTab: "absent",
@@ -8094,7 +8048,7 @@
           {
             text: "Pick a client to mark absent.",
             selector: "#absentClientPickerBtn",
-            padding: 6,
+            padding: 4,
             onBefore: () => {
               closeSidebar();
               switchTab("absent");
@@ -8105,18 +8059,71 @@
           {
             text: "Choose date and reason here.",
             selector: "#absentReason",
-            padding: 6,
+            padding: 4,
           },
           {
             text: "Save the absence here.",
             selector: 'button.btn.btn-success[onclick="addAbsence()"]',
-            padding: 8,
+            padding: 4,
           },
 
+          // Abono
           {
-            text: "Settings: configure app preferences, manage data, and customize the interface.",
+            text: "Abono: transfer from a client's advance to another client.",
+            selector: '.sidebar .tab[data-tab="abono"]',
+            padding: 4,
+            needsSidebar: true,
+            wait: 450,
+            openTab: "abono",
+          },
+          {
+            text: "Pick the borrower here.",
+            selector: "#abonoClientPickerBtn",
+            padding: 4,
+            onBefore: () => {
+              closeSidebar();
+              switchTab("abono");
+              const btn = document.getElementById("abonoClientPickerBtn");
+              if (btn) btn.click();
+            },
+          },
+          {
+            text: "Optionally choose a lender with available advance.",
+            selector: "#abonoLenderClientPickerBtn",
+            padding: 4,
+          },
+          {
+            text: "Enter the Abono amount and date.",
+            selector: "#abonoPaymentAmount",
+            padding: 4,
+          },
+          {
+            text: "Save the Abono transfer here.",
+            selector: "button.btn.btn-success[onclick=\"addPayment('abono')\"]",
+            padding: 4,
+          },
+
+          // Overdue
+          {
+            text: "Overdue: review overdue and due soon clients.",
+            selector: '.sidebar .tab[data-tab="overdue"]',
+            padding: 4,
+            needsSidebar: true,
+            wait: 450,
+            openTab: "overdue",
+          },
+          {
+            text: "Here you can Full Pay, set a Repayment Plan, or record a plan payment.",
+            selector: "#overdueList",
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("overdue"); },
+          },
+
+          // Settings
+          {
+            text: "Settings: configure app preferences and manage data.",
             selector: '.sidebar .tab[data-tab="settings"]',
-            padding: 6,
+            padding: 4,
             needsSidebar: true,
             wait: 450,
             openTab: "settings",
@@ -8124,46 +8131,54 @@
           {
             text: "Toggle between light and dark themes here.",
             selector: 'button.btn.btn-secondary[onclick="toggleDarkMode()"]',
-            padding: 8,
-            onBefore: () => {
-              closeSidebar();
-              switchTab("settings");
-            },
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("settings"); },
           },
           {
-            text: "Export your data. When asked to name the file, include .json (e.g., collectify-backup.json). If saving isn’t available, the app will share, download, or copy the backup automatically.",
+            text: "Export your data.",
             selector: 'button.btn.btn-secondary[onclick="exportData()"]',
-            padding: 8,
+            padding: 4,
           },
           {
-            text: "Import previously exported data to restore your information.",
+            text: "Import previously exported data.",
             selector: 'button.btn.btn-secondary[onclick="importData()"]',
-            padding: 8,
+            padding: 4,
           },
           {
-            text: "Clear all data - use with caution! This removes everything.",
+            text: "Clear all data - use with caution!",
             selector: 'button.btn.btn-danger[onclick="confirmClearAllData()"]',
-            padding: 8,
+            padding: 4,
           },
           {
-            text: "Adjust default interest rate for new loans.",
+            text: "Adjust default interest rate.",
             selector: "#defaultInterestRate",
-            padding: 8,
+            padding: 4,
           },
           {
-            text: "Set default loan term (days) for new clients.",
+            text: "Set default loan term (days).",
             selector: "#defaultLoanTerm",
-            padding: 8,
+            padding: 4,
           },
           {
             text: "Save your configuration changes here.",
             selector: 'button.btn.btn-primary[onclick="saveDefaultSettings()"]',
-            padding: 8,
+            padding: 4,
           },
+
+          // Where to start the tutorial again
           {
-            text: "Tutorial complete! You now know all the key features. Tap anywhere to exit and start using Collectify.",
+            text: "You can start Tutorial Mode anytime from here.",
+            selector: "#tutorialModeBtn",
+            padding: 4,
+            needsSidebar: true,
+            wait: 450,
+          },
+
+          // End
+          {
+            text: "Tutorial complete! Tap anywhere to exit and start using Collectify.",
             selector: ".header",
-            padding: 8,
+            padding: 4,
           },
         ];
       }
@@ -8232,7 +8247,7 @@
             inline: "center",
             behavior: "smooth",
           });
-          positionSpotlight(el, step.padding || 8);
+          positionSpotlight(el, step.padding || 4);
           placeInstruction(step.text, el);
           updateStepCounter();
         }, delay);
@@ -8243,7 +8258,7 @@
         const step = tutorial.steps[tutorial.index];
         const el = document.querySelector(step.selector);
         if (!el) return;
-        positionSpotlight(el, step.padding || 8);
+        positionSpotlight(el, step.padding || 4);
         placeInstruction(step.text, el);
       }
 
