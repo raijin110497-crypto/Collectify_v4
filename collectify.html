@@ -4494,35 +4494,63 @@
         }
       }
 
-      // Edit collateral image preview functions (multi-photo)
+      // Edit collateral image preview functions (multi-photo) - Android compatible
       function previewEditCollateralImages() {
         const input = document.getElementById('editCollateralPhotos');
         const preview = document.getElementById('editCollateralPreview');
         const list = document.getElementById('editCollateralPreviewList');
         if (!input || !preview || !list) return;
-        const newly = input.files ? Array.from(input.files) : [];
-        const existing = Array.isArray(input._files) ? input._files : [];
-        const combined = existing.concat(newly).slice(0, 3);
-        try {
-          const dt = new DataTransfer();
-          combined.forEach(f => dt.items.add(f));
-          input.files = dt.files;
-        } catch (e) {}
-        input._files = combined;
+
+        // Get files from input, limited to 3
+        const files = input.files ? Array.from(input.files).slice(0, 3) : [];
+
+        // Store files reference for later use (Android compatible)
+        input.dataset.selectedFiles = JSON.stringify(files.map((f, i) => ({
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          index: i
+        })));
+
         list.innerHTML = '';
-        if (combined.length) {
-          combined.forEach((file) => {
+        if (files.length > 0) {
+          // Show file count info
+          const fileInfo = document.createElement('div');
+          fileInfo.style.cssText = 'font-size: 12px; color: var(--ios-secondary-label); margin-bottom: 8px;';
+          fileInfo.textContent = `${files.length} of 3 photos selected`;
+          list.appendChild(fileInfo);
+
+          files.forEach((file, index) => {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+              console.warn('Skipping non-image file:', file.name);
+              return;
+            }
+
+            // Create file reader for preview
             const reader = new FileReader();
             reader.onload = function(e) {
-              const img = document.createElement('img');
-              img.src = e.target.result;
-              img.style.maxWidth = '120px';
-              img.style.maxHeight = '120px';
-              img.style.borderRadius = 'var(--ios-border-radius)';
-              img.style.border = '1px solid var(--ios-opaque-separator)';
-              img.style.cursor = 'pointer';
-              img.onclick = () => enlargeCollateralImage(img.src);
-              list.appendChild(img);
+              try {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = `
+                  max-width: 120px;
+                  max-height: 120px;
+                  border-radius: var(--ios-border-radius);
+                  border: 1px solid var(--ios-opaque-separator);
+                  cursor: pointer;
+                  margin: 4px;
+                  object-fit: cover;
+                `;
+                img.onclick = () => enlargeCollateralImage(img.src);
+                img.title = `Photo ${index + 1}: ${file.name}`;
+                list.appendChild(img);
+              } catch (error) {
+                console.error('Error creating image preview:', error);
+              }
+            };
+            reader.onerror = function() {
+              console.error('Error reading file:', file.name);
             };
             reader.readAsDataURL(file);
           });
@@ -4534,7 +4562,10 @@
 
       function removeEditCollateralImages() {
         const input = document.getElementById('editCollateralPhotos');
-        if (input) { input.value = ''; input._files = []; try { const dt = new DataTransfer(); input.files = dt.files; } catch(e) {} }
+        if (input) {
+          input.value = '';
+          input.dataset.selectedFiles = '';
+        }
         const list = document.getElementById('editCollateralPreviewList');
         if (list) list.innerHTML = '';
         const preview = document.getElementById('editCollateralPreview');
