@@ -4388,13 +4388,63 @@
         if (preview) preview.style.display = 'none';
       }
 
-      // Convert image file to base64 for IndexedDB storage
+      // Convert image file to base64 for IndexedDB storage - Android enhanced
       async function convertImageToBase64(file) {
         return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
+          try {
+            console.log(`Converting ${file.name} to base64...`);
+
+            // Check if FileReader is available
+            if (!window.FileReader) {
+              reject(new Error('FileReader not supported on this device'));
+              return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+              try {
+                const result = e.target.result;
+                if (!result) {
+                  reject(new Error('No result from FileReader'));
+                  return;
+                }
+                console.log(`Successfully converted ${file.name} to base64 (${result.length} characters)`);
+                resolve(result);
+              } catch (error) {
+                console.error('Error in FileReader onload:', error);
+                reject(error);
+              }
+            };
+
+            reader.onerror = function(e) {
+              console.error('FileReader error for', file.name, e);
+              reject(new Error(`Failed to read ${file.name}`));
+            };
+
+            reader.onabort = function() {
+              console.error('FileReader aborted for', file.name);
+              reject(new Error(`Reading ${file.name} was aborted`));
+            };
+
+            reader.onloadstart = function() {
+              console.log(`Started reading ${file.name}...`);
+            };
+
+            reader.onprogress = function(e) {
+              if (e.lengthComputable) {
+                const percentLoaded = Math.round((e.loaded / e.total) * 100);
+                console.log(`Reading ${file.name}: ${percentLoaded}% loaded`);
+              }
+            };
+
+            // Start reading the file
+            reader.readAsDataURL(file);
+
+          } catch (error) {
+            console.error('Error setting up FileReader:', error);
+            reject(error);
+          }
         });
       }
 
