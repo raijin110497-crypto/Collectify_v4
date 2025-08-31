@@ -2074,6 +2074,19 @@
       .calendar-cell.disabled .cal-amt { opacity: 0.6; }
       .collateral-preview-list { display: flex; gap: 8px; flex-wrap: wrap; }
       .collateral-preview-list img { max-width: 120px; max-height: 120px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator); cursor: pointer; }
+
+      /* Collapsible dashboard stats */
+      #dashboardStatsGroup { display: grid; gap: 16px; }
+      #dashboardStatsGroup .stat-toggle { cursor: pointer; }
+      #dashboardStats { overflow: hidden; transition: max-height 0.35s var(--ios-spring-timing), opacity 0.25s var(--ios-easing); }
+      #dashboardStatsGroup.collapsed #dashboardStats { max-height: 0; opacity: 0; pointer-events: none; }
+      #dashboardStatsGroup.expanded #dashboardStats { opacity: 1; }
+      #dashboardStatsGroup.expanded #dashboardStats .stat-card { animation: slideInFromBottom 0.45s var(--ios-spring-timing) both; }
+      #dashboardStatsGroup.expanded #dashboardStats .stat-card:nth-child(1){ animation-delay: 0.02s; }
+      #dashboardStatsGroup.expanded #dashboardStats .stat-card:nth-child(2){ animation-delay: 0.06s; }
+      #dashboardStatsGroup.expanded #dashboardStats .stat-card:nth-child(3){ animation-delay: 0.10s; }
+      #dashboardStatsGroup.expanded #dashboardStats .stat-card:nth-child(4){ animation-delay: 0.14s; }
+      #dashboardStatsGroup.expanded #dashboardStats .stat-card:nth-child(5){ animation-delay: 0.18s; }
     </style>
   </head>
   <body>
@@ -2199,35 +2212,32 @@
         <div class="tab-content">
           <!-- Dashboard Tab -->
           <div class="tab-panel active" id="dashboard">
-            <div class="stats-grid">
-              <div class="stat-card">
-                <h3 id="totalClients">0</h3>
-                <p>Total Clients</p>
+            <div id="dashboardStatsGroup" class="stats-group-collapsible collapsed">
+              <div class="stat-card stat-toggle" id="statsToggleCard" onclick="toggleDashboardStats()" style="background: linear-gradient(135deg, var(--ios-purple), var(--ios-blue)); cursor: pointer;">
+                <h3 id="statsToggleLabel">Stats</h3>
+                <p id="statsToggleSub">Tap to expand</p>
               </div>
-              <div class="stat-card">
-                <h3 id="activeLoans">0</h3>
-                <p>Active Loans</p>
-              </div>
-              <div class="stat-card">
-                <h3 id="totalLoaned">₱0</h3>
-                <p>Loan</p>
-              </div>
-              <div class="stat-card">
-                <h3 id="totalCollected">₱0</h3>
-                <p>Total Collected</p>
-              </div>
-              <div
-                class="stat-card"
-                style="
-                  background: linear-gradient(
-                    135deg,
-                    var(--ios-orange),
-                    var(--ios-yellow)
-                  );
-                "
-              >
-                <h3 id="loadToday">₱0</h3>
-                <p>Load Today</p>
+              <div id="dashboardStats" class="stats-grid collapsible-grid">
+                <div class="stat-card">
+                  <h3 id="totalClients">0</h3>
+                  <p>Total Clients</p>
+                </div>
+                <div class="stat-card">
+                  <h3 id="activeLoans">0</h3>
+                  <p>Active Loans</p>
+                </div>
+                <div class="stat-card">
+                  <h3 id="totalLoaned">₱0</h3>
+                  <p>Loan</p>
+                </div>
+                <div class="stat-card">
+                  <h3 id="totalCollected">₱0</h3>
+                  <p>Total Collected</p>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-orange), var(--ios-yellow));">
+                  <h3 id="loadToday">₱0</h3>
+                  <p>Load Today</p>
+                </div>
               </div>
             </div>
 
@@ -3469,7 +3479,7 @@
         <div class="modal-header">
           <h2>Delete Client</h2>
           <button class="close-btn" onclick="closeModal('deleteConfirmModal')">
-            ���
+            ✕
           </button>
         </div>
         <div class="modal-body">
@@ -3800,6 +3810,18 @@
         const sd = document.getElementById("summaryDate"); if (sd) sd.value = today;
         document.getElementById("startDate").value = today;
         document.getElementById("fullPaymentDate").value = today;
+        // Initialize collapsible dashboard stats
+        const g = document.getElementById('dashboardStatsGroup');
+        const gridEl = document.getElementById('dashboardStats');
+        if (g && gridEl) {
+          g.classList.add('collapsed');
+          gridEl.style.maxHeight = '0px';
+          window.addEventListener('resize', () => {
+            if (g.classList.contains('expanded')) {
+              gridEl.style.maxHeight = gridEl.scrollHeight + 'px';
+            }
+          });
+        }
 
         // Recompute default amounts when date changes (Saturday/Monday adjustments)
         const bind = (id, type) => {
@@ -4458,6 +4480,25 @@
           `₱${totalCollected.toLocaleString()}`;
         document.getElementById("loadToday").textContent =
           `₱${loadToday.toLocaleString()}`;
+      }
+
+      // Toggle Dashboard stats expand/collapse
+      function toggleDashboardStats() {
+        const group = document.getElementById('dashboardStatsGroup');
+        const grid = document.getElementById('dashboardStats');
+        if (!group || !grid) return;
+        const expanding = !group.classList.contains('expanded');
+        if (expanding) {
+          group.classList.add('expanded');
+          group.classList.remove('collapsed');
+          grid.style.maxHeight = grid.scrollHeight + 'px';
+        } else {
+          grid.style.maxHeight = '0px';
+          group.classList.remove('expanded');
+          group.classList.add('collapsed');
+        }
+        const sub = document.getElementById('statsToggleSub');
+        if (sub) sub.textContent = expanding ? 'Tap to collapse' : 'Tap to expand';
       }
 
       function formatPhone(phone) {
@@ -7849,10 +7890,28 @@
 
           // Dashboard (contents)
           {
-            text: "Dashboard stats show totals and today's expected load.",
-            selector: "#dashboard .stats-grid",
+            text: "Tap this 'Stats' card to expand or collapse dashboard metrics.",
+            selector: "#statsToggleCard",
             padding: 4,
-            onBefore: () => { closeSidebar(); switchTab("dashboard"); },
+            onBefore: () => {
+              closeSidebar();
+              switchTab("dashboard");
+              const g = document.getElementById('dashboardStatsGroup');
+              const grid = document.getElementById('dashboardStats');
+              if (g && grid) { g.classList.add('collapsed'); g.classList.remove('expanded'); grid.style.maxHeight = '0px'; }
+            },
+          },
+          {
+            text: "Expanded metrics appear here with animation.",
+            selector: "#dashboardStats",
+            padding: 4,
+            onBefore: () => {
+              closeSidebar();
+              switchTab("dashboard");
+              const btn = document.getElementById('statsToggleCard');
+              const g = document.getElementById('dashboardStatsGroup');
+              if (btn && g && !g.classList.contains('expanded')) btn.click();
+            },
           },
           {
             text: "Add a new client from here.",
