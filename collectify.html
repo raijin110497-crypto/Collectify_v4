@@ -5239,7 +5239,7 @@
         const renderCard = (client, badgeHtml) => {
           const rb = Number(client.remainingBalance || 0);
           return `
-            <div class="client-item">
+            <div class="client-item" data-client-id="${client.id}">
               <div class="client-header">
                 <div class="client-info">
                   <h4>${client.name}</h4>
