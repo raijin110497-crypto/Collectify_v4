@@ -3361,6 +3361,9 @@
               <small style="color: var(--ios-secondary-label); font-size: 12px; margin-top: 4px; display: block;">
                 📷 Choose up to 3 photos from gallery or camera
               </small>
+              <button type="button" onclick="testFileUpload()" style="margin-top: 8px; padding: 6px 12px; font-size: 12px; background: var(--ios-orange); color: white; border: none; border-radius: var(--ios-border-radius);">
+                🔧 Test File Upload (Debug for Android)
+              </button>
               <div id="collateralPreview" style="margin-top: 10px; display: none;">
                 <div id="collateralPreviewList" class="collateral-preview-list"></div>
                 <button type="button" class="btn btn-secondary" style="margin-top: 8px; font-size: 14px;" onclick="removeCollateralImages()">Remove Photos</button>
@@ -6338,7 +6341,7 @@
         // Totals and counts
         const sumAmt = (arr) => arr.reduce((s, x) => s + (Number(x.amount)||0), 0);
         document.getElementById('summaryNotebookTotal').textContent = `₱${sumAmt(nb).toFixed(2)}`;
-        document.getElementById('summaryGcashTotal').textContent = `₱${sumAmt(gc).toFixed(2)}`;
+        document.getElementById('summaryGcashTotal').textContent = `���${sumAmt(gc).toFixed(2)}`;
         const fpEl = document.getElementById('summaryFullPaidTotal'); if (fpEl) fpEl.textContent = `₱${sumAmt(full).toFixed(2)}`;
         document.getElementById('summaryAdvTotal').textContent = `₱${sumAmt(ad).toFixed(2)}`;
         document.getElementById('summaryOverpayCount').textContent = String(over.length);
@@ -6369,7 +6372,7 @@
               <div style="display:flex; justify-content: space-between; align-items:center;">
                 <div>
                   <h4>${it.clientName}</h4>
-                  <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ���${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
+                  <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
                   <p>Over by ₱${it.overBy.toFixed(2)}</p>
                 </div>
               </div>
