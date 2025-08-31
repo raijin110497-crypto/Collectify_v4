@@ -3364,6 +3364,8 @@
                 type="date"
                 id="startDate"
                 onchange="calculateLoanDetails()"
+                onclick="openDatePicker('startDate')"
+                onfocus="openDatePicker('startDate')"
               />
             </div>
           </div>
@@ -4148,7 +4150,7 @@
           // Clear collateral fields
           document.getElementById("collateralDescription").value = "";
           const cp = document.getElementById("collateralPhotos");
-          if (cp) cp.value = "";
+          if (cp) { cp.value = ""; cp._files = []; try { const dt = new DataTransfer(); cp.files = dt.files; } catch(e) {} }
           const cpList = document.getElementById("collateralPreviewList");
           if (cpList) cpList.innerHTML = "";
           document.getElementById("collateralPreview").style.display = "none";
@@ -4193,10 +4195,18 @@
         const preview = document.getElementById('collateralPreview');
         const list = document.getElementById('collateralPreviewList');
         if (!input || !preview || !list) return;
+        const newly = input.files ? Array.from(input.files) : [];
+        const existing = Array.isArray(input._files) ? input._files : [];
+        const combined = existing.concat(newly).slice(0, 3);
+        try {
+          const dt = new DataTransfer();
+          combined.forEach(f => dt.items.add(f));
+          input.files = dt.files;
+        } catch (e) {}
+        input._files = combined;
         list.innerHTML = '';
-        if (input.files && input.files.length) {
-          const files = Array.from(input.files).slice(0, 3);
-          files.forEach((file) => {
+        if (combined.length) {
+          combined.forEach((file) => {
             const reader = new FileReader();
             reader.onload = function(e) {
               const img = document.createElement('img');
@@ -4219,7 +4229,11 @@
 
       function removeCollateralImages() {
         const input = document.getElementById('collateralPhotos');
-        if (input) input.value = '';
+        if (input) {
+          input.value = '';
+          input._files = [];
+          try { const dt = new DataTransfer(); input.files = dt.files; } catch(e) {}
+        }
         const list = document.getElementById('collateralPreviewList');
         if (list) list.innerHTML = '';
         const preview = document.getElementById('collateralPreview');
@@ -4425,10 +4439,18 @@
         const preview = document.getElementById('editCollateralPreview');
         const list = document.getElementById('editCollateralPreviewList');
         if (!input || !preview || !list) return;
+        const newly = input.files ? Array.from(input.files) : [];
+        const existing = Array.isArray(input._files) ? input._files : [];
+        const combined = existing.concat(newly).slice(0, 3);
+        try {
+          const dt = new DataTransfer();
+          combined.forEach(f => dt.items.add(f));
+          input.files = dt.files;
+        } catch (e) {}
+        input._files = combined;
         list.innerHTML = '';
-        if (input.files && input.files.length) {
-          const files = Array.from(input.files).slice(0, 3);
-          files.forEach((file) => {
+        if (combined.length) {
+          combined.forEach((file) => {
             const reader = new FileReader();
             reader.onload = function(e) {
               const img = document.createElement('img');
@@ -4451,7 +4473,7 @@
 
       function removeEditCollateralImages() {
         const input = document.getElementById('editCollateralPhotos');
-        if (input) input.value = '';
+        if (input) { input.value = ''; input._files = []; try { const dt = new DataTransfer(); input.files = dt.files; } catch(e) {} }
         const list = document.getElementById('editCollateralPreviewList');
         if (list) list.innerHTML = '';
         const preview = document.getElementById('editCollateralPreview');
@@ -4489,9 +4511,10 @@
         }
 
         // Process collateral images if provided
-        if (collateralPhotosInput && collateralPhotosInput.files && collateralPhotosInput.files.length) {
+        if (collateralPhotosInput && ((collateralPhotosInput._files && collateralPhotosInput._files.length) || (collateralPhotosInput.files && collateralPhotosInput.files.length))) {
           try {
-            const files = Array.from(collateralPhotosInput.files).slice(0, 3);
+            const source = collateralPhotosInput._files || Array.from(collateralPhotosInput.files);
+            const files = Array.from(source).slice(0, 3);
             collateralPhotosBase64 = await Promise.all(files.map(f => convertImageToBase64(f)));
           } catch (error) {
             showNotification("Error processing collateral images", "error");
@@ -5086,9 +5109,10 @@
         let newCollateralPhotosBase64 = [];
 
         // Process new collateral images if provided
-        if (editCollateralPhotosInput && editCollateralPhotosInput.files && editCollateralPhotosInput.files.length) {
+        if (editCollateralPhotosInput && ((editCollateralPhotosInput._files && editCollateralPhotosInput._files.length) || (editCollateralPhotosInput.files && editCollateralPhotosInput.files.length))) {
           try {
-            const files = Array.from(editCollateralPhotosInput.files).slice(0, 3);
+            const source = editCollateralPhotosInput._files || Array.from(editCollateralPhotosInput.files);
+            const files = Array.from(source).slice(0, 3);
             newCollateralPhotosBase64 = await Promise.all(files.map(f => convertImageToBase64(f)));
           } catch (error) {
             showNotification("Error processing collateral images", "error");
