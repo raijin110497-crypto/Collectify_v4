@@ -8121,27 +8121,26 @@
           el.readOnly = true;
           el.classList.add('ios-date-input');
           try { el.type = 'text'; } catch(e) {}
-          const __open = (e)=>{ if(e) e.preventDefault(); openDatePicker(id); };
+          const __open = (e)=>{ if(e){ e.preventDefault(); e.stopPropagation(); } openDatePicker(id); };
           el.addEventListener('click', __open);
           el.addEventListener('focus', __open);
+          el.addEventListener('touchstart', __open, { passive: false });
           el.addEventListener('touchend', __open, { passive: false });
+          el.addEventListener('pointerdown', __open);
           el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); __open(e);} });
           el.dataset.dpBound = '1';
         });
         // Global delegation as safety net (covers cases where specific binding failed)
         if (!window.__dpDelegated) {
-          document.addEventListener('click', (e)=>{
-            const t = e.target.closest('input#holidayDate, input.ios-date-input');
-            if (t) { e.preventDefault(); openDatePicker(t.id || 'holidayDate'); }
-          }, true);
-          document.addEventListener('focusin', (e)=>{
-            const t = e.target && (e.target.matches('input#holidayDate, input.ios-date-input') ? e.target : null);
-            if (t) { e.preventDefault?.(); openDatePicker(t.id || 'holidayDate'); }
-          });
-          document.addEventListener('touchend', (e)=>{
-            const t = e.target.closest('input#holidayDate, input.ios-date-input');
-            if (t) { e.preventDefault(); openDatePicker(t.id || 'holidayDate'); }
-          }, { passive: false });
+          const delegate = (e)=>{
+            const t = e.target && (e.target.closest ? e.target.closest('input#holidayDate, input.ios-date-input') : null);
+            if (t) { e.preventDefault?.(); e.stopPropagation?.(); openDatePicker(t.id || 'holidayDate'); }
+          };
+          document.addEventListener('click', delegate, true);
+          document.addEventListener('focusin', delegate);
+          document.addEventListener('touchstart', delegate, { passive: false });
+          document.addEventListener('touchend', delegate, { passive: false });
+          document.addEventListener('pointerdown', delegate, true);
           window.__dpDelegated = true;
         }
       }
