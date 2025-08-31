@@ -7897,6 +7897,7 @@
         steps: [],
         backup: null,
       };
+      let tutorialScrollEls = [];
 
       function deepClone(obj) {
         return JSON.parse(JSON.stringify(obj));
@@ -8454,9 +8455,16 @@
             endTutorial();
           });
         window.addEventListener("resize", refreshSpotlightPosition);
-        window.addEventListener("scroll", refreshSpotlightPosition, {
-          passive: true,
-        });
+        window.addEventListener("orientationchange", refreshSpotlightPosition);
+        window.addEventListener("scroll", refreshSpotlightPosition, { passive: true });
+        try {
+          tutorialScrollEls = Array.from(
+            document.querySelectorAll(".tab-content, .sidebar, .modal-body, .ios-sheet .sheet-list")
+          );
+          tutorialScrollEls.forEach((el) =>
+            el.addEventListener("scroll", refreshSpotlightPosition, { passive: true })
+          );
+        } catch (e) {}
       }
 
       function closeTutorialLayer() {
@@ -8464,7 +8472,16 @@
         layer.classList.remove("show");
         layer.removeEventListener("click", onTutorialClick);
         window.removeEventListener("resize", refreshSpotlightPosition);
+        window.removeEventListener("orientationchange", refreshSpotlightPosition);
         window.removeEventListener("scroll", refreshSpotlightPosition);
+        try {
+          if (Array.isArray(tutorialScrollEls)) {
+            tutorialScrollEls.forEach((el) =>
+              el.removeEventListener("scroll", refreshSpotlightPosition)
+            );
+            tutorialScrollEls = [];
+          }
+        } catch (e) {}
       }
 
       function onTutorialClick() {
@@ -8510,6 +8527,8 @@
           positionSpotlight(el, step.padding || 4);
           placeInstruction(step.text, el);
           updateStepCounter();
+          requestAnimationFrame(() => refreshSpotlightPosition());
+          setTimeout(refreshSpotlightPosition, 300);
         }, delay);
       }
 
