@@ -8771,6 +8771,115 @@
         } catch (e) {}
       }
 
+      // Demo mode (preloaded dataset with 10 clients and sample images)
+      let demo = { active: false, backup: null };
+      function demoImage(text, color){
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'>`+
+          `<rect width='100%' height='100%' fill='${color}'/>`+
+          `<text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#ffffff' font-size='32' font-family='-apple-system, system-ui, sans-serif'>${text}</text>`+
+          `</svg>`;
+        return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+      }
+      function buildDemoDataset(){
+        const today = todayLocalDateStr();
+        const arr = [];
+        for (let i = 1; i <= 10; i++) {
+          const loanAmount = 5000 + i * 500;
+          const interestRate = defaultSettings.interestRate;
+          const term = defaultSettings.loanTerm;
+          const start = formatDateLocal(addDaysLocal(today, -i * 3));
+          const dueTmp = addDaysLocal(start, term);
+          const dueDate = formatDateLocal(dueTmp);
+          const totalAmount = loanAmount * (1 + interestRate / 100);
+          const dailyAmount = totalAmount / term;
+          const paidDays = i % 6; // 0..5 days paid
+          const paidSoFar = dailyAmount * paidDays;
+          let remainingBalance = Math.max(0, totalAmount - paidSoFar);
+          let status = remainingBalance <= 0 ? 'paid' : 'active';
+          if (i % 7 === 0) { remainingBalance = 0; status = 'paid'; }
+          const c = {
+            id: 9000 + i,
+            name: `Demo Client ${i}`,
+            contactNumber: `0917${(1230000 + i).toString().padStart(7,'0')}`,
+            address: `Barangay ${i}, Demo City`,
+            loanAmount,
+            totalAmount,
+            dailyAmount,
+            term,
+            startDate: start,
+            dueDate,
+            remainingBalance,
+            status,
+            interestRate,
+            coMaker: {
+              name: `CoMaker ${i}`,
+              contactNumber: `0908${(7650000 + i).toString().padStart(7,'0')}`,
+              address: `Zone ${i}, Demo City`
+            },
+            collateral: {
+              description: `Demo Collateral ${i} - Sample Item`,
+              photosBase64: [],
+              photoBase64: null
+            },
+            consecutiveMissedDays: 0,
+            lastPaymentDate: null
+          };
+          // attach demo images (3)
+          c.collateral.photosBase64 = [
+            demoImage(`C${i}-1`, '#007aff'),
+            demoImage(`C${i}-2`, '#34c759'),
+            demoImage(`C${i}-3`, '#ff9500')
+          ];
+          c.collateral.photoBase64 = c.collateral.photosBase64[0];
+          arr.push(c);
+        }
+        // Build demo payments
+        const p = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
+        arr.forEach((client, idx) => {
+          const date = today;
+          const expected = expectedAmountForDate(client, date);
+          if (idx % 2 === 0 && expected > 0 && client.remainingBalance > 0) {
+            const amt = Math.min(expected, client.remainingBalance);
+            client.remainingBalance = Math.max(0, client.remainingBalance - amt);
+            p.notebook.push({ id: Date.now() + idx, clientId: client.id, clientName: client.name, amount: amt, date, type: 'daily', paymentType: 'notebook' });
+          }
+          if (idx % 7 === 0) {
+            const rb = client.remainingBalance;
+            if (rb > 0) {
+              p.notebook.push({ id: Date.now() + 500 + idx, clientId: client.id, clientName: client.name, amount: rb, date, type: 'full', paymentType: 'notebook' });
+              client.remainingBalance = 0; client.status = 'paid';
+            }
+          }
+        });
+        const abs = [];
+        return { demoClients: arr, demoPayments: p, demoAbsences: abs };
+      }
+      function startDemoMode(){
+        if (demo.active) return;
+        demo.active = true;
+        demo.backup = { clients: deepClone(clients), payments: deepClone(payments), absences: deepClone(absences), defaultSettings: deepClone(defaultSettings), isDarkMode, currentActiveTab };
+        const { demoClients, demoPayments, demoAbsences } = buildDemoDataset();
+        clients = demoClients; payments = demoPayments; absences = demoAbsences;
+        updateStats(); updateClientList(); populateClientSelects();
+        ['notebook','office','gcash','adv','abono'].forEach(t=>updatePaymentHistory(t));
+        updateAbsenceHistory(); updateSettingsInfo();
+        const td = document.getElementById('trackerDate'); if (td && !td.value) td.value = todayLocalDateStr();
+        loadDailyTracker();
+        const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
+        showNotification('Demo mode enabled: 10 sample clients loaded', 'success');
+      }
+      function endDemoMode(){
+        if (!demo.active || !demo.backup) return;
+        const b = demo.backup; demo.active = false; demo.backup = null;
+        clients = b.clients; payments = b.payments; absences = b.absences; defaultSettings = b.defaultSettings; isDarkMode = b.isDarkMode; currentActiveTab = b.currentActiveTab;
+        updateStats(); updateClientList(); populateClientSelects();
+        ['notebook','office','gcash','adv','abono'].forEach(t=>updatePaymentHistory(t));
+        updateAbsenceHistory(); updateSettingsInfo();
+        const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Demo mode'; }
+        showNotification('Demo mode disabled', 'success');
+      }
+      function toggleDemoMode(){ if (!demo.active) startDemoMode(); else endDemoMode(); }
+
       function buildTutorialSteps() {
         tutorial.steps = [
           // Open menu and show navigation
