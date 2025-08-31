@@ -2132,8 +2132,9 @@
       .cal-amounts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
       .cal-amt { font-size: 10px; padding: 1px 6px; border-radius: 12px; color: #fff; line-height: 1.2; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
       .calendar-cell.disabled .cal-amt { opacity: 0.6; }
-      .collateral-preview-list { display: flex; gap: 8px; flex-wrap: wrap; }
-      .collateral-preview-list img { max-width: 120px; max-height: 120px; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator); cursor: pointer; }
+      .collateral-preview-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: start; }
+      .collateral-preview-list img { width: 100% !important; height: auto !important; aspect-ratio: 1 / 1; max-width: none !important; max-height: none !important; border-radius: var(--ios-border-radius); border: 1px solid var(--ios-opaque-separator); cursor: pointer; object-fit: cover; }
+      .collateral-preview-list > .collateral-file-info { grid-column: 1 / -1; }
 
       /* Collapsible dashboard stats */
       #dashboardStatsGroup { display: grid; gap: 16px; }
@@ -2252,6 +2253,13 @@
             onclick="startTutorial(); closeSidebar()"
           >
             <span>Tutorial mode</span>
+          </button>
+          <button
+            id="demoModeBtn"
+            class="tab"
+            onclick="toggleDemoMode(); closeSidebar()"
+          >
+            <span>Demo mode</span>
           </button>
         </div>
         <div class="settings-group" aria-label="About">
@@ -3377,8 +3385,9 @@
               <input
                 type="number"
                 id="loanAmount"
-                placeholder="0.00"
-                step="0.01"
+                placeholder="0"
+                step="1000"
+                min="0"
                 oninput="calculateLoanDetails()"
               />
             </div>
@@ -3468,7 +3477,7 @@
           <div class="form-row">
             <div class="form-group">
               <label>Loan Amount:</label>
-              <input type="number" id="editLoanAmount" step="0.01" />
+              <input type="number" id="editLoanAmount" step="1000" min="0" />
             </div>
             <div class="form-group">
               <label>Interest Rate (%):</label>
@@ -4285,6 +4294,7 @@
           const arr = window.__collateralSelectedBase64.slice(0, 3);
           list.innerHTML = '';
           const fileInfo = document.createElement('div');
+          fileInfo.className = 'collateral-file-info';
           fileInfo.style.cssText = 'font-size: 12px; color: var(--ios-secondary-label); margin-bottom: 8px;';
           fileInfo.textContent = `${arr.length} of 3 photos selected ✓`;
           list.appendChild(fileInfo);
@@ -4787,6 +4797,7 @@
           const arr = window.__editCollateralSelectedBase64.slice(0, 3);
           list.innerHTML = '';
           const fileInfo = document.createElement('div');
+          fileInfo.className = 'collateral-file-info';
           fileInfo.style.cssText = 'font-size: 12px; color: var(--ios-secondary-label); margin-bottom: 8px;';
           fileInfo.textContent = `${arr.length} of 3 photos selected`;
           list.appendChild(fileInfo);
@@ -4868,6 +4879,13 @@
 
         if (!name || !loanAmount || !startDate || !contactNumber || !address) {
           showNotification("Please fill in all required fields", "error");
+          return;
+        }
+        if (loanAmount % 1000 !== 0) {
+          const loanEl = document.getElementById("loanAmount");
+          if (loanEl) loanEl.classList.add("input-error");
+          showNotification("Loan amount must be a multiple of ₱1,000 (e.g., 1000, 2000, ...)", "error");
+          setTimeout(()=>{ if (loanEl) loanEl.classList.remove("input-error"); }, 2000);
           return;
         }
 
@@ -5463,6 +5481,13 @@
           isNaN(remainingBalance)
         ) {
           showNotification("Please fill in all fields correctly", "error");
+          return;
+        }
+        if (loanAmount % 1000 !== 0) {
+          const el = document.getElementById("editLoanAmount");
+          if (el) el.classList.add("input-error");
+          showNotification("Loan amount must be a multiple of ₱1,000 (e.g., 1000, 2000, ...)", "error");
+          setTimeout(()=>{ if (el) el.classList.remove("input-error"); }, 2000);
           return;
         }
 
@@ -6269,7 +6294,7 @@
         // Totals and counts
         const sumAmt = (arr) => arr.reduce((s, x) => s + (Number(x.amount)||0), 0);
         document.getElementById('summaryNotebookTotal').textContent = `₱${sumAmt(nb).toFixed(2)}`;
-        document.getElementById('summaryGcashTotal').textContent = `���${sumAmt(gc).toFixed(2)}`;
+        document.getElementById('summaryGcashTotal').textContent = `₱${sumAmt(gc).toFixed(2)}`;
         const fpEl = document.getElementById('summaryFullPaidTotal'); if (fpEl) fpEl.textContent = `₱${sumAmt(full).toFixed(2)}`;
         document.getElementById('summaryAdvTotal').textContent = `₱${sumAmt(ad).toFixed(2)}`;
         document.getElementById('summaryOverpayCount').textContent = String(over.length);
@@ -6343,7 +6368,7 @@
                 <div>
                   <h4>${payment.clientName}</h4>
                   <p>₱${payment.amount.toFixed(2)} • ${new Date(payment.date).toLocaleDateString()}</p>
-                  ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}${(payment.repaid||0)>0 ? ` • Repaid: ₱${(payment.repaid||0).toFixed(2)} • Outstanding: ���${Math.max(0, payment.amount - (payment.repaid||0)).toFixed(2)}` : ''}</p>` : ''}
+                  ${payment.paymentType === 'abono' && payment.lenderName ? `<p>Lender: ${payment.lenderName}${(payment.repaid||0)>0 ? ` • Repaid: ₱${(payment.repaid||0).toFixed(2)} • Outstanding: ₱${Math.max(0, payment.amount - (payment.repaid||0)).toFixed(2)}` : ''}</p>` : ''}
                   ${payment.paymentType === 'adv' && payment.initialAmount && payment.initialAmount > payment.amount ? `<p>Borrowed via Abono: ₱${(payment.initialAmount - payment.amount).toFixed(2)}${formatAdvBorrowers(payment)} • Remaining: ₱${payment.amount.toFixed(2)} of ₱${payment.initialAmount.toFixed(2)}</p>` : ''}
                   <p><span class="status-badge status-active">${payment.type}</span></p>
                 </div>
@@ -8760,6 +8785,115 @@
           document.querySelectorAll('.ios-select-button[aria-expanded="true"]').forEach((b)=>b.setAttribute('aria-expanded','false'));
         } catch (e) {}
       }
+
+      // Demo mode (preloaded dataset with 10 clients and sample images)
+      let demo = { active: false, backup: null };
+      function demoImage(text, color){
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'>`+
+          `<rect width='100%' height='100%' fill='${color}'/>`+
+          `<text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#ffffff' font-size='32' font-family='-apple-system, system-ui, sans-serif'>${text}</text>`+
+          `</svg>`;
+        return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+      }
+      function buildDemoDataset(){
+        const today = todayLocalDateStr();
+        const arr = [];
+        for (let i = 1; i <= 10; i++) {
+          const loanAmount = 5000 + i * 1000;
+          const interestRate = defaultSettings.interestRate;
+          const term = defaultSettings.loanTerm;
+          const start = formatDateLocal(addDaysLocal(today, -i * 3));
+          const dueTmp = addDaysLocal(start, term);
+          const dueDate = formatDateLocal(dueTmp);
+          const totalAmount = loanAmount * (1 + interestRate / 100);
+          const dailyAmount = totalAmount / term;
+          const paidDays = i % 6; // 0..5 days paid
+          const paidSoFar = dailyAmount * paidDays;
+          let remainingBalance = Math.max(0, totalAmount - paidSoFar);
+          let status = remainingBalance <= 0 ? 'paid' : 'active';
+          if (i % 7 === 0) { remainingBalance = 0; status = 'paid'; }
+          const c = {
+            id: 9000 + i,
+            name: `Demo Client ${i}`,
+            contactNumber: `0917${(1230000 + i).toString().padStart(7,'0')}`,
+            address: `Barangay ${i}, Demo City`,
+            loanAmount,
+            totalAmount,
+            dailyAmount,
+            term,
+            startDate: start,
+            dueDate,
+            remainingBalance,
+            status,
+            interestRate,
+            coMaker: {
+              name: `CoMaker ${i}`,
+              contactNumber: `0908${(7650000 + i).toString().padStart(7,'0')}`,
+              address: `Zone ${i}, Demo City`
+            },
+            collateral: {
+              description: `Demo Collateral ${i} - Sample Item`,
+              photosBase64: [],
+              photoBase64: null
+            },
+            consecutiveMissedDays: 0,
+            lastPaymentDate: null
+          };
+          // attach demo images (3)
+          c.collateral.photosBase64 = [
+            demoImage(`C${i}-1`, '#007aff'),
+            demoImage(`C${i}-2`, '#34c759'),
+            demoImage(`C${i}-3`, '#ff9500')
+          ];
+          c.collateral.photoBase64 = c.collateral.photosBase64[0];
+          arr.push(c);
+        }
+        // Build demo payments
+        const p = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
+        arr.forEach((client, idx) => {
+          const date = today;
+          const expected = expectedAmountForDate(client, date);
+          if (idx % 2 === 0 && expected > 0 && client.remainingBalance > 0) {
+            const amt = Math.min(expected, client.remainingBalance);
+            client.remainingBalance = Math.max(0, client.remainingBalance - amt);
+            p.notebook.push({ id: Date.now() + idx, clientId: client.id, clientName: client.name, amount: amt, date, type: 'daily', paymentType: 'notebook' });
+          }
+          if (idx % 7 === 0) {
+            const rb = client.remainingBalance;
+            if (rb > 0) {
+              p.notebook.push({ id: Date.now() + 500 + idx, clientId: client.id, clientName: client.name, amount: rb, date, type: 'full', paymentType: 'notebook' });
+              client.remainingBalance = 0; client.status = 'paid';
+            }
+          }
+        });
+        const abs = [];
+        return { demoClients: arr, demoPayments: p, demoAbsences: abs };
+      }
+      function startDemoMode(){
+        if (demo.active) return;
+        demo.active = true;
+        demo.backup = { clients: deepClone(clients), payments: deepClone(payments), absences: deepClone(absences), defaultSettings: deepClone(defaultSettings), isDarkMode, currentActiveTab };
+        const { demoClients, demoPayments, demoAbsences } = buildDemoDataset();
+        clients = demoClients; payments = demoPayments; absences = demoAbsences;
+        updateStats(); updateClientList(); populateClientSelects();
+        ['notebook','office','gcash','adv','abono'].forEach(t=>updatePaymentHistory(t));
+        updateAbsenceHistory(); updateSettingsInfo();
+        const td = document.getElementById('trackerDate'); if (td && !td.value) td.value = todayLocalDateStr();
+        loadDailyTracker();
+        const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
+        showNotification('Demo mode enabled: 10 sample clients loaded', 'success');
+      }
+      function endDemoMode(){
+        if (!demo.active || !demo.backup) return;
+        const b = demo.backup; demo.active = false; demo.backup = null;
+        clients = b.clients; payments = b.payments; absences = b.absences; defaultSettings = b.defaultSettings; isDarkMode = b.isDarkMode; currentActiveTab = b.currentActiveTab;
+        updateStats(); updateClientList(); populateClientSelects();
+        ['notebook','office','gcash','adv','abono'].forEach(t=>updatePaymentHistory(t));
+        updateAbsenceHistory(); updateSettingsInfo();
+        const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Demo mode'; }
+        showNotification('Demo mode disabled', 'success');
+      }
+      function toggleDemoMode(){ if (!demo.active) startDemoMode(); else endDemoMode(); }
 
       function buildTutorialSteps() {
         tutorial.steps = [
