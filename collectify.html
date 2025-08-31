@@ -3370,7 +3370,7 @@
                 📷 Choose up to 3 photos from gallery or camera
               </small>
               <button type="button" onclick="testFileUpload()" style="margin-top: 8px; padding: 6px 12px; font-size: 12px; background: var(--ios-orange); color: white; border: none; border-radius: var(--ios-border-radius);">
-                🔧 Test File Upload (Debug for Android)
+                ���� Test File Upload (Debug for Android)
               </button>
               <div id="collateralPreview" style="margin-top: 10px; display: none;">
                 <div id="collateralPreviewList" class="collateral-preview-list"></div>
@@ -3747,7 +3747,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h2>Set Repayment Plan</h2>
-          <button class="close-btn" onclick="closeModal('repaymentPlanModal')">��</button>
+          <button class="close-btn" onclick="closeModal('repaymentPlanModal')">✕</button>
         </div>
         <div class="modal-body">
           <div class="form-row">
@@ -5214,6 +5214,14 @@
       }
 
       // Overdue utilities and actions
+      function isClientOverdue(client) {
+        if (!client) return false;
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const due = new Date(client.dueDate);
+        const dueOnly = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+        return client.remainingBalance > 0 && dueOnly < today;
+      }
       function isDueSoon(client) {
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
