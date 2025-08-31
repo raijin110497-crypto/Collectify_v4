@@ -8880,32 +8880,44 @@
       }
       function buildDemoDataset(){
         const today = todayLocalDateStr();
+        const isSun = isSunday(today);
+        const prevWorkingDay = (ds)=>{
+          let d = addDaysLocal(ds, -1);
+          for (let i=0;i<14;i++){
+            const s = formatDateLocal(d);
+            if (!isNonCollectionDay(s)) return s;
+            d = addDaysLocal(s, -1);
+          }
+          return formatDateLocal(d);
+        };
+        const dateYesterdayWork = prevWorkingDay(today);
+
+        // Build clients with varied scenarios
         const arr = [];
         for (let i = 1; i <= 10; i++) {
-          const loanAmount = 5000 + i * 1000;
+          const loanAmount = 4000 + i * 900;
           const interestRate = defaultSettings.interestRate;
           const term = defaultSettings.loanTerm;
-          let start = formatDateLocal(addDaysLocal(today, -i * 3));
-          let dueTmp = addDaysLocal(start, term);
-          let dueDate = formatDateLocal(dueTmp);
+          let start = formatDateLocal(addDaysLocal(today, -(i * 4)));
+          let due = addDaysLocal(start, term);
+          let dueDate = formatDateLocal(due);
           const totalAmount = loanAmount * (1 + interestRate / 100);
           const dailyAmount = totalAmount / term;
-          const paidDays = i % 6; // 0..5 days paid
-          const paidSoFar = dailyAmount * paidDays;
-          let remainingBalance = Math.max(0, totalAmount - paidSoFar);
-          let status = remainingBalance <= 0 ? 'paid' : 'active';
-          if (i % 7 === 0) { remainingBalance = 0; status = 'paid'; }
-          // Force at least one overdue client in demo (client #1)
+          let remainingBalance = totalAmount;
+          let status = 'active';
+
+          // Force client #1 to be overdue with remaining balance
           if (i === 1) {
-            // Overdue client: start earlier and due date in the past with remaining balance
-            const startPast = formatDateLocal(addDaysLocal(today, -20));
-            start = startPast; // apply earlier start
-            dueTmp = addDaysLocal(startPast, term);
+            start = formatDateLocal(addDaysLocal(today, -30));
             dueDate = formatDateLocal(addDaysLocal(today, -5));
-            status = 'active';
-            if (remainingBalance <= 0) remainingBalance = Math.max(dailyAmount * 3, 500); // ensure not fully paid
           }
-          const c = {
+          // Make one "due soon"
+          if (i === 6) {
+            start = formatDateLocal(addDaysLocal(today, -term + 2));
+            dueDate = formatDateLocal(addDaysLocal(today, 2));
+          }
+
+          const client = {
             id: 9000 + i,
             name: `Demo Client ${i}`,
             contactNumber: `0917${(1230000 + i).toString().padStart(7,'0')}`,
@@ -8919,83 +8931,85 @@
             remainingBalance,
             status,
             interestRate,
-            coMaker: {
-              name: `CoMaker ${i}`,
-              contactNumber: `0908${(7650000 + i).toString().padStart(7,'0')}`,
-              address: `Zone ${i}, Demo City`
-            },
-            collateral: {
-              description: `Demo Collateral ${i} - Sample Item`,
-              photosBase64: [],
-              photoBase64: null
-            },
+            coMaker: { name: `CoMaker ${i}`, contactNumber: `0908${(7650000 + i).toString().padStart(7,'0')}`, address: `Zone ${i}, Demo City` },
+            collateral: { description: `Demo Collateral ${i} - Sample Item`, photosBase64: [], photoBase64: null },
             consecutiveMissedDays: 0,
             lastPaymentDate: null
           };
-          // attach demo images (3)
-          c.collateral.photosBase64 = [
+          client.collateral.photosBase64 = [
             demoImage(`C${i}-1`, '#007aff'),
             demoImage(`C${i}-2`, '#34c759'),
             demoImage(`C${i}-3`, '#ff9500')
           ];
-          c.collateral.photoBase64 = c.collateral.photosBase64[0];
-          arr.push(c);
+          client.collateral.photoBase64 = client.collateral.photosBase64[0];
+          arr.push(client);
         }
-        // Build demo payments
+
+        // Build payments with variety (never on 'today' if Sunday)
         const p = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
+        const abs = [];
         arr.forEach((client, idx) => {
-          // Keep first demo client as overdue with no recent payments
-          if (idx === 0) {
-            return; // do not seed payments for Demo Client 1
-          }
-          // Seed payments on recent working days so they show in the calendar
-          const recentDays = [];
+          // Recent working days before today
+          const recent = [];
           let step = 1;
-          while (recentDays.length < 3 && step < 10) {
+          while (recent.length < 4 && step < 14) {
             const d = formatDateLocal(addDaysLocal(today, -step));
             step++;
-            // within client range and collection day
             if (parseLocalDate(d) < parseLocalDate(client.startDate)) continue;
             if (isNonCollectionDay(d)) continue;
-            recentDays.push(d);
+            recent.push(d);
           }
-          // Add a notebook payment on the most recent working day
-          if (recentDays[0]) {
-            const exp = expectedAmountForDate(client, recentDays[0]);
-            if (exp > 0 && client.remainingBalance > 0) {
-              const amt = Math.min(exp, client.remainingBalance);
-              client.remainingBalance = Math.max(0, client.remainingBalance - amt);
-              p.notebook.push({ id: Date.now() + idx, clientId: client.id, clientName: client.name, amount: amt, date: recentDays[0], type: 'daily', paymentType: 'notebook' });
+
+          // Scenario switch
+          const s = idx % 6; // 0..5
+          if (idx === 0) {
+            // Keep overdue: no recent payments
+            return;
+          } else if (s === 0 && recent[0]) {
+            // Notebook full expected yesterday
+            const exp = expectedAmountForDate(client, recent[0]);
+            const amt = Math.min(exp, client.remainingBalance);
+            client.remainingBalance -= amt; p.notebook.push({ id: Date.now()+idx, clientId: client.id, clientName: client.name, amount: amt, date: recent[0], type: 'daily', paymentType: 'notebook' });
+          } else if (s === 1 && recent[0]) {
+            // GCash payment yesterday
+            const exp = expectedAmountForDate(client, recent[0]);
+            const amt = Math.min(exp, client.remainingBalance);
+            client.remainingBalance -= amt; p.gcash.push({ id: Date.now()+100+idx, clientId: client.id, clientName: client.name, amount: amt, date: recent[0], type: 'daily', paymentType: 'gcash' });
+          } else if (s === 2 && recent[0] && recent[1]) {
+            // Underpaid split across two days
+            const exp0 = expectedAmountForDate(client, recent[0]);
+            const amt0 = Math.min(Math.round(exp0 * 0.5), client.remainingBalance);
+            client.remainingBalance -= amt0; p.notebook.push({ id: Date.now()+200+idx, clientId: client.id, clientName: client.name, amount: amt0, date: recent[0], type: 'daily', paymentType: 'notebook' });
+            const exp1 = expectedAmountForDate(client, recent[1]);
+            const amt1 = Math.min(Math.round(exp1 * 0.3), client.remainingBalance);
+            client.remainingBalance -= amt1; p.office.push({ id: Date.now()+300+idx, clientId: client.id, clientName: client.name, amount: amt1, date: recent[1], type: 'daily', paymentType: 'office' });
+          } else if (s === 3) {
+            // Mark absent on the most recent working day
+            if (recent[0]) abs.push({ id: Date.now()+400+idx, clientId: client.id, clientName: client.name, date: recent[0], reason: 'personal' });
+          } else if (s === 4) {
+            // Schedule a future ADV created on previous working day (skip if client overdue)
+            if (!isClientOverdue(client)) {
+              const createdAt = dateYesterdayWork;
+              const next = getNextCollectionDate(createdAt, client.id);
+              const ex = expectedAmountForDate(client, next);
+              if (ex > 0) p.adv.push({ id: Date.now()+500+idx, clientId: client.id, clientName: client.name, amount: ex, date: next, createdAt, type: 'manual', paymentType: 'adv' });
             }
-          }
-          // Optionally add an Office payment a day earlier for variety
-          if (idx % 3 === 0 && recentDays[1]) {
-            const exp2 = expectedAmountForDate(client, recentDays[1]);
-            if (exp2 > 0 && client.remainingBalance > 0) {
-              const amt2 = Math.min(Math.round(exp2 * 0.6), client.remainingBalance);
-              client.remainingBalance = Math.max(0, client.remainingBalance - amt2);
-              p.office.push({ id: Date.now() + 1000 + idx, clientId: client.id, clientName: client.name, amount: amt2, date: recentDays[1], type: 'daily', paymentType: 'office' });
-            }
-          }
-          // Ensure one client is fully paid today for testing full-pay badge (not the overdue one)
-          const dateToday = today;
-          if (idx % 7 === 0 && idx !== 0) {
+          } else if (s === 5 && recent[0]) {
+            // Full payment on a recent working day
             const rb = client.remainingBalance;
-            if (rb > 0) {
-              p.notebook.push({ id: Date.now() + 500 + idx, clientId: client.id, clientName: client.name, amount: rb, date: dateToday, type: 'full', paymentType: 'notebook' });
-              client.remainingBalance = 0; client.status = 'paid';
-            }
-          }
-          // Add one future ADV (shows as dot on its scheduled date) — skip for overdue clients
-          if (idx % 4 === 0 && !isClientOverdue(client)) {
-            let next = getNextCollectionDate(dateToday, client.id);
-            const expf = expectedAmountForDate(client, next);
-            if (expf > 0) {
-              p.adv.push({ id: Date.now() + 2000 + idx, clientId: client.id, clientName: client.name, amount: expf, date: next, createdAt: dateToday, type: 'manual', paymentType: 'adv' });
-            }
+            p.notebook.push({ id: Date.now()+600+idx, clientId: client.id, clientName: client.name, amount: rb, date: recent[0], type: 'full', paymentType: 'notebook' });
+            client.remainingBalance = 0; client.status = 'paid';
           }
         });
-        const abs = [];
+
+        // If today is Sunday, ensure no payments are dated today and no ADV is created today
+        if (isSun) {
+          Object.keys(p).forEach(k => {
+            p[k] = (p[k]||[]).filter(x => x.date !== today);
+            if (k === 'adv') p[k].forEach(x => { if (x.createdAt === today) x.createdAt = dateYesterdayWork; });
+          });
+        }
+
         return { demoClients: arr, demoPayments: p, demoAbsences: abs };
       }
       function startDemoMode(){
