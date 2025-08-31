@@ -8930,6 +8930,8 @@
         checkMissedPayments();
         const td = document.getElementById('trackerDate'); if (td && !td.value) td.value = todayLocalDateStr();
         loadDailyTracker();
+        // Refresh Overdue list immediately (in case user navigates there next)
+        try { loadOverdueTab(); } catch(e) {}
         const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
         showNotification('Demo mode enabled: 10 sample clients loaded', 'success');
       }
