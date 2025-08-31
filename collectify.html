@@ -8886,6 +8886,9 @@
         updateStats(); updateClientList(); populateClientSelects();
         ['notebook','office','gcash','adv','abono'].forEach(t=>updatePaymentHistory(t));
         updateAbsenceHistory(); updateSettingsInfo();
+        // Reset missed-payment notification throttle keys and run check immediately for realism
+        try { (clients||[]).forEach(c => localStorage.removeItem(`missed_payment_${c.id}`)); } catch(e) {}
+        checkMissedPayments();
         const td = document.getElementById('trackerDate'); if (td && !td.value) td.value = todayLocalDateStr();
         loadDailyTracker();
         const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
