@@ -2101,6 +2101,8 @@
       .calendar-cell.disabled { opacity: 0.45; filter: grayscale(0.2); }
       .calendar-cell.today { box-shadow: 0 0 0 2px rgba(0,122,255,0.25) inset; }
       .calendar-cell.absent { background: rgba(255,59,48,0.08); }
+      /* Selected day highlight (inline and sheet) */
+      .calendar-cell.selected { box-shadow: 0 0 0 2px rgba(0,122,255,0.45) inset; background: rgba(0,122,255,0.08); }
       .day-num { font-size: 12px; color: var(--ios-secondary-label); font-weight: 600; }
       .cal-dots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
       .cal-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
@@ -3215,7 +3217,7 @@
               <div class="form-row">
                 <div class="form-group">
                   <label>Add Holiday Date:</label>
-                  <input type="text" id="holidayDate" readonly placeholder="Select a date below" />
+                  <input type="hidden" id="holidayDate" />
                   <div id="holidayInlineCalendar" class="client-calendar" style="margin-top:10px;">
                     <div class="calendar-header">
                       <button type="button" class="cal-nav" id="hcalPrev" aria-label="Previous month">‹</button>
@@ -8149,12 +8151,14 @@
         const daysInMonth = new Date(hcalYear, hcalMonth+1, 0).getDate();
         for(let i=0;i<firstDay;i++){ html += '<div></div>'; }
         const todayKey = (new Date()).toISOString().split('T')[0];
+        const selected = (document.getElementById('holidayDate')?.value) || '';
         for(let d=1; d<=daysInMonth; d++){
           const current = new Date(hcalYear, hcalMonth, d);
           const key = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}-${String(current.getDate()).padStart(2,'0')}`;
           const isToday = key === todayKey;
           const nonCol = (typeof isNonCollectionDay === 'function') ? isNonCollectionDay(key) : (current.getDay()===0);
-          html += `<button type="button" class="calendar-cell${isToday?' today':''}${nonCol?' absent':''}" data-date="${key}"><span class="day-num">${d}</span></button>`;
+          const isSel = selected === key;
+          html += `<button type="button" class="calendar-cell${isToday?' today':''}${nonCol?' absent':''}${isSel?' selected':''}" data-date="${key}"><span class="day-num">${d}</span></button>`;
         }
         grid.innerHTML = html;
         Array.from(grid.querySelectorAll('.calendar-cell')).forEach(btn=>{
@@ -8162,6 +8166,7 @@
             const ds = btn.getAttribute('data-date');
             const input = document.getElementById('holidayDate');
             if (input) input.value = ds;
+            renderHolidayInlineCalendar();
           });
         });
       }
