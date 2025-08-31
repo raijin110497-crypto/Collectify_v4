@@ -4382,6 +4382,51 @@
         }
       }
 
+      // Android file input validation helper
+      function validateFileInput(input) {
+        try {
+          // Check if File API is supported
+          if (!window.File || !window.FileReader || !window.FileList) {
+            showNotification('File upload not supported on this device', 'error');
+            return false;
+          }
+
+          // Check if input has files
+          if (!input.files || input.files.length === 0) {
+            return true; // No files selected is valid
+          }
+
+          // Validate file count
+          if (input.files.length > 3) {
+            showNotification('Maximum 3 photos allowed', 'error');
+            return false;
+          }
+
+          // Validate each file
+          for (let i = 0; i < input.files.length; i++) {
+            const file = input.files[i];
+
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+              showNotification(`File "${file.name}" is not an image`, 'error');
+              return false;
+            }
+
+            // Check file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+              showNotification(`File "${file.name}" is too large (max 10MB)`, 'error');
+              return false;
+            }
+          }
+
+          return true;
+        } catch (error) {
+          console.error('File validation error:', error);
+          showNotification('Error validating files', 'error');
+          return false;
+        }
+      }
+
       // Check for 3 consecutive missed payments and send notifications
       function checkMissedPayments() {
         const today = new Date();
