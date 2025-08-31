@@ -5646,8 +5646,9 @@
           return;
         }
 
-        // Duplicate across non-Adv tabs check
-        const dup = findDuplicatePayment(client.id, paymentDate, [
+        // Duplicate across non-Adv tabs check (allow multiples if overdue)
+        const allowMulti = isClientOverdue(client);
+        const dup = allowMulti ? null : findDuplicatePayment(client.id, paymentDate, [
           "notebook",
           "office",
           "gcash",
