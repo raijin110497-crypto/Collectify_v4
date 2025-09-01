@@ -3429,7 +3429,7 @@
                 Choose up to 3 photos from gallery or camera
               </small>
               <button type="button" onclick="testFileUpload()" style="margin-top: 8px; padding: 6px 12px; font-size: 12px; background: var(--ios-orange); color: white; border: none; border-radius: var(--ios-border-radius);">
-                🔧 Test File Upload (Debug for Android)
+                ��� Test File Upload (Debug for Android)
               </button>
               <div id="collateralPreview" style="margin-top: 10px; display: none;">
                 <div id="collateralPreviewList" class="collateral-preview-list"></div>
@@ -6701,7 +6701,7 @@
                 <div>
                   <h4>${it.clientName}</h4>
                   <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
-                  <p>Over by ���${it.overBy.toFixed(2)}</p>
+                  <p>Over by ₱${it.overBy.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -7050,11 +7050,13 @@
           const absentClient = document.getElementById('absentClient');
           const absentDate = document.getElementById('absentDate');
           const absentReason = document.getElementById('absentReason');
+          const absentDailyAmount = document.getElementById('absentDailyAmount');
           const pickerLabel = document.getElementById('absentClientPickerLabel');
 
           if (absentClient) absentClient.value = '';
           if (absentDate) absentDate.value = '';
           if (absentReason) absentReason.value = '';
+          if (absentDailyAmount) absentDailyAmount.value = '';
           if (pickerLabel) pickerLabel.textContent = 'Choose a client...';
         } catch (error) {
           // Silently handle any errors during field clearing
