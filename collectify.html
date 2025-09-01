@@ -946,10 +946,11 @@
       .modal-footer .btn {
         flex: 1;
         margin: 0;
-        font-size: 17px;
+        font-size: 15px;
         font-weight: 600;
-        min-height: 50px;
-        border-radius: 25px;
+        min-height: 42px;
+        padding: 8px 16px;
+        border-radius: 21px;
         transition: all 0.25s var(--ios-spring-timing);
       }
 
@@ -3456,8 +3457,16 @@
               <input
                 type="date"
                 id="startDate"
-                onchange="calculateLoanDetails()"
+                onchange="validateStartDateInput('startDate', 'startDateError'); calculateLoanDetails()"
               />
+              <div
+                id="startDateError"
+                class="error-message"
+                style="display: none"
+              ></div>
+              <small style="color: var(--ios-secondary-label); font-size: 12px; margin-top: 4px; display: block;">
+                ⚠️ Start date must be on a configured release day (see Settings → Loan Release Days)
+              </small>
             </div>
           </div>
 
@@ -4290,11 +4299,122 @@
           document.getElementById("startDate").value = today;
           calculateLoanDetails();
           clearClientNameError("clientName", "clientNameError");
+          // Clear start date validation error
+          const startDateError = document.getElementById("startDateError");
+          if (startDateError) startDateError.style.display = "none";
+          const startDateInput = document.getElementById("startDate");
+          if (startDateInput) startDateInput.classList.remove("input-error");
         }
 
         if (modalId === "editClientModal") {
           clearClientNameError("editClientName", "editClientNameError");
         }
+      }
+
+      // Validate if a date is a valid release day
+      function isValidReleaseDay(dateStr) {
+        if (!dateStr) return false;
+        try {
+          const date = parseLocalDate(dateStr);
+          const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, etc.
+
+          // Check if this day of week is enabled as a release day
+          if (!Array.isArray(defaultSettings.releaseDays) || defaultSettings.releaseDays.length !== 7) {
+            // Default: allow all days if not configured
+            return true;
+          }
+
+          // Check if it's a holiday
+          if (isHoliday(dateStr)) {
+            return false;
+          }
+
+          return defaultSettings.releaseDays[dayOfWeek];
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // Get next valid release day from a given date
+      function getNextValidReleaseDay(fromDateStr) {
+        if (!fromDateStr) return null;
+        try {
+          let currentDate = parseLocalDate(fromDateStr);
+          // Check up to 14 days ahead to find a valid release day
+          for (let i = 0; i < 14; i++) {
+            const dateStr = formatDateLocal(currentDate);
+            if (isValidReleaseDay(dateStr)) {
+              return dateStr;
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+          return fromDateStr; // fallback to original if no valid day found
+        } catch (e) {
+          return fromDateStr;
+        }
+      }
+
+      // Get day name for display
+      function getDayName(dateStr) {
+        try {
+          const date = parseLocalDate(dateStr);
+          return date.toLocaleDateString('en-US', { weekday: 'long' });
+        } catch (e) {
+          return 'Invalid date';
+        }
+      }
+
+      // Validate start date input and show error/auto-correct
+      function validateStartDateInput(inputId, errorContainerId) {
+        const input = document.getElementById(inputId);
+        const errorContainer = document.getElementById(errorContainerId);
+
+        if (!input) return true;
+
+        const dateValue = input.value;
+        if (!dateValue) return true;
+
+        // Clear previous errors
+        input.classList.remove('input-error');
+        if (errorContainer) {
+          errorContainer.style.display = 'none';
+        }
+
+        if (!isValidReleaseDay(dateValue)) {
+          const dayName = getDayName(dateValue);
+          const nextValid = getNextValidReleaseDay(dateValue);
+          const nextDayName = getDayName(nextValid);
+
+          // Show error
+          input.classList.add('input-error');
+          if (errorContainer) {
+            errorContainer.textContent = `${dayName} is not configured as a loan release day. Suggested: ${nextDayName} (${parseLocalDate(nextValid).toLocaleDateString()})`;
+            errorContainer.style.display = 'block';
+          }
+
+          // Auto-adjust to next valid day
+          input.value = nextValid;
+
+          showNotification(`Start date adjusted to next valid release day: ${nextDayName}`, 'success');
+
+          // Clear error styling after a moment
+          setTimeout(() => {
+            input.classList.remove('input-error');
+            if (errorContainer) {
+              errorContainer.style.display = 'none';
+            }
+          }, 3000);
+
+          return false;
+        }
+
+        return true;
+      }
+
+      // Validate all start date inputs when settings change
+      function validateAllStartDateInputs() {
+        validateStartDateInput('startDate', 'startDateError');
+        // Add other start date inputs if they exist
       }
 
       // Calculate loan details
@@ -5040,6 +5160,13 @@
             validation.message,
           );
           showNotification(validation.message, "error");
+          return;
+        }
+
+        // Validate start date is on a valid release day
+        if (!isValidReleaseDay(startDate)) {
+          const dayName = getDayName(startDate);
+          showNotification(`${dayName} is not configured as a loan release day. Please check Settings → Loan Release Days.`, "error");
           return;
         }
 
@@ -7778,6 +7905,8 @@
         const lbl = document.getElementById(`releaseDay-${idx}`)?.closest('label');
         if (lbl) lbl.classList.toggle('active', !!defaultSettings.releaseDays[idx]);
         saveData();
+        // Validate existing start date inputs when release days change
+        validateAllStartDateInputs();
       }
       // Holiday management
       function addHoliday() {
@@ -9105,10 +9234,18 @@
         // Build clients with varied scenarios
         const arr = [];
         for (let i = 1; i <= 10; i++) {
-          const loanAmount = 4000 + i * 900;
+          // Loan amounts from 5000 to 18000, multiples of 1000
+          const loanAmounts = [5000, 6000, 7000, 8000, 9000, 10000, 12000, 14000, 16000, 18000];
+          const loanAmount = loanAmounts[i - 1];
           const interestRate = defaultSettings.interestRate;
           const term = defaultSettings.loanTerm;
           let start = formatDateLocal(addDaysLocal(today, -(i * 4)));
+
+          // Apply start date validation to ensure demo clients have valid release days
+          if (!isValidReleaseDay(start)) {
+            start = getNextValidReleaseDay(start);
+          }
+
           let due = addDaysLocal(start, term);
           let dueDate = formatDateLocal(due);
           const totalAmount = loanAmount * (1 + interestRate / 100);
@@ -9119,19 +9256,47 @@
           // Force client #1 to be overdue with remaining balance
           if (i === 1) {
             start = formatDateLocal(addDaysLocal(today, -30));
+            // Apply validation to overdue client as well
+            if (!isValidReleaseDay(start)) {
+              start = getNextValidReleaseDay(start);
+            }
             dueDate = formatDateLocal(addDaysLocal(today, -5));
           }
           // Make one "due soon"
           if (i === 6) {
             start = formatDateLocal(addDaysLocal(today, -term + 2));
+            // Apply validation to due soon client as well
+            if (!isValidReleaseDay(start)) {
+              start = getNextValidReleaseDay(start);
+            }
             dueDate = formatDateLocal(addDaysLocal(today, 2));
           }
 
+          // Define client names based on payment behavior
+          const clientNames = [
+            'Maria Santos (Overdue)', 'Juan Cruz (Bad Payer)', 'Rosa Dela Cruz (Stopped Paying)',
+            'Ana Garcia (Sometimes Good)', 'Pedro Reyes (Irregular)', 'Sofia Mendoza (Fair)', 'Carlos Rivera (Decent)',
+            'Elena Valdez (Good Payer)', 'Miguel Torres (Excellent)', 'Carmen Lopez (Perfect Payer)'
+          ];
+
+          // Real Philippine mobile numbers and Camiling, Tarlac addresses
+          const phoneNumbers = [
+            '09171234567', '09189876543', '09223456789', '09359823451', '09267890123',
+            '09454321567', '09751234890', '09289876321', '09168742359', '09992345678'
+          ];
+
+          const addresses = [
+            'Poblacion Norte, Camiling, Tarlac', 'San Agustin, Camiling, Tarlac', 'San Vicente, Camiling, Tarlac',
+            'Santa Lucia, Camiling, Tarlac', 'Santo Domingo, Camiling, Tarlac', 'Tambugan, Camiling, Tarlac',
+            'Cayanga, Camiling, Tarlac', 'San Pascual, Camiling, Tarlac', 'Santa Cruz, Camiling, Tarlac',
+            'Santa Maria, Camiling, Tarlac'
+          ];
+
           const client = {
             id: 9000 + i,
-            name: `Demo Client ${i}`,
-            contactNumber: `0917${(1230000 + i).toString().padStart(7,'0')}`,
-            address: `Barangay ${i}, Demo City`,
+            name: clientNames[i - 1],
+            contactNumber: phoneNumbers[i - 1],
+            address: addresses[i - 1],
             loanAmount,
             totalAmount,
             dailyAmount,
@@ -9141,7 +9306,11 @@
             remainingBalance,
             status,
             interestRate,
-            coMaker: { name: `CoMaker ${i}`, contactNumber: `0908${(7650000 + i).toString().padStart(7,'0')}`, address: `Zone ${i}, Demo City` },
+            coMaker: {
+              name: ['Roberto Santos', 'Elena Cruz', 'Jose Dela Cruz', 'Ana Garcia Sr.', 'Carmen Reyes', 'Pedro Mendoza', 'Maria Rivera', 'Luis Valdez', 'Rosa Torres', 'Antonio Lopez'][i - 1],
+              contactNumber: ['09281234567', '09359876543', '09163456789', '09429823451', '09467890123', '09514321567', '09631234890', '09819876321', '09968742359', '09992345987'][i - 1],
+              address: ['Poblacion Sur, Camiling, Tarlac', 'Cayaoan, Camiling, Tarlac', 'San Jose, Camiling, Tarlac', 'Balite, Camiling, Tarlac', 'Nambalan, Camiling, Tarlac', 'Marawi, Camiling, Tarlac', 'Pindangan, Camiling, Tarlac', 'Sto. Rosario, Camiling, Tarlac', 'Bacabac, Camiling, Tarlac', 'Manggalang, Camiling, Tarlac'][i - 1]
+            },
             collateral: { description: `Demo Collateral ${i} - Sample Item`, photosBase64: [], photoBase64: null },
             consecutiveMissedDays: 0,
             lastPaymentDate: null
@@ -9155,174 +9324,114 @@
           arr.push(client);
         }
 
-        // Build payments with variety (never on 'today' if Sunday)
+        // Build payments with realistic payment behavior variations
         const p = { notebook: [], office: [], gcash: [], adv: [], abono: [] };
         const abs = [];
-        arr.forEach((client, idx) => {
-          // Recent working days before today
-          const recent = [];
-          let step = 1;
-          while (recent.length < 4 && step < 14) {
-            const d = formatDateLocal(addDaysLocal(today, -step));
-            step++;
-            if (parseLocalDate(d) < parseLocalDate(client.startDate)) continue;
-            if (isNonCollectionDay(d)) continue;
-            recent.push(d);
+
+        // Define payment patterns for different client types
+        const createPaymentPattern = (client, idx) => {
+          const end = new Date(); end.setDate(end.getDate() - 1);
+          const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+          const start = parseLocalDate(client.startDate);
+          const types = ['notebook', 'office', 'gcash'];
+          let remaining = client.totalAmount;
+          let daysSinceStart = 0;
+
+          // Calculate total collection days
+          const totalCollectionDays = [];
+          for (let d = new Date(start); d <= endOnly; d.setDate(d.getDate() + 1)) {
+            const ds = formatDateLocal(d);
+            if (!isNonCollectionDay(ds)) totalCollectionDays.push(ds);
           }
 
-          // Scenario switch
-          const s = idx % 6; // 0..5
           if (idx === 0) {
-            // Keep overdue: no recent payments
-            return;
-          } else if (s === 0 && recent[0]) {
-            // Notebook full expected yesterday
-            const exp = expectedAmountForDate(client, recent[0]);
-            const amt = Math.min(exp, client.remainingBalance);
-            client.remainingBalance -= amt; p.notebook.push({ id: Date.now()+idx, clientId: client.id, clientName: client.name, amount: amt, date: recent[0], type: 'daily', paymentType: 'notebook' });
-          } else if (s === 1 && recent[0]) {
-            // GCash payment yesterday
-            const exp = expectedAmountForDate(client, recent[0]);
-            const amt = Math.min(exp, client.remainingBalance);
-            client.remainingBalance -= amt; p.gcash.push({ id: Date.now()+100+idx, clientId: client.id, clientName: client.name, amount: amt, date: recent[0], type: 'daily', paymentType: 'gcash' });
-          } else if (s === 2 && recent[0] && recent[1]) {
-            // Underpaid split across two days
-            const exp0 = expectedAmountForDate(client, recent[0]);
-            const amt0 = Math.min(Math.round(exp0 * 0.5), client.remainingBalance);
-            client.remainingBalance -= amt0; p.notebook.push({ id: Date.now()+200+idx, clientId: client.id, clientName: client.name, amount: amt0, date: recent[0], type: 'daily', paymentType: 'notebook' });
-            const exp1 = expectedAmountForDate(client, recent[1]);
-            const amt1 = Math.min(Math.round(exp1 * 0.3), client.remainingBalance);
-            client.remainingBalance -= amt1; p.office.push({ id: Date.now()+300+idx, clientId: client.id, clientName: client.name, amount: amt1, date: recent[1], type: 'daily', paymentType: 'office' });
-          } else if (s === 3) {
-            // Mark absent on the most recent working day
-            if (recent[0]) abs.push({ id: Date.now()+400+idx, clientId: client.id, clientName: client.name, date: recent[0], reason: 'personal' });
-          } else if (s === 4) {
-            // Schedule a future ADV created on previous working day (skip if client overdue)
-            if (!isClientOverdue(client)) {
-              const createdAt = dateYesterdayWork;
-              const next = getNextCollectionDate(createdAt, client.id);
-              const ex = expectedAmountForDate(client, next);
-              if (ex > 0) p.adv.push({ id: Date.now()+500+idx, clientId: client.id, clientName: client.name, amount: ex, date: next, createdAt, type: 'manual', paymentType: 'adv' });
-            }
-          } else if (s === 5 && recent[0]) {
-            // Build continuous payments from start up to the day before full pay, then full pay
-            const fullDay = recent[0];
-            const endPrev = formatDateLocal(addDaysLocal(fullDay, -1));
-            for (let d = parseLocalDate(client.startDate); formatDateLocal(d) <= endPrev && client.remainingBalance > 0; d.setDate(d.getDate()+1)) {
-              const ds = formatDateLocal(d);
-              if (isNonCollectionDay(ds)) continue;
-              const exp = expectedAmountForDate(client, ds);
-              const amt = Math.min(exp, client.remainingBalance);
-              client.remainingBalance -= amt;
-              p.notebook.push({ id: Date.now()+60000+idx+Math.random()*1000|0, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: 'notebook' });
-            }
-            const rb = client.remainingBalance;
-            if (rb > 0) {
-              p.notebook.push({ id: Date.now()+600+idx, clientId: client.id, clientName: client.name, amount: rb, date: fullDay, type: 'full', paymentType: 'notebook' });
-              client.remainingBalance = 0; client.status = 'paid';
-            }
-          }
-        });
-
-        // Extra flavor: ensure at least one perfect payer (no absences) and one with absences
-        (function addPerfectPayer(){
-          const client = arr[arr.length - 1];
-          if (!client) return;
-          // Remove any previously created entries for this client
-          Object.keys(p).forEach(t => { p[t] = (p[t]||[]).filter(x => x.clientId !== client.id); });
-          for (let i = abs.length - 1; i >= 0; i--) { if (abs[i].clientId === client.id) abs.splice(i,1); }
-          let remaining = client.totalAmount;
-          const types = ['notebook','office','gcash'];
-          let ti = 0;
-          const start = parseLocalDate(client.startDate);
-          const end = new Date(); end.setDate(end.getDate()-1);
-          const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-          for (let d = new Date(start); d <= endOnly && remaining > 0; d.setDate(d.getDate()+1)) {
-            const ds = formatDateLocal(d);
-            if (isNonCollectionDay(ds)) continue;
-            const expected = expectedAmountForDate(client, ds);
-            if (expected <= 0) continue;
-            const amt = Math.min(expected, remaining);
-            const type = types[ti++ % types.length];
-            p[type].push({ id: Date.now()+Math.random()*100000|0, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: type });
-            remaining -= amt;
-          }
-          client.remainingBalance = Math.max(0, client.totalAmount - Object.values(p).flat().filter(x=>x.clientId===client.id).reduce((s,x)=>s+(Number(x.amount)||0),0));
-          client.status = client.remainingBalance <= 1e-6 ? 'paid' : 'active';
-        })();
-        (function addAbsentPatternPayer(){
-          const client = arr[arr.length - 2];
-          if (!client) return;
-          // Reset any generated entries for this client then create a light absence pattern with regular payments
-          Object.keys(p).forEach(t => { p[t] = (p[t]||[]).filter(x => x.clientId !== client.id); });
-          for (let i = abs.length - 1; i >= 0; i--) { if (abs[i].clientId === client.id) abs.splice(i,1); }
-          const start = parseLocalDate(client.startDate);
-          const end = new Date(); end.setDate(end.getDate()-1);
-          const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-          const types = ['notebook','office','gcash'];
-          let ti = 0;
-          let remaining = client.totalAmount;
-          let addedAbs = 0;
-          const maxAbsences = 3;
-          for (let d = new Date(start); d <= endOnly && remaining > 0; d.setDate(d.getDate()+1)) {
-            const ds = formatDateLocal(d);
-            if (isNonCollectionDay(ds)) continue;
-            if (addedAbs < maxAbsences && Math.random() < 0.08) {
-              abs.push({ id: Date.now()+Math.random()*1000|0, clientId: client.id, clientName: client.name, date: ds, reason: 'personal' });
-              addedAbs++;
-              continue;
-            }
-            const expected = expectedAmountForDate(client, ds);
-            if (expected <= 0) continue;
-            const amt = Math.min(expected, remaining);
-            if (amt <= 0) continue;
-            const type = types[ti++ % types.length];
-            p[type].push({ id: Date.now()+Math.random()*100000|0, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: type });
-            remaining -= amt;
-          }
-          client.remainingBalance = Math.max(0, client.totalAmount - Object.values(p).flat().filter(x=>x.clientId===client.id).reduce((s,x)=>s+(Number(x.amount)||0),0));
-          client.status = client.remainingBalance <= 1e-6 ? 'paid' : 'active';
-        })();
-
-        // Backfill sparse histories for realism: ensure active clients have payments on many non-absent working days
-        (function backfillSparsePayers(){
-          const end = new Date(); end.setDate(end.getDate()-1);
-          const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-          arr.forEach((client, idx) => {
-            if (idx === 0) return;
-            if (client.status === 'paid') return;
-            const paidList = Object.values(p).flat().filter(x => x.clientId === client.id);
-            const sumPaid = paidList.reduce((s,x)=>s+(Number(x.amount)||0),0);
-            let remaining = Math.max(0, client.totalAmount - sumPaid);
-            if (remaining <= 0) return;
-            const paidDates = new Set(paidList.map(x => x.date));
-            const eligible = [];
-            for (let d = parseLocalDate(client.startDate); d <= endOnly; d.setDate(d.getDate()+1)) {
-              const ds = formatDateLocal(d);
-              if (isNonCollectionDay(ds)) continue;
-              if ((abs||[]).some(a => a.clientId === client.id && a.date === ds)) continue;
-              if (!paidDates.has(ds)) eligible.push(ds);
-            }
-            const target = Math.min(12, Math.ceil(eligible.length * 0.4));
-            const types = ['notebook','office','gcash'];
-            let ti = 0;
-            for (let i = 0; i < eligible.length && i < target && remaining > 0; i++) {
-              const ds = eligible[i];
+            // BAD PAYER #1: Overdue client with payments that stopped (paid for first 40%, then stopped)
+            const payDays = Math.floor(totalCollectionDays.length * 0.4);
+            for (let i = 0; i < payDays && i < totalCollectionDays.length && remaining > 0; i++) {
+              const ds = totalCollectionDays[i];
               const expected = expectedAmountForDate(client, ds);
-              if (expected <= 0) continue;
               const amt = Math.min(expected, remaining);
-              if (amt <= 0) break;
-              const type = types[ti++ % types.length];
-              p[type].push({ id: Date.now()+Math.random()*100000|0, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: type });
+              p.notebook.push({ id: Date.now() + idx * 1000 + i, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: 'notebook' });
               remaining -= amt;
             }
-          });
-          arr.forEach(client => {
-            const paidTot = Object.values(p).flat().filter(x=>x.clientId===client.id).reduce((s,x)=>s+(Number(x.amount)||0),0);
-            client.remainingBalance = Math.max(0, client.totalAmount - paidTot);
-            client.status = client.remainingBalance <= 1e-6 ? 'paid' : 'active';
-          });
-        })();
+          } else if (idx === 1) {
+            // BAD PAYER #2: Very irregular payments, many absences
+            let absenceCount = 0;
+            const maxAbsences = Math.floor(totalCollectionDays.length * 0.3);
+            for (let i = 0; i < totalCollectionDays.length && remaining > 0; i++) {
+              const ds = totalCollectionDays[i];
+              if (Math.random() < 0.35 && absenceCount < maxAbsences) {
+                abs.push({ id: Date.now() + idx * 1000 + i, clientId: client.id, clientName: client.name, date: ds, reason: 'personal' });
+                absenceCount++;
+              } else if (Math.random() < 0.6) {
+                const expected = expectedAmountForDate(client, ds);
+                const amt = Math.min(Math.random() < 0.4 ? expected * 0.5 : expected, remaining);
+                const type = types[Math.floor(Math.random() * types.length)];
+                p[type].push({ id: Date.now() + idx * 1000 + i, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: type });
+                remaining -= amt;
+              }
+            }
+          } else if (idx === 2) {
+            // BAD PAYER #3: Started paying then stopped after 60%
+            const payDays = Math.floor(totalCollectionDays.length * 0.6);
+            for (let i = 0; i < payDays && i < totalCollectionDays.length && remaining > 0; i++) {
+              const ds = totalCollectionDays[i];
+              if (Math.random() < 0.8) {
+                const expected = expectedAmountForDate(client, ds);
+                const amt = Math.min(expected, remaining);
+                const type = types[i % types.length];
+                p[type].push({ id: Date.now() + idx * 1000 + i, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: type });
+                remaining -= amt;
+              } else {
+                abs.push({ id: Date.now() + idx * 1000 + i, clientId: client.id, clientName: client.name, date: ds, reason: 'sick' });
+              }
+            }
+          } else if (idx >= 3 && idx <= 6) {
+            // SOMETIMES GOOD PAYERS: Inconsistent but not terrible
+            let absenceCount = 0;
+            const maxAbsences = Math.floor(totalCollectionDays.length * 0.15);
+            for (let i = 0; i < totalCollectionDays.length && remaining > 0; i++) {
+              const ds = totalCollectionDays[i];
+              if (Math.random() < 0.12 && absenceCount < maxAbsences) {
+                abs.push({ id: Date.now() + idx * 1000 + i, clientId: client.id, clientName: client.name, date: ds, reason: Math.random() < 0.5 ? 'personal' : 'work' });
+                absenceCount++;
+              } else if (Math.random() < 0.85) {
+                const expected = expectedAmountForDate(client, ds);
+                const amt = Math.min(Math.random() < 0.2 ? expected * 0.7 : expected, remaining);
+                const type = types[i % types.length];
+                p[type].push({ id: Date.now() + idx * 1000 + i, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: type });
+                remaining -= amt;
+              }
+            }
+          } else {
+            // GOOD PAYERS: Consistent payments, minimal absences
+            let absenceCount = 0;
+            const maxAbsences = Math.floor(totalCollectionDays.length * 0.05);
+            for (let i = 0; i < totalCollectionDays.length && remaining > 0; i++) {
+              const ds = totalCollectionDays[i];
+              if (Math.random() < 0.03 && absenceCount < maxAbsences) {
+                abs.push({ id: Date.now() + idx * 1000 + i, clientId: client.id, clientName: client.name, date: ds, reason: 'emergency' });
+                absenceCount++;
+              } else {
+                const expected = expectedAmountForDate(client, ds);
+                const amt = Math.min(expected, remaining);
+                const type = types[i % types.length];
+                p[type].push({ id: Date.now() + idx * 1000 + i, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: type });
+                remaining -= amt;
+              }
+            }
+          }
+
+          // Update client's remaining balance
+          const paidTotal = Object.values(p).flat().filter(x => x.clientId === client.id).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+          client.remainingBalance = Math.max(0, client.totalAmount - paidTotal);
+          client.status = client.remainingBalance <= 1e-6 ? 'paid' : 'active';
+        };
+
+        // Apply payment patterns to all clients
+        arr.forEach((client, idx) => {
+          createPaymentPattern(client, idx);
+        });
 
         // Ensure one active client has exactly 8 payment days left for testing Full Pay rule
         (function ensureEightDaysLeft(){
@@ -9363,7 +9472,7 @@
         try { loadOverdueTab(); } catch(e) {}
         const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
         const paidCt = (clients||[]).filter(c=>c.status==='paid').length;
-        showNotification(`Demo mode enabled: 10 sample clients loaded • Fully paid: ${paidCt}`, 'success');
+        showNotification(`Demo mode enabled: 10 sample clients loaded ��� Fully paid: ${paidCt}`, 'success');
       }
       function endDemoMode(){
         if (!demo.active || !demo.backup) return;
