@@ -3220,6 +3220,76 @@
               </div>
             </div>
 
+            <!-- Notification Settings Group -->
+            <div class="form-group">
+              <label>Payment Notifications</label>
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                  gap: 12px;
+                  margin-top: 10px;
+                "
+              >
+                <button
+                  id="notificationToggleBtn"
+                  class="btn btn-danger"
+                  onclick="toggleNotifications()"
+                >
+                  Enable Notifications
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  onclick="testNotificationSound()"
+                >
+                  Test Sound
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  onclick="checkOverdueNow()"
+                >
+                  Check Now
+                </button>
+              </div>
+
+              <div class="form-row" style="margin-top: 15px;">
+                <div class="form-group">
+                  <label>Notification Sound:</label>
+                  <select id="notificationSound" onchange="updateNotificationSound()">
+                    <option value="gentle">Gentle Chime</option>
+                    <option value="alert">Alert Beep</option>
+                    <option value="chime">Pleasant Bell</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Volume:</label>
+                  <input
+                    type="range"
+                    id="notificationVolume"
+                    min="0.1"
+                    max="1"
+                    step="0.1"
+                    value="0.7"
+                    onchange="updateNotificationVolume()"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Check Interval (seconds):</label>
+                  <select id="checkInterval" onchange="updateCheckInterval()">
+                    <option value="30">30 seconds</option>
+                    <option value="60">1 minute</option>
+                    <option value="120">2 minutes</option>
+                    <option value="300">5 minutes</option>
+                    <option value="600">10 minutes</option>
+                  </select>
+                </div>
+              </div>
+              <small style="color: var(--ios-secondary-label); display:block; margin-top:6px;">
+                📢 Automatically checks for overdue payments and plays notification sounds.
+                Notifications require user interaction to work (click anywhere first).
+              </small>
+            </div>
+
             <!-- Data Management Group -->
             <div class="form-group">
               <label>Data Management</label>
@@ -7532,7 +7602,7 @@
           <div class="tracker-client-item">
             <div class="tracker-client-info">
               <h5>${entry.clientName}</h5>
-              <p>Total paid today: ₱${entry.totalPaid.toFixed(2)}</p>
+              <p>Total paid today: ��${entry.totalPaid.toFixed(2)}</p>
               <p>${typeBadges} ${statusBadge}</p>
               ${extraLine}
             </div>
@@ -8857,7 +8927,47 @@
             clearClientNameError("editClientName", "editClientNameError");
           });
         }
+
+        // Initialize notification settings UI
+        initializeNotificationSettings();
       });
+
+      function initializeNotificationSettings() {
+        try {
+          // Load saved settings
+          const saved = localStorage.getItem('notificationSettings');
+          const settings = saved ? JSON.parse(saved) : {
+            enabled: true,
+            volume: 0.7,
+            soundType: 'gentle',
+            checkInterval: 30000
+          };
+
+          // Update UI elements
+          const toggleBtn = document.getElementById('notificationToggleBtn');
+          if (toggleBtn) {
+            toggleBtn.textContent = settings.enabled ? 'Disable Notifications' : 'Enable Notifications';
+            toggleBtn.className = settings.enabled ? 'btn btn-danger' : 'btn btn-success';
+          }
+
+          const volumeInput = document.getElementById('notificationVolume');
+          if (volumeInput) {
+            volumeInput.value = settings.volume;
+          }
+
+          const soundSelect = document.getElementById('notificationSound');
+          if (soundSelect) {
+            soundSelect.value = settings.soundType;
+          }
+
+          const intervalSelect = document.getElementById('checkInterval');
+          if (intervalSelect) {
+            intervalSelect.value = settings.checkInterval / 1000;
+          }
+        } catch (error) {
+          console.error('Error initializing notification settings:', error);
+        }
+      }
 
       // PWA Install handling
       let deferredPrompt;
@@ -8873,6 +8983,277 @@
         console.log("PWA was installed");
         showNotification("App installed successfully!", "success");
       });
+
+      // Notification Sound System
+      class NotificationSounds {
+        constructor() {
+          this.audioContext = null;
+          this.settings = {
+            enabled: true,
+            volume: 0.7,
+            soundType: 'gentle', // 'gentle', 'alert', 'chime'
+            checkInterval: 30000 // Check every 30 seconds
+          };
+          this.lastCheckTime = 0;
+          this.checkTimer = null;
+          this.loadSettings();
+          this.startPeriodicCheck();
+        }
+
+        async initAudioContext() {
+          if (!this.audioContext) {
+            try {
+              this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+              console.warn('Audio context not supported');
+              return false;
+            }
+          }
+
+          if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+          }
+          return true;
+        }
+
+        // Generate different notification sounds using Web Audio API
+        async playNotificationSound(type = this.settings.soundType) {
+          if (!this.settings.enabled) return;
+
+          if (!await this.initAudioContext()) return;
+
+          const oscillator = this.audioContext.createOscillator();
+          const gainNode = this.audioContext.createGain();
+
+          oscillator.connect(gainNode);
+          gainNode.connect(this.audioContext.destination);
+
+          // Set volume
+          gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+          gainNode.gain.linearRampToValueAtTime(this.settings.volume * 0.3, this.audioContext.currentTime + 0.05);
+
+          switch (type) {
+            case 'gentle':
+              // Soft ascending chime
+              oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime); // C5
+              oscillator.frequency.linearRampToValueAtTime(659.25, this.audioContext.currentTime + 0.3); // E5
+              gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.8);
+              oscillator.start(this.audioContext.currentTime);
+              oscillator.stop(this.audioContext.currentTime + 0.8);
+              break;
+
+            case 'alert':
+              // More urgent double beep
+              oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+              gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.2);
+              oscillator.start(this.audioContext.currentTime);
+              oscillator.stop(this.audioContext.currentTime + 0.2);
+
+              // Second beep
+              setTimeout(() => {
+                const osc2 = this.audioContext.createOscillator();
+                const gain2 = this.audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(this.audioContext.destination);
+                osc2.frequency.setValueAtTime(800, this.audioContext.currentTime);
+                gain2.gain.setValueAtTime(0, this.audioContext.currentTime);
+                gain2.gain.linearRampToValueAtTime(this.settings.volume * 0.3, this.audioContext.currentTime + 0.05);
+                gain2.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.2);
+                osc2.start(this.audioContext.currentTime);
+                osc2.stop(this.audioContext.currentTime + 0.2);
+              }, 300);
+              break;
+
+            case 'chime':
+              // Pleasant bell-like sound
+              const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
+              frequencies.forEach((freq, index) => {
+                setTimeout(() => {
+                  const osc = this.audioContext.createOscillator();
+                  const gain = this.audioContext.createGain();
+                  osc.connect(gain);
+                  gain.connect(this.audioContext.destination);
+                  osc.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                  gain.gain.setValueAtTime(0, this.audioContext.currentTime);
+                  gain.gain.linearRampToValueAtTime(this.settings.volume * 0.2, this.audioContext.currentTime + 0.05);
+                  gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.6);
+                  osc.start(this.audioContext.currentTime);
+                  osc.stop(this.audioContext.currentTime + 0.6);
+                }, index * 150);
+              });
+              break;
+          }
+        }
+
+        // Check for overdue payments
+        async checkForOverduePayments() {
+          if (!this.settings.enabled) return;
+
+          try {
+            const clients = await getAllClients();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let overdueCount = 0;
+            let dueTodayCount = 0;
+
+            for (const client of clients) {
+              if (client.status !== 'active') continue;
+
+              const nextDue = getNextDueDate(client);
+              if (!nextDue) continue;
+
+              const dueDate = new Date(nextDue);
+              dueDate.setHours(0, 0, 0, 0);
+
+              if (dueDate < today) {
+                overdueCount++;
+              } else if (dueDate.getTime() === today.getTime()) {
+                dueTodayCount++;
+              }
+            }
+
+            // Play notification if there are overdue payments
+            if (overdueCount > 0) {
+              await this.playNotificationSound('alert');
+              showNotification(`⚠️ ${overdueCount} overdue payment${overdueCount > 1 ? 's' : ''} detected!`, 'error');
+            } else if (dueTodayCount > 0) {
+              await this.playNotificationSound('gentle');
+              showNotification(`📅 ${dueTodayCount} payment${dueTodayCount > 1 ? 's' : ''} due today`, 'info');
+            }
+
+            return { overdueCount, dueTodayCount };
+          } catch (error) {
+            console.error('Error checking overdue payments:', error);
+          }
+        }
+
+        // Start periodic checking
+        startPeriodicCheck() {
+          if (this.checkTimer) {
+            clearInterval(this.checkTimer);
+          }
+
+          this.checkTimer = setInterval(async () => {
+            await this.checkForOverduePayments();
+          }, this.settings.checkInterval);
+
+          // Initial check after 5 seconds
+          setTimeout(() => {
+            this.checkForOverduePayments();
+          }, 5000);
+        }
+
+        // Settings management
+        loadSettings() {
+          try {
+            const saved = localStorage.getItem('notificationSettings');
+            if (saved) {
+              this.settings = { ...this.settings, ...JSON.parse(saved) };
+            }
+          } catch (error) {
+            console.error('Error loading notification settings:', error);
+          }
+        }
+
+        saveSettings() {
+          try {
+            localStorage.setItem('notificationSettings', JSON.stringify(this.settings));
+          } catch (error) {
+            console.error('Error saving notification settings:', error);
+          }
+        }
+
+        updateSettings(newSettings) {
+          this.settings = { ...this.settings, ...newSettings };
+          this.saveSettings();
+
+          // Restart periodic check with new interval
+          if (newSettings.checkInterval) {
+            this.startPeriodicCheck();
+          }
+        }
+
+        // Test sound
+        async testSound() {
+          await this.playNotificationSound(this.settings.soundType);
+        }
+
+        // Manual check
+        async manualCheck() {
+          return await this.checkForOverduePayments();
+        }
+      }
+
+      // Initialize notification system
+      let notificationSystem = null;
+
+      // Initialize after user interaction to avoid autoplay restrictions
+      document.addEventListener('click', () => {
+        if (!notificationSystem) {
+          notificationSystem = new NotificationSounds();
+        }
+      }, { once: true });
+
+      // Utility functions for notification settings
+      function toggleNotifications() {
+        if (!notificationSystem) {
+          notificationSystem = new NotificationSounds();
+        }
+
+        const enabled = !notificationSystem.settings.enabled;
+        notificationSystem.updateSettings({ enabled });
+
+        const button = document.getElementById('notificationToggleBtn');
+        if (button) {
+          button.textContent = enabled ? 'Disable Notifications' : 'Enable Notifications';
+          button.className = enabled ? 'btn btn-danger' : 'btn btn-success';
+        }
+
+        showNotification(
+          enabled ? 'Payment notifications enabled' : 'Payment notifications disabled',
+          enabled ? 'success' : 'info'
+        );
+      }
+
+      function updateNotificationVolume() {
+        if (!notificationSystem) return;
+
+        const volume = parseFloat(document.getElementById('notificationVolume').value);
+        notificationSystem.updateSettings({ volume });
+      }
+
+      function updateNotificationSound() {
+        if (!notificationSystem) return;
+
+        const soundType = document.getElementById('notificationSound').value;
+        notificationSystem.updateSettings({ soundType });
+      }
+
+      function updateCheckInterval() {
+        if (!notificationSystem) return;
+
+        const interval = parseInt(document.getElementById('checkInterval').value) * 1000;
+        notificationSystem.updateSettings({ checkInterval: interval });
+      }
+
+      async function testNotificationSound() {
+        if (!notificationSystem) {
+          notificationSystem = new NotificationSounds();
+        }
+        await notificationSystem.testSound();
+      }
+
+      async function checkOverdueNow() {
+        if (!notificationSystem) {
+          notificationSystem = new NotificationSounds();
+        }
+
+        const result = await notificationSystem.manualCheck();
+        if (result && result.overdueCount === 0 && result.dueTodayCount === 0) {
+          showNotification('✅ No overdue or due payments found', 'success');
+        }
+      }
     </script>
 
     <!-- Tutorial Layer -->
@@ -9898,6 +10279,37 @@
             selector: 'button.btn.btn-secondary[onclick="toggleDarkMode()"]',
             padding: 4,
             onBefore: () => { closeSidebar(); switchTab("settings"); },
+          },
+          {
+            text: "Enable/disable automatic payment notifications for overdue clients.",
+            selector: '#notificationToggleBtn',
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("settings"); },
+          },
+          {
+            text: "Test notification sounds to hear how alerts will sound.",
+            selector: 'button.btn.btn-secondary[onclick="testNotificationSound()"]',
+            padding: 4,
+          },
+          {
+            text: "Manually check for overdue payments right now.",
+            selector: 'button.btn.btn-secondary[onclick="checkOverdueNow()"]',
+            padding: 4,
+          },
+          {
+            text: "Choose your preferred notification sound type.",
+            selector: '#notificationSound',
+            padding: 4,
+          },
+          {
+            text: "Adjust notification volume to your preference.",
+            selector: '#notificationVolume',
+            padding: 4,
+          },
+          {
+            text: "Set how often the app checks for overdue payments (30 seconds to 10 minutes).",
+            selector: '#checkInterval',
+            padding: 4,
           },
           {
             text: "Set Loan Release Days by checking the weekdays you release funds.",
