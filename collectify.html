@@ -8648,7 +8648,7 @@
                 <div class="calendar-header">
                   <button type="button" class="cal-nav" aria-label="Previous month" onclick="changeClientCalendarMonth(-1)">‹</button>
                   <div class="calendar-title" id="clientCalendarTitle">-</div>
-                  <button type="button" class="cal-nav" aria-label="Next month" onclick="changeClientCalendarMonth(1)">›</button>
+                  <button type="button" class="cal-nav" aria-label="Next month" onclick="changeClientCalendarMonth(1)">��</button>
                 </div>
                 <div class="calendar-grid" id="clientCalendarGrid"></div>
                 <div class="calendar-legend">
@@ -8927,7 +8927,47 @@
             clearClientNameError("editClientName", "editClientNameError");
           });
         }
+
+        // Initialize notification settings UI
+        initializeNotificationSettings();
       });
+
+      function initializeNotificationSettings() {
+        try {
+          // Load saved settings
+          const saved = localStorage.getItem('notificationSettings');
+          const settings = saved ? JSON.parse(saved) : {
+            enabled: true,
+            volume: 0.7,
+            soundType: 'gentle',
+            checkInterval: 30000
+          };
+
+          // Update UI elements
+          const toggleBtn = document.getElementById('notificationToggleBtn');
+          if (toggleBtn) {
+            toggleBtn.textContent = settings.enabled ? 'Disable Notifications' : 'Enable Notifications';
+            toggleBtn.className = settings.enabled ? 'btn btn-danger' : 'btn btn-success';
+          }
+
+          const volumeInput = document.getElementById('notificationVolume');
+          if (volumeInput) {
+            volumeInput.value = settings.volume;
+          }
+
+          const soundSelect = document.getElementById('notificationSound');
+          if (soundSelect) {
+            soundSelect.value = settings.soundType;
+          }
+
+          const intervalSelect = document.getElementById('checkInterval');
+          if (intervalSelect) {
+            intervalSelect.value = settings.checkInterval / 1000;
+          }
+        } catch (error) {
+          console.error('Error initializing notification settings:', error);
+        }
+      }
 
       // PWA Install handling
       let deferredPrompt;
