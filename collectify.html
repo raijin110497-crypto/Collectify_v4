@@ -6594,7 +6594,7 @@
         if (type === "abono") {
           const lenderSel = document.getElementById("abonoLenderClient");
           if (lenderSel) { lenderSel.value = ""; lenderSel.dispatchEvent(new Event("change", { bubbles: true })); }
-          const info = document.getElementById("abonoLenderInfo"); if (info) info.textContent = "Available advance: ��0.00";
+          const info = document.getElementById("abonoLenderInfo"); if (info) info.textContent = "Available advance: ₱0.00";
         }
 
         await saveData();
