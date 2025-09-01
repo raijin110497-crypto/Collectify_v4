@@ -789,7 +789,7 @@
 
       .client-actions {
         display: grid;
-        grid-template-columns: repeat(4, minmax(80px, 1fr));
+        grid-template-columns: repeat(5, minmax(80px, 1fr));
         gap: 8px;
         align-items: stretch;
       }
@@ -3634,6 +3634,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-primary" onclick="contactClient(calendarViewState.clientId || 0)">Contact Client</button>
+          <button class="btn btn-secondary" onclick="textClient(calendarViewState.clientId || 0)">Text Client</button>
           <button class="btn btn-secondary" onclick="contactCoMaker(calendarViewState.clientId || 0)">Contact Co-maker</button>
           <button class="btn btn-secondary" onclick="closeModal('viewClientModal')">Close</button>
         </div>
@@ -4846,6 +4847,23 @@
         }
       }
 
+      // Text client via system SMS with default message
+      function textClient(clientId) {
+        const client = clients.find(c => c.id == clientId);
+        if (!client || !client.contactNumber) {
+          showNotification('No client contact information available', 'error');
+          return;
+        }
+        const today = todayLocalDateStr();
+        const expected = expectedAmountForDate(client, today) || 0;
+        const msg = `Hi ${client.name}, this is a reminder for your payment on ${parseLocalDate(today).toLocaleDateString()}: ₱${expected.toFixed(2)}. Remaining balance: ₱${(Number(client.remainingBalance)||0).toFixed(2)}. Thank you.`;
+        const phone = String(client.contactNumber).replace(/[^0-9+]/g, '');
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+        const sep = isIOS ? '&' : '?';
+        const link = `sms:${phone}${sep}body=${encodeURIComponent(msg)}`;
+        try { window.location.href = link; } catch (e) { showNotification('Unable to open SMS app', 'error'); }
+      }
+
       // Dismiss collateral notification
       function dismissCollateralNotification(clientId) {
         const notification = document.getElementById(`collateral-notification-${clientId}`);
@@ -5251,10 +5269,11 @@
                 <div class="progress-fill" style="background-color: ${progressBarColor}; width: ${progressPercentage}%;"></div>
               </div>
 
-              <div class="client-actions" style="grid-template-columns: repeat(4, 1fr); gap: 6px;">
+              <div class="client-actions" style="grid-template-columns: repeat(5, 1fr); gap: 6px;">
                 <button class="btn btn-secondary" style="padding: 8px 10px; font-size: 12px;" onclick="openViewClient(${client.id}, this)">View</button>
                 <button class="btn btn-secondary" style="padding: 8px 10px; font-size: 12px;" onclick="editClient(${client.id})">Edit</button>
-                <button class="full-payment-btn" style="padding: 8px 10px; font-size: 12px;" onclick="openFullPaymentModal(${client.id})" ${Math.ceil(client.remainingBalance / client.dailyAmount - 1e-9) > 8 ? 'disabled title="Allowed when ≤ 8 payment days left"' : ''}>Full Pay</button>
+                <button class="btn btn-secondary" style="padding: 8px 10px; font-size: 12px;" onclick="textClient(${client.id})">Text</button>
+                <button class="full-payment-btn" style="padding: 8px 10px; font-size: 12px;" onclick="openFullPaymentModal(${client.id})" ${Math.ceil(client.remainingBalance / client.dailyAmount - 1e-9) > 8 ? 'disabled title=\"Allowed when ≤ 8 payment days left\"' : ''}>Full Pay</button>
                 <button class="btn btn-danger" style="padding: 8px 10px; font-size: 12px;" onclick="openDeleteModal(${client.id})">Delete</button>
               </div>
             </div>
@@ -6394,7 +6413,7 @@
 
           const parts = [];
           if (satAmt > 0) parts.push(`₱${satAmt.toFixed(2)} to Saturday (${satDate})`);
-          if (monAmt > 0) parts.push(`₱${monAmt.toFixed(2)} to Monday (${monDate})`);
+          if (monAmt > 0) parts.push(`��${monAmt.toFixed(2)} to Monday (${monDate})`);
           showNotification(`Sunday payment split: ${parts.join(" and ")}`, "success");
           return;
         }
