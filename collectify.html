@@ -3429,7 +3429,7 @@
                 Choose up to 3 photos from gallery or camera
               </small>
               <button type="button" onclick="testFileUpload()" style="margin-top: 8px; padding: 6px 12px; font-size: 12px; background: var(--ios-orange); color: white; border: none; border-radius: var(--ios-border-radius);">
-                ��� Test File Upload (Debug for Android)
+                🔧 Test File Upload (Debug for Android)
               </button>
               <div id="collateralPreview" style="margin-top: 10px; display: none;">
                 <div id="collateralPreviewList" class="collateral-preview-list"></div>
@@ -7035,7 +7035,14 @@
 
             if (clientSelect) clientSelect.value = '';
             if (amountInput) amountInput.value = '';
-            if (dateInput) dateInput.value = '';
+            if (dateInput) {
+              // Reset to today's date for tabs that require it, otherwise clear
+              if (type === "notebook" || type === "office" || type === "gcash") {
+                dateInput.value = todayLocalDateStr();
+              } else {
+                dateInput.value = '';
+              }
+            }
             if (pickerLabel) pickerLabel.textContent = 'Choose a client...';
           }
         } catch (error) {
