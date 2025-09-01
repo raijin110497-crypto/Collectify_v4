@@ -2588,7 +2588,7 @@
                   );
                 "
               >
-                <h3 id="actualCollectedToday">���0</h3>
+                <h3 id="actualCollectedToday">₱0</h3>
                 <p>Actual Collection</p>
               </div>
               <div
@@ -4295,6 +4295,112 @@
         if (modalId === "editClientModal") {
           clearClientNameError("editClientName", "editClientNameError");
         }
+      }
+
+      // Validate if a date is a valid release day
+      function isValidReleaseDay(dateStr) {
+        if (!dateStr) return false;
+        try {
+          const date = parseLocalDate(dateStr);
+          const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, etc.
+
+          // Check if this day of week is enabled as a release day
+          if (!Array.isArray(defaultSettings.releaseDays) || defaultSettings.releaseDays.length !== 7) {
+            // Default: allow all days if not configured
+            return true;
+          }
+
+          // Check if it's a holiday
+          if (isHoliday(dateStr)) {
+            return false;
+          }
+
+          return defaultSettings.releaseDays[dayOfWeek];
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // Get next valid release day from a given date
+      function getNextValidReleaseDay(fromDateStr) {
+        if (!fromDateStr) return null;
+        try {
+          let currentDate = parseLocalDate(fromDateStr);
+          // Check up to 14 days ahead to find a valid release day
+          for (let i = 0; i < 14; i++) {
+            const dateStr = formatDateLocal(currentDate);
+            if (isValidReleaseDay(dateStr)) {
+              return dateStr;
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+          return fromDateStr; // fallback to original if no valid day found
+        } catch (e) {
+          return fromDateStr;
+        }
+      }
+
+      // Get day name for display
+      function getDayName(dateStr) {
+        try {
+          const date = parseLocalDate(dateStr);
+          return date.toLocaleDateString('en-US', { weekday: 'long' });
+        } catch (e) {
+          return 'Invalid date';
+        }
+      }
+
+      // Validate start date input and show error/auto-correct
+      function validateStartDateInput(inputId, errorContainerId) {
+        const input = document.getElementById(inputId);
+        const errorContainer = document.getElementById(errorContainerId);
+
+        if (!input) return true;
+
+        const dateValue = input.value;
+        if (!dateValue) return true;
+
+        // Clear previous errors
+        input.classList.remove('input-error');
+        if (errorContainer) {
+          errorContainer.style.display = 'none';
+        }
+
+        if (!isValidReleaseDay(dateValue)) {
+          const dayName = getDayName(dateValue);
+          const nextValid = getNextValidReleaseDay(dateValue);
+          const nextDayName = getDayName(nextValid);
+
+          // Show error
+          input.classList.add('input-error');
+          if (errorContainer) {
+            errorContainer.textContent = `${dayName} is not configured as a loan release day. Suggested: ${nextDayName} (${parseLocalDate(nextValid).toLocaleDateString()})`;
+            errorContainer.style.display = 'block';
+          }
+
+          // Auto-adjust to next valid day
+          input.value = nextValid;
+
+          showNotification(`Start date adjusted to next valid release day: ${nextDayName}`, 'success');
+
+          // Clear error styling after a moment
+          setTimeout(() => {
+            input.classList.remove('input-error');
+            if (errorContainer) {
+              errorContainer.style.display = 'none';
+            }
+          }, 3000);
+
+          return false;
+        }
+
+        return true;
+      }
+
+      // Validate all start date inputs when settings change
+      function validateAllStartDateInputs() {
+        validateStartDateInput('startDate', 'startDateError');
+        // Add other start date inputs if they exist
       }
 
       // Calculate loan details
@@ -6550,7 +6656,7 @@
               <div style="display:flex; justify-content: space-between; align-items:center;">
                 <div>
                   <h4>${it.clientName}</h4>
-                  <p>₱${(it.amount||0).toFixed(2)} <span class="status-badge ${badgeCls}" style="margin-left:6px">${badgeCls.replace('status-','')}</span></p>
+                  <p>���${(it.amount||0).toFixed(2)} <span class="status-badge ${badgeCls}" style="margin-left:6px">${badgeCls.replace('status-','')}</span></p>
                 </div>
               </div>
             </div>
