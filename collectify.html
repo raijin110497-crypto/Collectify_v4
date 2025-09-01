@@ -161,15 +161,16 @@
       /* Header logo (top-right) */
       .header-logo {
         position: absolute;
-        top: 8px;
-        right: calc(8px + env(safe-area-inset-right, 0px));
-        width: 36px;
-        height: 36px;
-        border-radius: var(--ios-border-radius);
+        top: 0;
+        bottom: 0;
+        right: calc(-8px + env(safe-area-inset-right, 0px));
+        width: 56px;
+        height: 100%;
+        border-radius: 0;
         border: none;
         background: transparent;
         box-shadow: none;
-        display: inline-flex;
+        display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
@@ -4763,7 +4764,7 @@
               reader.readAsDataURL(input.files[0]);
             }
           } else {
-            console.log('⚠️ No files selected. Please select files first.');
+            console.log('⚠�� No files selected. Please select files first.');
             showNotification('Please select files first, then run the test', 'error');
           }
 
