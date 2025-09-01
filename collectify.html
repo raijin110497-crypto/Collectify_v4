@@ -8873,6 +8873,277 @@
         console.log("PWA was installed");
         showNotification("App installed successfully!", "success");
       });
+
+      // Notification Sound System
+      class NotificationSounds {
+        constructor() {
+          this.audioContext = null;
+          this.settings = {
+            enabled: true,
+            volume: 0.7,
+            soundType: 'gentle', // 'gentle', 'alert', 'chime'
+            checkInterval: 30000 // Check every 30 seconds
+          };
+          this.lastCheckTime = 0;
+          this.checkTimer = null;
+          this.loadSettings();
+          this.startPeriodicCheck();
+        }
+
+        async initAudioContext() {
+          if (!this.audioContext) {
+            try {
+              this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+              console.warn('Audio context not supported');
+              return false;
+            }
+          }
+
+          if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+          }
+          return true;
+        }
+
+        // Generate different notification sounds using Web Audio API
+        async playNotificationSound(type = this.settings.soundType) {
+          if (!this.settings.enabled) return;
+
+          if (!await this.initAudioContext()) return;
+
+          const oscillator = this.audioContext.createOscillator();
+          const gainNode = this.audioContext.createGain();
+
+          oscillator.connect(gainNode);
+          gainNode.connect(this.audioContext.destination);
+
+          // Set volume
+          gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+          gainNode.gain.linearRampToValueAtTime(this.settings.volume * 0.3, this.audioContext.currentTime + 0.05);
+
+          switch (type) {
+            case 'gentle':
+              // Soft ascending chime
+              oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime); // C5
+              oscillator.frequency.linearRampToValueAtTime(659.25, this.audioContext.currentTime + 0.3); // E5
+              gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.8);
+              oscillator.start(this.audioContext.currentTime);
+              oscillator.stop(this.audioContext.currentTime + 0.8);
+              break;
+
+            case 'alert':
+              // More urgent double beep
+              oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+              gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.2);
+              oscillator.start(this.audioContext.currentTime);
+              oscillator.stop(this.audioContext.currentTime + 0.2);
+
+              // Second beep
+              setTimeout(() => {
+                const osc2 = this.audioContext.createOscillator();
+                const gain2 = this.audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(this.audioContext.destination);
+                osc2.frequency.setValueAtTime(800, this.audioContext.currentTime);
+                gain2.gain.setValueAtTime(0, this.audioContext.currentTime);
+                gain2.gain.linearRampToValueAtTime(this.settings.volume * 0.3, this.audioContext.currentTime + 0.05);
+                gain2.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.2);
+                osc2.start(this.audioContext.currentTime);
+                osc2.stop(this.audioContext.currentTime + 0.2);
+              }, 300);
+              break;
+
+            case 'chime':
+              // Pleasant bell-like sound
+              const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
+              frequencies.forEach((freq, index) => {
+                setTimeout(() => {
+                  const osc = this.audioContext.createOscillator();
+                  const gain = this.audioContext.createGain();
+                  osc.connect(gain);
+                  gain.connect(this.audioContext.destination);
+                  osc.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                  gain.gain.setValueAtTime(0, this.audioContext.currentTime);
+                  gain.gain.linearRampToValueAtTime(this.settings.volume * 0.2, this.audioContext.currentTime + 0.05);
+                  gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.6);
+                  osc.start(this.audioContext.currentTime);
+                  osc.stop(this.audioContext.currentTime + 0.6);
+                }, index * 150);
+              });
+              break;
+          }
+        }
+
+        // Check for overdue payments
+        async checkForOverduePayments() {
+          if (!this.settings.enabled) return;
+
+          try {
+            const clients = await getAllClients();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let overdueCount = 0;
+            let dueTodayCount = 0;
+
+            for (const client of clients) {
+              if (client.status !== 'active') continue;
+
+              const nextDue = getNextDueDate(client);
+              if (!nextDue) continue;
+
+              const dueDate = new Date(nextDue);
+              dueDate.setHours(0, 0, 0, 0);
+
+              if (dueDate < today) {
+                overdueCount++;
+              } else if (dueDate.getTime() === today.getTime()) {
+                dueTodayCount++;
+              }
+            }
+
+            // Play notification if there are overdue payments
+            if (overdueCount > 0) {
+              await this.playNotificationSound('alert');
+              showNotification(`⚠️ ${overdueCount} overdue payment${overdueCount > 1 ? 's' : ''} detected!`, 'error');
+            } else if (dueTodayCount > 0) {
+              await this.playNotificationSound('gentle');
+              showNotification(`📅 ${dueTodayCount} payment${dueTodayCount > 1 ? 's' : ''} due today`, 'info');
+            }
+
+            return { overdueCount, dueTodayCount };
+          } catch (error) {
+            console.error('Error checking overdue payments:', error);
+          }
+        }
+
+        // Start periodic checking
+        startPeriodicCheck() {
+          if (this.checkTimer) {
+            clearInterval(this.checkTimer);
+          }
+
+          this.checkTimer = setInterval(async () => {
+            await this.checkForOverduePayments();
+          }, this.settings.checkInterval);
+
+          // Initial check after 5 seconds
+          setTimeout(() => {
+            this.checkForOverduePayments();
+          }, 5000);
+        }
+
+        // Settings management
+        loadSettings() {
+          try {
+            const saved = localStorage.getItem('notificationSettings');
+            if (saved) {
+              this.settings = { ...this.settings, ...JSON.parse(saved) };
+            }
+          } catch (error) {
+            console.error('Error loading notification settings:', error);
+          }
+        }
+
+        saveSettings() {
+          try {
+            localStorage.setItem('notificationSettings', JSON.stringify(this.settings));
+          } catch (error) {
+            console.error('Error saving notification settings:', error);
+          }
+        }
+
+        updateSettings(newSettings) {
+          this.settings = { ...this.settings, ...newSettings };
+          this.saveSettings();
+
+          // Restart periodic check with new interval
+          if (newSettings.checkInterval) {
+            this.startPeriodicCheck();
+          }
+        }
+
+        // Test sound
+        async testSound() {
+          await this.playNotificationSound(this.settings.soundType);
+        }
+
+        // Manual check
+        async manualCheck() {
+          return await this.checkForOverduePayments();
+        }
+      }
+
+      // Initialize notification system
+      let notificationSystem = null;
+
+      // Initialize after user interaction to avoid autoplay restrictions
+      document.addEventListener('click', () => {
+        if (!notificationSystem) {
+          notificationSystem = new NotificationSounds();
+        }
+      }, { once: true });
+
+      // Utility functions for notification settings
+      function toggleNotifications() {
+        if (!notificationSystem) {
+          notificationSystem = new NotificationSounds();
+        }
+
+        const enabled = !notificationSystem.settings.enabled;
+        notificationSystem.updateSettings({ enabled });
+
+        const button = document.getElementById('notificationToggleBtn');
+        if (button) {
+          button.textContent = enabled ? 'Disable Notifications' : 'Enable Notifications';
+          button.className = enabled ? 'btn btn-danger' : 'btn btn-success';
+        }
+
+        showNotification(
+          enabled ? 'Payment notifications enabled' : 'Payment notifications disabled',
+          enabled ? 'success' : 'info'
+        );
+      }
+
+      function updateNotificationVolume() {
+        if (!notificationSystem) return;
+
+        const volume = parseFloat(document.getElementById('notificationVolume').value);
+        notificationSystem.updateSettings({ volume });
+      }
+
+      function updateNotificationSound() {
+        if (!notificationSystem) return;
+
+        const soundType = document.getElementById('notificationSound').value;
+        notificationSystem.updateSettings({ soundType });
+      }
+
+      function updateCheckInterval() {
+        if (!notificationSystem) return;
+
+        const interval = parseInt(document.getElementById('checkInterval').value) * 1000;
+        notificationSystem.updateSettings({ checkInterval: interval });
+      }
+
+      async function testNotificationSound() {
+        if (!notificationSystem) {
+          notificationSystem = new NotificationSounds();
+        }
+        await notificationSystem.testSound();
+      }
+
+      async function checkOverdueNow() {
+        if (!notificationSystem) {
+          notificationSystem = new NotificationSounds();
+        }
+
+        const result = await notificationSystem.manualCheck();
+        if (result && result.overdueCount === 0 && result.dueTodayCount === 0) {
+          showNotification('✅ No overdue or due payments found', 'success');
+        }
+      }
     </script>
 
     <!-- Tutorial Layer -->
