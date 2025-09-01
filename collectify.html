@@ -9279,11 +9279,24 @@
             'Elena Valdez (Good Payer)', 'Miguel Torres (Excellent)', 'Carmen Lopez (Perfect Payer)'
           ];
 
+          // Real Philippine mobile numbers and Camiling, Tarlac addresses
+          const phoneNumbers = [
+            '09171234567', '09189876543', '09223456789', '09359823451', '09267890123',
+            '09454321567', '09751234890', '09289876321', '09168742359', '09992345678'
+          ];
+
+          const addresses = [
+            'Poblacion Norte, Camiling, Tarlac', 'San Agustin, Camiling, Tarlac', 'San Vicente, Camiling, Tarlac',
+            'Santa Lucia, Camiling, Tarlac', 'Santo Domingo, Camiling, Tarlac', 'Tambugan, Camiling, Tarlac',
+            'Cayanga, Camiling, Tarlac', 'San Pascual, Camiling, Tarlac', 'Santa Cruz, Camiling, Tarlac',
+            'Santa Maria, Camiling, Tarlac'
+          ];
+
           const client = {
             id: 9000 + i,
             name: clientNames[i - 1],
-            contactNumber: `0917${(1230000 + i).toString().padStart(7,'0')}`,
-            address: `Barangay ${i}, Demo City`,
+            contactNumber: phoneNumbers[i - 1],
+            address: addresses[i - 1],
             loanAmount,
             totalAmount,
             dailyAmount,
