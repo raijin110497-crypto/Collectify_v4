@@ -4856,7 +4856,8 @@
         }
         const today = todayLocalDateStr();
         const expected = expectedAmountForDate(client, today) || 0;
-        const msg = `Hi ${client.name}, this is a reminder for your payment on ${parseLocalDate(today).toLocaleDateString()}: ₱${expected.toFixed(2)}. Remaining balance: ₱${(Number(client.remainingBalance)||0).toFixed(2)}. Thank you.`;
+        const displayDate = today === todayLocalDateStr() ? 'Today' : parseLocalDate(today).toLocaleDateString();
+        const msg = `Hi ${client.name}, this is a reminder for your payment on ${displayDate}: ₱${expected.toFixed(2)}. Remaining balance: ₱${(Number(client.remainingBalance)||0).toFixed(2)}. Thank you.`;
         const phone = String(client.contactNumber).replace(/[^0-9+]/g, '');
         const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
         const sep = isIOS ? '&' : '?';
