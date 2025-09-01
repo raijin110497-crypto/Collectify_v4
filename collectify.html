@@ -4129,6 +4129,14 @@
 
       // Switch tabs
       function switchTab(tabName) {
+        // Clear form fields of all payment and absence tabs when switching
+        clearTabFormFields('notebook');
+        clearTabFormFields('office');
+        clearTabFormFields('gcash');
+        clearTabFormFields('adv');
+        clearTabFormFields('abono');
+        clearAbsenceFormFields();
+
         currentActiveTab = tabName;
 
         // Remove active class from all tabs
