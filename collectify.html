@@ -5535,7 +5535,7 @@
 
         list.innerHTML = `
           ${overdue.length ? `<h3 style="margin:8px 4px">Overdue</h3>${overdueHtml}` : ''}
-          ${dueSoon.length ? `<h3 style=\"margin:12px 4px 8px\">Due Soon (≤ ${OVERDUE_SOON_DAYS} days)</h3>${soonHtml}` : ''}
+          ${dueSoon.length ? `<h3 style=\"margin:12px 4px 8px\">Due Soon (�� ${OVERDUE_SOON_DAYS} days)</h3>${soonHtml}` : ''}
         `;
         bindClientCardClicks('overdueList');
       }
@@ -7129,15 +7129,8 @@
 
         absences.push(absence);
 
-        // Clear form
-        document.getElementById("absentClient").value = "";
-        const absentDailyAmountInput =
-          document.getElementById("absentDailyAmount");
-        if (absentDailyAmountInput) absentDailyAmountInput.value = "";
-        document.getElementById("absentDate").value = new Date()
-          .toISOString()
-          .split("T")[0];
-        document.getElementById("absentReason").value = "";
+        // Clear all absence form fields
+        clearAbsenceFormFields();
 
         await saveData();
         updateAbsenceHistory();
