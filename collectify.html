@@ -946,10 +946,11 @@
       .modal-footer .btn {
         flex: 1;
         margin: 0;
-        font-size: 17px;
+        font-size: 15px;
         font-weight: 600;
-        min-height: 50px;
-        border-radius: 25px;
+        min-height: 42px;
+        padding: 8px 16px;
+        border-radius: 21px;
         transition: all 0.25s var(--ios-spring-timing);
       }
 
@@ -9491,7 +9492,7 @@
         try { loadOverdueTab(); } catch(e) {}
         const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
         const paidCt = (clients||[]).filter(c=>c.status==='paid').length;
-        showNotification(`Demo mode enabled: 10 sample clients loaded • Fully paid: ${paidCt}`, 'success');
+        showNotification(`Demo mode enabled: 10 sample clients loaded ��� Fully paid: ${paidCt}`, 'success');
       }
       function endDemoMode(){
         if (!demo.active || !demo.backup) return;
