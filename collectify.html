@@ -7061,7 +7061,7 @@
           const pickerLabel = document.getElementById('absentClientPickerLabel');
 
           if (absentClient) absentClient.value = '';
-          if (absentDate) absentDate.value = '';
+          if (absentDate) absentDate.value = todayLocalDateStr();
           if (absentReason) absentReason.value = '';
           if (absentDailyAmount) absentDailyAmount.value = '';
           if (pickerLabel) pickerLabel.textContent = 'Choose a client...';
@@ -9555,7 +9555,7 @@
         try { loadOverdueTab(); } catch(e) {}
         const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
         const paidCt = (clients||[]).filter(c=>c.status==='paid').length;
-        showNotification(`Demo mode enabled: 10 sample clients loaded ��� Fully paid: ${paidCt}`, 'success');
+        showNotification(`Demo mode enabled: 10 sample clients loaded ����� Fully paid: ${paidCt}`, 'success');
       }
       function endDemoMode(){
         if (!demo.active || !demo.backup) return;
