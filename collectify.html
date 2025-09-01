@@ -6701,7 +6701,7 @@
                 <div>
                   <h4>${it.clientName}</h4>
                   <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
-                  <p>Over by ₱${it.overBy.toFixed(2)}</p>
+                  <p>Over by ���${it.overBy.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -7024,9 +7024,14 @@
             if (typeof toggleAbonoLender === 'function') toggleAbonoLender();
           } else {
             const clientSelect = document.getElementById(`${type}Client`);
-            const amountInput = document.getElementById(`${type}PaymentAmount`);
-            const dateInput = document.getElementById(`${type}PaymentDate`);
-            const pickerLabel = document.getElementById(`${type}ClientPickerLabel`);
+            // Fix field naming inconsistency for notebook tab
+            const amountField = type === "notebook" ? "paymentAmount" : `${type}PaymentAmount`;
+            const dateField = type === "notebook" ? "paymentDate" : `${type}PaymentDate`;
+            const pickerLabelField = type === "notebook" ? "notebookClientPickerLabel" : `${type}ClientPickerLabel`;
+
+            const amountInput = document.getElementById(amountField);
+            const dateInput = document.getElementById(dateField);
+            const pickerLabel = document.getElementById(pickerLabelField);
 
             if (clientSelect) clientSelect.value = '';
             if (amountInput) amountInput.value = '';
