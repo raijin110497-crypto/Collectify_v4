@@ -5535,7 +5535,7 @@
 
         list.innerHTML = `
           ${overdue.length ? `<h3 style="margin:8px 4px">Overdue</h3>${overdueHtml}` : ''}
-          ${dueSoon.length ? `<h3 style=\"margin:12px 4px 8px\">Due Soon (≤ ${OVERDUE_SOON_DAYS} days)</h3>${soonHtml}` : ''}
+          ${dueSoon.length ? `<h3 style=\"margin:12px 4px 8px\">Due Soon (�� ${OVERDUE_SOON_DAYS} days)</h3>${soonHtml}` : ''}
         `;
         bindClientCardClicks('overdueList');
       }
@@ -6456,10 +6456,8 @@
             }
           }
 
-          const selElAdv = document.getElementById(`${type}Client`);
-          if (selElAdv) { selElAdv.value = ""; selElAdv.dispatchEvent(new Event("change", { bubbles: true })); }
-          const amtElAdv = document.getElementById(amountField);
-          if (amtElAdv) amtElAdv.value = "";
+          // Clear all form fields for Adv tab
+          clearTabFormFields(type);
 
           await saveData();
           updateStats();
@@ -6538,8 +6536,8 @@
             updatedTypes.add(usedType);
           }
 
-          document.getElementById(`${type}Client`).value = "";
-          document.getElementById(amountField).value = "";
+          // Clear all form fields after Sunday split payment
+          clearTabFormFields(type);
 
           await saveData();
           updateStats();
@@ -6585,11 +6583,13 @@
           updatePaymentTracking(parseInt(clientId), date);
         }
 
-        // Clear form
-        const selEl = document.getElementById(`${type}Client`);
-        if (selEl) { selEl.value = ""; selEl.dispatchEvent(new Event("change", { bubbles: true })); }
-        const amtEl = document.getElementById(amountField);
-        if (amtEl) amtEl.value = "";
+        // Clear all form fields after successful payment
+        clearTabFormFields(type);
+        // Legacy clearing code replaced with comprehensive function
+        // const selEl = document.getElementById(`${type}Client`);
+        // if (selEl) { selEl.value = ""; selEl.dispatchEvent(new Event("change", { bubbles: true })); }
+        // const amtEl = document.getElementById(amountField);
+        // if (amtEl) amtEl.value = "";
         // Clear Abono lender fields as well
         if (type === "abono") {
           const lenderSel = document.getElementById("abonoLenderClient");
@@ -6701,7 +6701,7 @@
                 <div>
                   <h4>${it.clientName}</h4>
                   <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
-                  <p>Over by ₱${it.overBy.toFixed(2)}</p>
+                  <p>Over by ��${it.overBy.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -7015,7 +7015,7 @@
             if (abonoLenderType) abonoLenderType.value = 'client';
             if (abonoLenderClient) abonoLenderClient.value = '';
             if (abonoPaymentAmount) abonoPaymentAmount.value = '';
-            if (abonoPaymentDate) abonoPaymentDate.value = '';
+            if (abonoPaymentDate) abonoPaymentDate.value = todayLocalDateStr();
             if (abonoClientPickerLabel) abonoClientPickerLabel.textContent = 'Choose a client...';
             if (abonoLenderClientPickerLabel) abonoLenderClientPickerLabel.textContent = 'Choose a client...';
             if (abonoLenderInfo) abonoLenderInfo.textContent = 'Available advance: ₱0.00';
@@ -7024,13 +7024,25 @@
             if (typeof toggleAbonoLender === 'function') toggleAbonoLender();
           } else {
             const clientSelect = document.getElementById(`${type}Client`);
-            const amountInput = document.getElementById(`${type}PaymentAmount`);
-            const dateInput = document.getElementById(`${type}PaymentDate`);
-            const pickerLabel = document.getElementById(`${type}ClientPickerLabel`);
+            // Fix field naming inconsistency for notebook tab
+            const amountField = type === "notebook" ? "paymentAmount" : `${type}PaymentAmount`;
+            const dateField = type === "notebook" ? "paymentDate" : `${type}PaymentDate`;
+            const pickerLabelField = type === "notebook" ? "notebookClientPickerLabel" : `${type}ClientPickerLabel`;
+
+            const amountInput = document.getElementById(amountField);
+            const dateInput = document.getElementById(dateField);
+            const pickerLabel = document.getElementById(pickerLabelField);
 
             if (clientSelect) clientSelect.value = '';
             if (amountInput) amountInput.value = '';
-            if (dateInput) dateInput.value = '';
+            if (dateInput) {
+              // Reset to today's date for tabs that require it, otherwise clear
+              if (type === "notebook" || type === "office" || type === "gcash") {
+                dateInput.value = todayLocalDateStr();
+              } else {
+                dateInput.value = todayLocalDateStr(); // Set to today for adv tab as well
+              }
+            }
             if (pickerLabel) pickerLabel.textContent = 'Choose a client...';
           }
         } catch (error) {
@@ -7045,11 +7057,13 @@
           const absentClient = document.getElementById('absentClient');
           const absentDate = document.getElementById('absentDate');
           const absentReason = document.getElementById('absentReason');
+          const absentDailyAmount = document.getElementById('absentDailyAmount');
           const pickerLabel = document.getElementById('absentClientPickerLabel');
 
           if (absentClient) absentClient.value = '';
-          if (absentDate) absentDate.value = '';
+          if (absentDate) absentDate.value = todayLocalDateStr();
           if (absentReason) absentReason.value = '';
+          if (absentDailyAmount) absentDailyAmount.value = '';
           if (pickerLabel) pickerLabel.textContent = 'Choose a client...';
         } catch (error) {
           // Silently handle any errors during field clearing
@@ -7115,15 +7129,8 @@
 
         absences.push(absence);
 
-        // Clear form
-        document.getElementById("absentClient").value = "";
-        const absentDailyAmountInput =
-          document.getElementById("absentDailyAmount");
-        if (absentDailyAmountInput) absentDailyAmountInput.value = "";
-        document.getElementById("absentDate").value = new Date()
-          .toISOString()
-          .split("T")[0];
-        document.getElementById("absentReason").value = "";
+        // Clear all absence form fields
+        clearAbsenceFormFields();
 
         await saveData();
         updateAbsenceHistory();
