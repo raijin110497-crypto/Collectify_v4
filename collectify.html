@@ -6587,9 +6587,9 @@
         clearTabFormFields(type);
         // Legacy clearing code replaced with comprehensive function
         // const selEl = document.getElementById(`${type}Client`);
-        if (selEl) { selEl.value = ""; selEl.dispatchEvent(new Event("change", { bubbles: true })); }
-        const amtEl = document.getElementById(amountField);
-        if (amtEl) amtEl.value = "";
+        // if (selEl) { selEl.value = ""; selEl.dispatchEvent(new Event("change", { bubbles: true })); }
+        // const amtEl = document.getElementById(amountField);
+        // if (amtEl) amtEl.value = "";
         // Clear Abono lender fields as well
         if (type === "abono") {
           const lenderSel = document.getElementById("abonoLenderClient");
