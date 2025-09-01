@@ -5375,6 +5375,8 @@
         const client = clients.find(c => c.id === clientId);
         if (!client || !client.repaymentPlan) { showNotification("No plan set", "error"); return; }
         const today = new Date().toISOString().split("T")[0];
+        // Block plan payments before client start date
+        if (isBeforeClientStart(client, today)) { showNotification("Plan payments cannot be recorded before the client's start date. Use Adv instead.", "error"); return; }
         const isOver = isClientOverdue(client);
         if (!isOver && findDuplicatePayment(clientId, today, ["notebook","office","gcash"])) {
           showNotification("Duplicate entry: already has a record today", "error");
@@ -5408,6 +5410,12 @@
         if (!client) return;
 
         const today = new Date().toISOString().split("T")[0];
+
+        // Block if client's start date is in the future
+        if (isBeforeClientStart(client, today)) {
+          showNotification(`${client.name} starts on ${parseLocalDate(client.startDate).toLocaleDateString()}. Use Adv tab to set an advance before start date.`, "error");
+          return;
+        }
 
         // Block if client is marked absent today
         if (isClientAbsentOnDate(clientId, today)) {
@@ -5689,6 +5697,12 @@
         // Enforce current-day only for full payments
         if (paymentDate !== todayLocalDateStr()) {
           showNotification("Full payment can only be recorded for today's date", "error");
+          return;
+        }
+
+        // Block if client's start date is in the future
+        if (isBeforeClientStart(client, paymentDate)) {
+          showNotification(`${client.name} starts on ${parseLocalDate(client.startDate).toLocaleDateString()}. Use Adv tab to set an advance before start date.`, "error");
           return;
         }
 
@@ -5988,6 +6002,16 @@
         const dd = String(d.getDate()).padStart(2, "0");
         return `${yyyy}-${mm}-${dd}`;
       }
+      function isBeforeClientStart(client, dateStr) {
+        try {
+          if (!client || !client.startDate || !dateStr) return false;
+          const d = parseLocalDate(dateStr);
+          const s = parseLocalDate(client.startDate);
+          const d0 = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+          const s0 = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+          return d0 < s0;
+        } catch (e) { return false; }
+      }
       function addOrMergePaymentForDate(client, date, amount, preferredType, createdAtOverride) {
         const found = findExistingPaymentAnyType(client.id, date);
         if (found) {
@@ -6127,6 +6151,12 @@
         const client = clients.find((c) => c.id == clientId);
         if (!client) {
           showNotification("Client not found", "error");
+          return;
+        }
+
+        // Block payments before client start date (allow only ADV)
+        if (type !== "adv" && isBeforeClientStart(client, date)) {
+          showNotification(`${client.name} starts on ${parseLocalDate(client.startDate).toLocaleDateString()}. Use Adv tab to set an advance before start date.`, "error");
           return;
         }
 
@@ -6564,6 +6594,15 @@
         if ((type === "notebook" || type === "office" || type === "gcash" || type === "abono") && isNonCollectionDay(newDate)) {
           showNotification("Selected date is a non-collection day (Sunday/holiday). Please choose a working day.", "error");
           return;
+        }
+
+        // Block moving payments before client start date (allow only ADV)
+        if (type !== "adv") {
+          const cl = clients.find((c) => c.id === payment.clientId);
+          if (cl && isBeforeClientStart(cl, newDate)) {
+            showNotification(`${cl.name} starts on ${parseLocalDate(cl.startDate).toLocaleDateString()}. Payments cannot be dated before start. Use Adv.`, "error");
+            return;
+          }
         }
 
         // Calculate the difference in payment amount
