@@ -7602,7 +7602,7 @@
           <div class="tracker-client-item">
             <div class="tracker-client-info">
               <h5>${entry.clientName}</h5>
-              <p>Total paid today: ₱${entry.totalPaid.toFixed(2)}</p>
+              <p>Total paid today: ��${entry.totalPaid.toFixed(2)}</p>
               <p>${typeBadges} ${statusBadge}</p>
               ${extraLine}
             </div>
@@ -8648,7 +8648,7 @@
                 <div class="calendar-header">
                   <button type="button" class="cal-nav" aria-label="Previous month" onclick="changeClientCalendarMonth(-1)">‹</button>
                   <div class="calendar-title" id="clientCalendarTitle">-</div>
-                  <button type="button" class="cal-nav" aria-label="Next month" onclick="changeClientCalendarMonth(1)">��</button>
+                  <button type="button" class="cal-nav" aria-label="Next month" onclick="changeClientCalendarMonth(1)">›</button>
                 </div>
                 <div class="calendar-grid" id="clientCalendarGrid"></div>
                 <div class="calendar-legend">
@@ -10279,6 +10279,37 @@
             selector: 'button.btn.btn-secondary[onclick="toggleDarkMode()"]',
             padding: 4,
             onBefore: () => { closeSidebar(); switchTab("settings"); },
+          },
+          {
+            text: "Enable/disable automatic payment notifications for overdue clients.",
+            selector: '#notificationToggleBtn',
+            padding: 4,
+            onBefore: () => { closeSidebar(); switchTab("settings"); },
+          },
+          {
+            text: "Test notification sounds to hear how alerts will sound.",
+            selector: 'button.btn.btn-secondary[onclick="testNotificationSound()"]',
+            padding: 4,
+          },
+          {
+            text: "Manually check for overdue payments right now.",
+            selector: 'button.btn.btn-secondary[onclick="checkOverdueNow()"]',
+            padding: 4,
+          },
+          {
+            text: "Choose your preferred notification sound type.",
+            selector: '#notificationSound',
+            padding: 4,
+          },
+          {
+            text: "Adjust notification volume to your preference.",
+            selector: '#notificationVolume',
+            padding: 4,
+          },
+          {
+            text: "Set how often the app checks for overdue payments (30 seconds to 10 minutes).",
+            selector: '#checkInterval',
+            padding: 4,
           },
           {
             text: "Set Loan Release Days by checking the weekdays you release funds.",
