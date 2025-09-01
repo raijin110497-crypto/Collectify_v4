@@ -6547,7 +6547,7 @@
 
           const parts = [];
           if (satAmt > 0) parts.push(`₱${satAmt.toFixed(2)} to Saturday (${satDate})`);
-          if (monAmt > 0) parts.push(`��${monAmt.toFixed(2)} to Monday (${monDate})`);
+          if (monAmt > 0) parts.push(`₱${monAmt.toFixed(2)} to Monday (${monDate})`);
           showNotification(`Sunday payment split: ${parts.join(" and ")}`, "success");
           return;
         }
