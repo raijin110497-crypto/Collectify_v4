@@ -6594,7 +6594,7 @@
         if (type === "abono") {
           const lenderSel = document.getElementById("abonoLenderClient");
           if (lenderSel) { lenderSel.value = ""; lenderSel.dispatchEvent(new Event("change", { bubbles: true })); }
-          const info = document.getElementById("abonoLenderInfo"); if (info) info.textContent = "Available advance: ₱0.00";
+          const info = document.getElementById("abonoLenderInfo"); if (info) info.textContent = "Available advance: ��0.00";
         }
 
         await saveData();
@@ -7000,36 +7000,61 @@
 
       // Clear form fields for payment tabs
       function clearTabFormFields(type) {
-        if (type === 'abono') {
-          document.getElementById('abonoClient').value = '';
-          document.getElementById('abonoLenderType').value = 'client';
-          document.getElementById('abonoLenderClient').value = '';
-          document.getElementById('abonoPaymentAmount').value = '';
-          document.getElementById('abonoPaymentDate').value = '';
-          document.getElementById('abonoClientPickerLabel').textContent = 'Choose a client...';
-          document.getElementById('abonoLenderClientPickerLabel').textContent = 'Choose a client...';
-          document.getElementById('abonoLenderInfo').textContent = 'Available advance: ₱0.00';
-          toggleAbonoLender(); // Reset lender visibility
-        } else {
-          const clientSelect = document.getElementById(`${type}Client`);
-          const amountInput = document.getElementById(`${type}PaymentAmount`);
-          const dateInput = document.getElementById(`${type}PaymentDate`);
-          const pickerLabel = document.getElementById(`${type}ClientPickerLabel`);
+        try {
+          if (type === 'abono') {
+            const abonoClient = document.getElementById('abonoClient');
+            const abonoLenderType = document.getElementById('abonoLenderType');
+            const abonoLenderClient = document.getElementById('abonoLenderClient');
+            const abonoPaymentAmount = document.getElementById('abonoPaymentAmount');
+            const abonoPaymentDate = document.getElementById('abonoPaymentDate');
+            const abonoClientPickerLabel = document.getElementById('abonoClientPickerLabel');
+            const abonoLenderClientPickerLabel = document.getElementById('abonoLenderClientPickerLabel');
+            const abonoLenderInfo = document.getElementById('abonoLenderInfo');
 
-          if (clientSelect) clientSelect.value = '';
-          if (amountInput) amountInput.value = '';
-          if (dateInput) dateInput.value = '';
-          if (pickerLabel) pickerLabel.textContent = 'Choose a client...';
+            if (abonoClient) abonoClient.value = '';
+            if (abonoLenderType) abonoLenderType.value = 'client';
+            if (abonoLenderClient) abonoLenderClient.value = '';
+            if (abonoPaymentAmount) abonoPaymentAmount.value = '';
+            if (abonoPaymentDate) abonoPaymentDate.value = '';
+            if (abonoClientPickerLabel) abonoClientPickerLabel.textContent = 'Choose a client...';
+            if (abonoLenderClientPickerLabel) abonoLenderClientPickerLabel.textContent = 'Choose a client...';
+            if (abonoLenderInfo) abonoLenderInfo.textContent = 'Available advance: ₱0.00';
+
+            // Reset lender visibility safely
+            if (typeof toggleAbonoLender === 'function') toggleAbonoLender();
+          } else {
+            const clientSelect = document.getElementById(`${type}Client`);
+            const amountInput = document.getElementById(`${type}PaymentAmount`);
+            const dateInput = document.getElementById(`${type}PaymentDate`);
+            const pickerLabel = document.getElementById(`${type}ClientPickerLabel`);
+
+            if (clientSelect) clientSelect.value = '';
+            if (amountInput) amountInput.value = '';
+            if (dateInput) dateInput.value = '';
+            if (pickerLabel) pickerLabel.textContent = 'Choose a client...';
+          }
+        } catch (error) {
+          // Silently handle any errors during field clearing
+          console.log(`Error clearing ${type} fields:`, error);
         }
       }
 
       // Clear absence form fields
       function clearAbsenceFormFields() {
-        document.getElementById('absentClient').value = '';
-        document.getElementById('absentDate').value = '';
-        document.getElementById('absentReason').value = '';
-        const pickerLabel = document.getElementById('absentClientPickerLabel');
-        if (pickerLabel) pickerLabel.textContent = 'Choose a client...';
+        try {
+          const absentClient = document.getElementById('absentClient');
+          const absentDate = document.getElementById('absentDate');
+          const absentReason = document.getElementById('absentReason');
+          const pickerLabel = document.getElementById('absentClientPickerLabel');
+
+          if (absentClient) absentClient.value = '';
+          if (absentDate) absentDate.value = '';
+          if (absentReason) absentReason.value = '';
+          if (pickerLabel) pickerLabel.textContent = 'Choose a client...';
+        } catch (error) {
+          // Silently handle any errors during field clearing
+          console.log('Error clearing absence fields:', error);
+        }
       }
 
       // Clear payment history
