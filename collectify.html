@@ -6456,10 +6456,8 @@
             }
           }
 
-          const selElAdv = document.getElementById(`${type}Client`);
-          if (selElAdv) { selElAdv.value = ""; selElAdv.dispatchEvent(new Event("change", { bubbles: true })); }
-          const amtElAdv = document.getElementById(amountField);
-          if (amtElAdv) amtElAdv.value = "";
+          // Clear all form fields for Adv tab
+          clearTabFormFields(type);
 
           await saveData();
           updateStats();
