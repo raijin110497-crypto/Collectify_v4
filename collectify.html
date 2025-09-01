@@ -2777,7 +2777,7 @@
                 <p>Notebook</p>
               </div>
               <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-teal), var(--ios-blue));">
-                <h3 id="summaryGcashTotal">₱0</h3>
+                <h3 id="summaryGcashTotal">��0</h3>
                 <p>GCash</p>
               </div>
               <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-green), var(--ios-teal));">
@@ -3722,7 +3722,7 @@
         <div class="modal-header">
           <h2>Edit Payment</h2>
           <button class="close-btn" onclick="closeModal('editPaymentModal')" aria-label="Close">
-            ��
+            ✕
           </button>
         </div>
         <div class="modal-body">
@@ -7152,6 +7152,7 @@
             absences = [];
             await saveData();
             updateAbsenceHistory();
+            clearAbsenceFormFields(); // Clear form fields
             if (currentActiveTab === 'summary') loadSummaryTab();
             showNotification("Absence history cleared", "success");
           },
