@@ -6536,8 +6536,8 @@
             updatedTypes.add(usedType);
           }
 
-          document.getElementById(`${type}Client`).value = "";
-          document.getElementById(amountField).value = "";
+          // Clear all form fields after Sunday split payment
+          clearTabFormFields(type);
 
           await saveData();
           updateStats();
