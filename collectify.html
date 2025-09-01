@@ -98,6 +98,7 @@
         transform: translateY(0);
         transition: all 0.4s var(--ios-easing);
         overflow: visible;
+        min-height: 72px;
       }
       /* Dark gray banner to match logo outer bg */
       .header.header-dark {
@@ -1497,6 +1498,7 @@
         .header {
           padding: 12px 0 18px 0;
           margin-bottom: 6px;
+          min-height: 68px;
         }
 
         .header h1 {
@@ -1624,6 +1626,7 @@
         .header {
           padding: 6px 0;
           border-radius: 6px;
+          min-height: 56px;
         }
 
         .header h1 {
@@ -6531,7 +6534,7 @@
               <div style="display:flex; justify-content: space-between; align-items:center;">
                 <div>
                   <h4>${it.clientName}</h4>
-                  <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
+                  <p>Paid: ���${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
                   <p>Over by ₱${it.overBy.toFixed(2)}</p>
                 </div>
               </div>
