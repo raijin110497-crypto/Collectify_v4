@@ -4856,7 +4856,8 @@
         }
         const today = todayLocalDateStr();
         const expected = expectedAmountForDate(client, today) || 0;
-        const msg = `Hi ${client.name}, this is a reminder for your payment on ${parseLocalDate(today).toLocaleDateString()}: ₱${expected.toFixed(2)}. Remaining balance: ₱${(Number(client.remainingBalance)||0).toFixed(2)}. Thank you.`;
+        const displayDate = today === todayLocalDateStr() ? 'Today' : parseLocalDate(today).toLocaleDateString();
+        const msg = `Hi ${client.name}, this is a reminder for your payment on ${displayDate}: ₱${expected.toFixed(2)}. Remaining balance: ₱${(Number(client.remainingBalance)||0).toFixed(2)}. Thank you.`;
         const phone = String(client.contactNumber).replace(/[^0-9+]/g, '');
         const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
         const sep = isIOS ? '&' : '?';
@@ -9252,28 +9253,75 @@
         (function addAbsentPatternPayer(){
           const client = arr[arr.length - 2];
           if (!client) return;
-          // Clear previous for this client then add absences on two working days
+          // Reset any generated entries for this client then create a light absence pattern with regular payments
           Object.keys(p).forEach(t => { p[t] = (p[t]||[]).filter(x => x.clientId !== client.id); });
           for (let i = abs.length - 1; i >= 0; i--) { if (abs[i].clientId === client.id) abs.splice(i,1); }
           const start = parseLocalDate(client.startDate);
           const end = new Date(); end.setDate(end.getDate()-1);
           const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-          let addedAbs = 0;
           const types = ['notebook','office','gcash'];
           let ti = 0;
-          for (let d = new Date(start); d <= endOnly; d.setDate(d.getDate()+1)) {
+          let remaining = client.totalAmount;
+          let addedAbs = 0;
+          const maxAbsences = 3;
+          for (let d = new Date(start); d <= endOnly && remaining > 0; d.setDate(d.getDate()+1)) {
             const ds = formatDateLocal(d);
             if (isNonCollectionDay(ds)) continue;
-            if (addedAbs < 2 && Math.random() < 0.15) { abs.push({ id: Date.now()+Math.random()*1000|0, clientId: client.id, clientName: client.name, date: ds, reason: 'personal' }); addedAbs++; continue; }
+            if (addedAbs < maxAbsences && Math.random() < 0.08) {
+              abs.push({ id: Date.now()+Math.random()*1000|0, clientId: client.id, clientName: client.name, date: ds, reason: 'personal' });
+              addedAbs++;
+              continue;
+            }
             const expected = expectedAmountForDate(client, ds);
             if (expected <= 0) continue;
-            const amt = Math.min(expected, Math.max(0, client.totalAmount - (Object.values(p).flat().filter(x=>x.clientId===client.id).reduce((s,x)=>s+(Number(x.amount)||0),0))));
-            if (amt <= 0) break;
+            const amt = Math.min(expected, remaining);
+            if (amt <= 0) continue;
             const type = types[ti++ % types.length];
             p[type].push({ id: Date.now()+Math.random()*100000|0, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: type });
+            remaining -= amt;
           }
           client.remainingBalance = Math.max(0, client.totalAmount - Object.values(p).flat().filter(x=>x.clientId===client.id).reduce((s,x)=>s+(Number(x.amount)||0),0));
           client.status = client.remainingBalance <= 1e-6 ? 'paid' : 'active';
+        })();
+
+        // Backfill sparse histories for realism: ensure active clients have payments on many non-absent working days
+        (function backfillSparsePayers(){
+          const end = new Date(); end.setDate(end.getDate()-1);
+          const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+          arr.forEach((client, idx) => {
+            if (idx === 0) return;
+            if (client.status === 'paid') return;
+            const paidList = Object.values(p).flat().filter(x => x.clientId === client.id);
+            const sumPaid = paidList.reduce((s,x)=>s+(Number(x.amount)||0),0);
+            let remaining = Math.max(0, client.totalAmount - sumPaid);
+            if (remaining <= 0) return;
+            const paidDates = new Set(paidList.map(x => x.date));
+            const eligible = [];
+            for (let d = parseLocalDate(client.startDate); d <= endOnly; d.setDate(d.getDate()+1)) {
+              const ds = formatDateLocal(d);
+              if (isNonCollectionDay(ds)) continue;
+              if ((abs||[]).some(a => a.clientId === client.id && a.date === ds)) continue;
+              if (!paidDates.has(ds)) eligible.push(ds);
+            }
+            const target = Math.min(12, Math.ceil(eligible.length * 0.4));
+            const types = ['notebook','office','gcash'];
+            let ti = 0;
+            for (let i = 0; i < eligible.length && i < target && remaining > 0; i++) {
+              const ds = eligible[i];
+              const expected = expectedAmountForDate(client, ds);
+              if (expected <= 0) continue;
+              const amt = Math.min(expected, remaining);
+              if (amt <= 0) break;
+              const type = types[ti++ % types.length];
+              p[type].push({ id: Date.now()+Math.random()*100000|0, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: type });
+              remaining -= amt;
+            }
+          });
+          arr.forEach(client => {
+            const paidTot = Object.values(p).flat().filter(x=>x.clientId===client.id).reduce((s,x)=>s+(Number(x.amount)||0),0);
+            client.remainingBalance = Math.max(0, client.totalAmount - paidTot);
+            client.status = client.remainingBalance <= 1e-6 ? 'paid' : 'active';
+          });
         })();
 
         // Ensure one active client has exactly 8 payment days left for testing Full Pay rule
