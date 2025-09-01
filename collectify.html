@@ -9306,7 +9306,11 @@
             remainingBalance,
             status,
             interestRate,
-            coMaker: { name: `CoMaker ${i}`, contactNumber: `0908${(7650000 + i).toString().padStart(7,'0')}`, address: `Zone ${i}, Demo City` },
+            coMaker: {
+              name: ['Roberto Santos', 'Elena Cruz', 'Jose Dela Cruz', 'Ana Garcia Sr.', 'Carmen Reyes', 'Pedro Mendoza', 'Maria Rivera', 'Luis Valdez', 'Rosa Torres', 'Antonio Lopez'][i - 1],
+              contactNumber: ['09281234567', '09359876543', '09163456789', '09429823451', '09467890123', '09514321567', '09631234890', '09819876321', '09968742359', '09992345987'][i - 1],
+              address: ['Poblacion Sur, Camiling, Tarlac', 'Cayaoan, Camiling, Tarlac', 'San Jose, Camiling, Tarlac', 'Balite, Camiling, Tarlac', 'Nambalan, Camiling, Tarlac', 'Marawi, Camiling, Tarlac', 'Pindangan, Camiling, Tarlac', 'Sto. Rosario, Camiling, Tarlac', 'Bacabac, Camiling, Tarlac', 'Manggalang, Camiling, Tarlac'][i - 1]
+            },
             collateral: { description: `Demo Collateral ${i} - Sample Item`, photosBase64: [], photoBase64: null },
             consecutiveMissedDays: 0,
             lastPaymentDate: null
