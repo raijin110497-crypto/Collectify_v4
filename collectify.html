@@ -2156,7 +2156,7 @@
       .calendar-cell { background: var(--ios-tertiary-system-background); border: 1px solid var(--ios-opaque-separator); border-radius: 10px; min-height: 56px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; transition: background 0.2s var(--ios-easing); }
       .calendar-cell.disabled { opacity: 0.45; filter: grayscale(0.2); }
       .calendar-cell.today { box-shadow: 0 0 0 2px rgba(0,122,255,0.25) inset; }
-      .calendar-cell.absent { background: rgba(255,59,48,0.08); }
+      .calendar-cell.absent { background: rgba(255,59,48,0.15); border: 1px solid var(--ios-red); }
       /* Selected day highlight (inline and sheet) */
       .calendar-cell.selected { box-shadow: 0 0 0 2px rgba(0,122,255,0.45) inset; background: rgba(0,122,255,0.08); }
       .day-num { font-size: 12px; color: var(--ios-secondary-label); font-weight: 600; }
@@ -2777,7 +2777,7 @@
                 <p>Notebook</p>
               </div>
               <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-teal), var(--ios-blue));">
-                <h3 id="summaryGcashTotal">��0</h3>
+                <h3 id="summaryGcashTotal">₱0</h3>
                 <p>GCash</p>
               </div>
               <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-green), var(--ios-teal));">
@@ -5535,7 +5535,7 @@
 
         list.innerHTML = `
           ${overdue.length ? `<h3 style="margin:8px 4px">Overdue</h3>${overdueHtml}` : ''}
-          ${dueSoon.length ? `<h3 style=\"margin:12px 4px 8px\">Due Soon (�� ${OVERDUE_SOON_DAYS} days)</h3>${soonHtml}` : ''}
+          ${dueSoon.length ? `<h3 style=\"margin:12px 4px 8px\">Due Soon (≤ ${OVERDUE_SOON_DAYS} days)</h3>${soonHtml}` : ''}
         `;
         bindClientCardClicks('overdueList');
       }
@@ -6547,7 +6547,7 @@
 
           const parts = [];
           if (satAmt > 0) parts.push(`₱${satAmt.toFixed(2)} to Saturday (${satDate})`);
-          if (monAmt > 0) parts.push(`��${monAmt.toFixed(2)} to Monday (${monDate})`);
+          if (monAmt > 0) parts.push(`₱${monAmt.toFixed(2)} to Monday (${monDate})`);
           showNotification(`Sunday payment split: ${parts.join(" and ")}`, "success");
           return;
         }
@@ -6594,7 +6594,7 @@
         if (type === "abono") {
           const lenderSel = document.getElementById("abonoLenderClient");
           if (lenderSel) { lenderSel.value = ""; lenderSel.dispatchEvent(new Event("change", { bubbles: true })); }
-          const info = document.getElementById("abonoLenderInfo"); if (info) info.textContent = "Available advance: ��0.00";
+          const info = document.getElementById("abonoLenderInfo"); if (info) info.textContent = "Available advance: ₱0.00";
         }
 
         await saveData();
@@ -6701,7 +6701,7 @@
                 <div>
                   <h4>${it.clientName}</h4>
                   <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
-                  <p>Over by ��${it.overBy.toFixed(2)}</p>
+                  <p>Over by ₱${it.overBy.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -9548,7 +9548,7 @@
         try { loadOverdueTab(); } catch(e) {}
         const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
         const paidCt = (clients||[]).filter(c=>c.status==='paid').length;
-        showNotification(`Demo mode enabled: 10 sample clients loaded ��� Fully paid: ${paidCt}`, 'success');
+        showNotification(`Demo mode enabled: 10 sample clients loaded — Fully paid: ${paidCt}`, 'success');
       }
       function endDemoMode(){
         if (!demo.active || !demo.backup) return;
