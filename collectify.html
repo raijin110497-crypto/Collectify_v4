@@ -9272,9 +9272,16 @@
             dueDate = formatDateLocal(addDaysLocal(today, 2));
           }
 
+          // Define client names based on payment behavior
+          const clientNames = [
+            'Maria Santos (Overdue)', 'Juan Cruz (Bad Payer)', 'Rosa Dela Cruz (Stopped Paying)',
+            'Ana Garcia (Sometimes Good)', 'Pedro Reyes (Irregular)', 'Sofia Mendoza (Fair)', 'Carlos Rivera (Decent)',
+            'Elena Valdez (Good Payer)', 'Miguel Torres (Excellent)', 'Carmen Lopez (Perfect Payer)'
+          ];
+
           const client = {
             id: 9000 + i,
-            name: `Demo Client ${i}`,
+            name: clientNames[i - 1],
             contactNumber: `0917${(1230000 + i).toString().padStart(7,'0')}`,
             address: `Barangay ${i}, Demo City`,
             loanAmount,
