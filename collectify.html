@@ -6701,7 +6701,7 @@
                 <div>
                   <h4>${it.clientName}</h4>
                   <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
-                  <p>Over by ₱${it.overBy.toFixed(2)}</p>
+                  <p>Over by ��${it.overBy.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -7040,7 +7040,7 @@
               if (type === "notebook" || type === "office" || type === "gcash") {
                 dateInput.value = todayLocalDateStr();
               } else {
-                dateInput.value = '';
+                dateInput.value = todayLocalDateStr(); // Set to today for adv tab as well
               }
             }
             if (pickerLabel) pickerLabel.textContent = 'Choose a client...';
@@ -9555,7 +9555,7 @@
         try { loadOverdueTab(); } catch(e) {}
         const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
         const paidCt = (clients||[]).filter(c=>c.status==='paid').length;
-        showNotification(`Demo mode enabled: 10 sample clients loaded ����� Fully paid: ${paidCt}`, 'success');
+        showNotification(`Demo mode enabled: 10 sample clients loaded ��� Fully paid: ${paidCt}`, 'success');
       }
       function endDemoMode(){
         if (!demo.active || !demo.backup) return;
