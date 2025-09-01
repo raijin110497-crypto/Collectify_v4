@@ -89,7 +89,7 @@
         backdrop-filter: blur(30px);
         -webkit-backdrop-filter: blur(30px);
         border-radius: var(--ios-border-radius-large);
-        padding: 12px 0 16px 0;
+        padding: 8px 0;
         margin-bottom: 8px;
         box-shadow: var(--ios-shadow-elevated);
         text-align: center;
@@ -99,13 +99,16 @@
         transition: all 0.4s var(--ios-easing);
         overflow: visible;
         min-height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       /* Dark gray banner to match logo outer bg */
       .header.header-dark {
         background: #2c2c2e;
         border-color: #2c2c2e;
       }
-      .header.header-dark h1 { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+      .header.header-dark h1 { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.25); font-family: "Avenir Next", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif; }
 
       .header:hover {
         transform: translateY(-1px);
@@ -256,6 +259,7 @@
         margin: 0;
         line-height: 1.2;
         animation: slideInFromTop 0.6s var(--ios-spring-timing);
+        font-family: "Avenir Next", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
       }
 
       .header p {
@@ -1496,9 +1500,12 @@
         }
 
         .header {
-          padding: 12px 0 18px 0;
+          padding: 8px 0;
           margin-bottom: 6px;
           min-height: 68px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .header h1 {
@@ -1627,6 +1634,9 @@
           padding: 6px 0;
           border-radius: 6px;
           min-height: 56px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .header h1 {
@@ -6534,7 +6544,7 @@
               <div style="display:flex; justify-content: space-between; align-items:center;">
                 <div>
                   <h4>${it.clientName}</h4>
-                  <p>Paid: ���${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
+                  <p>Paid: ₱${it.paid.toFixed(2)} • Expected: ₱${it.expected.toFixed(2)} <span class="status-badge status-overpay" style="margin-left:6px">Over</span></p>
                   <p>Over by ₱${it.overBy.toFixed(2)}</p>
                 </div>
               </div>
