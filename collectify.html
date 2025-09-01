@@ -99,6 +99,11 @@
         transition: all 0.4s var(--ios-easing);
         overflow: visible;
       }
+      /* Dark gray banner to match logo outer bg */
+      .header.header-dark {
+        background: #2c2c2e;
+        border-color: #2c2c2e;
+      }
 
       .header:hover {
         transform: translateY(-1px);
@@ -2187,7 +2192,7 @@
   </head>
   <body>
     <div class="container">
-      <div class="header">
+      <div class="header header-dark">
         <button
           class="icon-btn menu-btn"
           aria-label="Open menu"
@@ -2765,7 +2770,7 @@
                 <p>Full Pay</p>
               </div>
               <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-yellow), var(--ios-orange));">
-                <h3 id="summaryAdvTotal">₱0</h3>
+                <h3 id="summaryAdvTotal">��0</h3>
                 <p>Adv (applied today)</p>
               </div>
               <div class="stat-card" style="background: linear-gradient(135deg, var(--ios-pink), var(--ios-red));">
@@ -9291,7 +9296,7 @@
             },
           },
           {
-            text: "All sections are here, ordered as Dashboard → Daily Tracker → Summary → Overdue → Notebook → Office → GCash → Adv → Absent → Abono → Settings.",
+            text: "All sections are here, ordered as Dashboard ��� Daily Tracker → Summary → Overdue → Notebook → Office → GCash → Adv → Absent → Abono → Settings.",
             selector: '.sidebar .tab[data-tab="dashboard"]',
             padding: 4,
             needsSidebar: true,
