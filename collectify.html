@@ -9185,10 +9185,22 @@
               if (ex > 0) p.adv.push({ id: Date.now()+500+idx, clientId: client.id, clientName: client.name, amount: ex, date: next, createdAt, type: 'manual', paymentType: 'adv' });
             }
           } else if (s === 5 && recent[0]) {
-            // Full payment on a recent working day
+            // Build continuous payments from start up to the day before full pay, then full pay
+            const fullDay = recent[0];
+            const endPrev = formatDateLocal(addDaysLocal(fullDay, -1));
+            for (let d = parseLocalDate(client.startDate); formatDateLocal(d) <= endPrev && client.remainingBalance > 0; d.setDate(d.getDate()+1)) {
+              const ds = formatDateLocal(d);
+              if (isNonCollectionDay(ds)) continue;
+              const exp = expectedAmountForDate(client, ds);
+              const amt = Math.min(exp, client.remainingBalance);
+              client.remainingBalance -= amt;
+              p.notebook.push({ id: Date.now()+60000+idx+Math.random()*1000|0, clientId: client.id, clientName: client.name, amount: amt, date: ds, type: 'daily', paymentType: 'notebook' });
+            }
             const rb = client.remainingBalance;
-            p.notebook.push({ id: Date.now()+600+idx, clientId: client.id, clientName: client.name, amount: rb, date: recent[0], type: 'full', paymentType: 'notebook' });
-            client.remainingBalance = 0; client.status = 'paid';
+            if (rb > 0) {
+              p.notebook.push({ id: Date.now()+600+idx, clientId: client.id, clientName: client.name, amount: rb, date: fullDay, type: 'full', paymentType: 'notebook' });
+              client.remainingBalance = 0; client.status = 'paid';
+            }
           }
         });
 
@@ -9283,7 +9295,8 @@
         // Refresh Overdue list immediately (in case user navigates there next)
         try { loadOverdueTab(); } catch(e) {}
         const btn = document.getElementById('demoModeBtn'); if (btn && btn.querySelector) { const s = btn.querySelector('span'); if (s) s.textContent = 'Exit demo mode'; }
-        showNotification('Demo mode enabled: 10 sample clients loaded', 'success');
+        const paidCt = (clients||[]).filter(c=>c.status==='paid').length;
+        showNotification(`Demo mode enabled: 10 sample clients loaded • Fully paid: ${paidCt}`, 'success');
       }
       function endDemoMode(){
         if (!demo.active || !demo.backup) return;
