@@ -3428,7 +3428,7 @@
                 Choose up to 3 photos from gallery or camera
               </small>
               <button type="button" onclick="testFileUpload()" style="margin-top: 8px; padding: 6px 12px; font-size: 12px; background: var(--ios-orange); color: white; border: none; border-radius: var(--ios-border-radius);">
-                ���� Test File Upload (Debug for Android)
+                🔧 Test File Upload (Debug for Android)
               </button>
               <div id="collateralPreview" style="margin-top: 10px; display: none;">
                 <div id="collateralPreviewList" class="collateral-preview-list"></div>
@@ -4298,6 +4298,11 @@
           document.getElementById("startDate").value = today;
           calculateLoanDetails();
           clearClientNameError("clientName", "clientNameError");
+          // Clear start date validation error
+          const startDateError = document.getElementById("startDateError");
+          if (startDateError) startDateError.style.display = "none";
+          const startDateInput = document.getElementById("startDate");
+          if (startDateInput) startDateInput.classList.remove("input-error");
         }
 
         if (modalId === "editClientModal") {
