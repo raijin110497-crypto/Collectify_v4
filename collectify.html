@@ -6583,8 +6583,10 @@
           updatePaymentTracking(parseInt(clientId), date);
         }
 
-        // Clear form
-        const selEl = document.getElementById(`${type}Client`);
+        // Clear all form fields after successful payment
+        clearTabFormFields(type);
+        // Legacy clearing code replaced with comprehensive function
+        // const selEl = document.getElementById(`${type}Client`);
         if (selEl) { selEl.value = ""; selEl.dispatchEvent(new Event("change", { bubbles: true })); }
         const amtEl = document.getElementById(amountField);
         if (amtEl) amtEl.value = "";
